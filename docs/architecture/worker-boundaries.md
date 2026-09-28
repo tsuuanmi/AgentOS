@@ -13,7 +13,7 @@ No layer substitutes for another.
 
 ## Boundary topology
 
-The five concerns are not a single protocol stack. They are independent authorities that constrain one Worker exchange from different directions.
+The five concerns are not a single protocol stack. They are independent authorities that constrain one Worker exchange from different directions. In the current architecture, the concrete external participant on the provider side is the Website Agent; the provider adapter maps that participant's MCP lifecycle onto the local Worker boundary.
 
 ~~~mermaid
 flowchart LR
@@ -22,7 +22,7 @@ flowchart LR
     S[Schema<br/>machine-checkable shape]
     T[Transport profile<br/>MCP today]
     K[Skill<br/>procedural guidance]
-    P[Provider execution]
+    P[Website Agent / provider execution]
     SI[Server invariants<br/>current durable truth]
     WS[Worker server]
 
@@ -135,7 +135,7 @@ The canonical schema registry lives under [/schemas](../../schemas/README.md).
 
 ## MCP transport
 
-MCP is the first Website-facing callable transport profile for Worker semantics.
+MCP is the first Website-facing callable transport profile for Worker semantics. The Website Agent is the MCP client; the local AgentOS Worker bridge is the MCP server.
 
 ~~~mermaid
 flowchart LR
