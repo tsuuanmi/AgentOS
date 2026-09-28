@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentos:schema:mcp-worker-capabilities-request",
+  "title": "AgentOS MCP Worker Capabilities Request",
+  "description": "Requests capabilities for one explicit Worker binding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workerId"
+  ],
+  "properties": {
+    "workerId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    }
+  }
+}
