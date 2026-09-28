@@ -228,7 +228,7 @@ Worker Provider
 Possible mappings include:
 
 ~~~text
-Team member A -> DSH Worker provider
+Team member A -> DSH subagent provider
 Team member B -> Website Worker provider
 
 or
