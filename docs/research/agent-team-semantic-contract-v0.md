@@ -29,12 +29,15 @@ These are not equivalent implementations internally.
 
 The shared AgentOS contract should therefore describe the **reasoning service requested by the caller**, not Team mechanics.
 
-For v1, only two semantic operations are proven necessary:
+For the software v1 flow, three semantic phases are now proven useful:
 
 ~~~text
 research
+implementation
 review
 ~~~
+
+Research and review include bounded Team debate internally. Brainstorm/debate rounds are Team policy, not public runtime objects.
 
 Do not add generic Team session/member/task APIs to AgentOS v1.
 
@@ -60,6 +63,8 @@ Conceptually:
 
 ~~~text
 agentTeam.research(request) -> ResearchResult
+
+agentTeam.implement(request) -> ImplementationReport
 
 agentTeam.review(request) -> ReviewResult
 ~~~
@@ -112,9 +117,50 @@ Important invariant:
 
 > Research output is evidence/reasoning data, not Workflow authority.
 
+### Debate is internal Team policy
+
+Research should normally include:
+
+~~~text
+independent brainstorm
+  -> peer exchange/debate
+  -> strongest-supported synthesis
+~~~
+
+The debate phase may use DSH TeamTasks/mailbox and bounded rounds. Round/member-turn objects are not part of the public Agent Team contract.
+
 The caller decides how the result is persisted, validated, or used.
 
-## 4. Review contract
+## 4. Implementation contract
+
+The same DSH Team collaboration may continue from research into implementation.
+
+Minimum semantic request:
+
+~~~text
+ImplementationRequest
+  objective
+  ResearchResult/ref
+  exact workspace/base binding
+  constraints
+  validation expectations
+~~~
+
+Minimum semantic result:
+
+~~~text
+ImplementationReport
+  summary
+  changed scope/files?
+  tests attempted/results?
+  unresolved issues?
+~~~
+
+The report is model-produced evidence/data. It is **not proof of side-effect correctness**.
+
+Actual repository/workspace state and deterministic validation remain authoritative for implementation effects.
+
+## 5. Review contract
 
 Minimum semantic request:
 
@@ -151,7 +197,7 @@ Important invariant:
 
 Workflow owns that input binding and rejects stale review results.
 
-## 5. Progress is observation, not correctness
+## 6. Progress is observation, not correctness
 
 Both Internet Team and DSH Agent Teams can expose rich progress.
 
@@ -172,7 +218,7 @@ Workflow correctness depends on the final typed Agent Team result plus exact inp
 
 A Local UI may surface progress, but loss of progress observation must not lose semantic Team completion.
 
-## 6. Provider lifecycle stays provider-owned
+## 7. Provider lifecycle stays provider-owned
 
 An Agent Team provider may be:
 
@@ -242,7 +288,7 @@ Port the useful research/review behavior, not the Internet Team runtime.
 
 The first Agent Team provider should be DSH Agent Teams plus an AgentOS policy/result adapter implementing the proven Internet Team semantics.
 
-## 8. DSH Agent Teams as the v1 runtime
+## 9. DSH Agent Teams as the v1 runtime
 
 DSH Agent Teams provides a different but valuable layer:
 
@@ -271,7 +317,7 @@ Therefore:
 
 Because DSH Agent Teams is experimental, AgentOS should isolate it behind the narrow semantic contract, pin compatibility deliberately, and test the adapter rather than leaking DSH Team types into callers.
 
-## 9. No Team internals in Workflow
+## 10. No Team internals in Workflow
 
 Workflow should see:
 
@@ -299,7 +345,7 @@ This removes the current Internet coupling where Team member steps can become Wo
 
 If a Team provider needs durable member-level recovery, that state stays inside the Team provider.
 
-## 10. Failure and recovery boundary
+## 11. Failure and recovery boundary
 
 For the first software Workflow:
 
@@ -324,7 +370,7 @@ Provider-specific failures such as browser unavailable, provider timeout, teamma
 
 They should not become generic Workflow lifecycle states.
 
-## 11. Cancellation
+## 12. Cancellation
 
 Caller cancellation should request provider cancellation where possible.
 
@@ -338,7 +384,7 @@ caller cancels Agent Team invocation
 
 Agent Team internal teammate interruption/cancellation policy remains provider-owned.
 
-## 12. Evidence/provenance
+## 13. Evidence/provenance
 
 Research and review often depend on external evidence.
 
@@ -355,7 +401,7 @@ Provider-native transcript/member reasoning should not be required durable outpu
 
 The semantic result should be useful without hidden chain-of-thought.
 
-## 13. Result quality vs Team topology
+## 14. Result quality vs Team topology
 
 AgentOS should not encode assumptions such as:
 
@@ -380,7 +426,7 @@ The semantic requirement is only:
 
 This preserves provider/model/topology agnosticism.
 
-## 14. V1 architecture after this boundary
+## 15. V1 architecture after this boundary
 
 ~~~text
 Local Agent
@@ -405,7 +451,7 @@ Workflow does not own Agent Team.
 
 Both are independently replaceable AgentOS capabilities.
 
-## 15. Highest-ROI implementation path
+## 16. Highest-ROI implementation path
 
 Do not build a generic Agent Team runtime.
 
@@ -421,7 +467,7 @@ The smallest path is:
 
 This proves the semantic boundary while maximizing immediate DSH reuse.
 
-## 16. Defer
+## 17. Defer
 
 Do not add yet:
 
@@ -443,11 +489,11 @@ universal critique/synthesis operations
 
 Promote one only when a concrete Local/Workflow use case requires it independently of a provider.
 
-## 17. ROI conclusion
+## 18. ROI conclusion
 
 The highest-ROI next architecture work is **not more Workflow kernel research**.
 
-It is to lock the minimal Agent Team research/review semantic contract needed by the already-defined software vertical slice.
+It is to lock the minimal Agent Team research/implementation/review phase contracts and the typed completion bridge while preserving brainstorm/debate inside the DSH Team.
 
 Once that contract is stable, the full v1 architecture becomes testable end-to-end:
 
