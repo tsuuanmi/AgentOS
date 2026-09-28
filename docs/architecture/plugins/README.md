@@ -1,8 +1,6 @@
 # AgentOS plugin architecture
 
-AgentOS follows DeepSeek Harness / Cordis's **Everything Is A Plugin** philosophy.
-
-DSH/Cordis is the initial Host. AgentOS behavior is organized as explicit plugins with one canonical folder per boundary.
+AgentOS follows DSH/Cordis's **Everything Is A Plugin** philosophy while keeping protocol/runtime ownership explicit.
 
 ## Canonical tree
 
@@ -46,104 +44,127 @@ docs/architecture/plugins/
     workflow-runtime.md
 ~~~
 
-## Ownership
+## Implementation read order
 
-### AgentOS-owned plugins
-
-| Plugin | Responsibility |
-|---|---|
-| [AgentOS](agentos/README.md) | top-level composition/configuration |
-| [Worker](worker/README.md) | right-agent-right-job selection, delegated execution binding, result acceptance |
-| [Agent Team](agent-team/README.md) | collaboration policy and Team Member coordination |
-| [Workflow](workflow/README.md) | durable sequencing/recovery semantics + Profiles |
-| [Website Agent](website-agent/README.md) | Internet-derived Website Core plus ACP runtime port and A2A peer port |
-| [A2A](a2a/README.md) | standardized peer collaboration between Website Agent and Agent Team Members/other agents |
-
-### Reused DSH plugins/services
-
-DSH-owned implementation seams are grouped under [DSH plugins and capabilities](dsh/README.md).
-
-## Two independent Website Agent connections
-
-Website Agent participates in AgentOS on two different axes:
+For implementation work, read in this order:
 
 ~~~text
-runtime/control axis
-DSH or other runtime -- ACP --> Website Agent
-
-peer collaboration axis
-Agent Team Member <------ A2A ------> Website Agent
+plugins/README.md
+  -> plugin/README.md
+      -> plugin-local contract/composition docs
+          -> reused DSH/protocol docs
+              -> proposal/research only for unresolved questions
+                  -> tests/source
 ~~~
 
-ACP and A2A are not competing transports.
+Each plugin README is expected to answer:
 
-ACP is the standard runtime/client-to-agent connection.
+1. Why does this plugin exist?
+2. What semantic does it own?
+3. Which lower-level mechanics does it reuse?
+4. What are its public inputs/outputs?
+5. Which native protocol/runtime objects cross the boundary?
+6. What state is durable and who owns it?
+7. How does success/failure/recovery flow?
+8. What tests prove the boundary?
 
-A2A is the standard agent-to-agent collaboration connection.
+## Ownership map
 
-## Dependency direction
+| Plugin / seam | Primary responsibility |
+|---|---|
+| [AgentOS](agentos/README.md) | composition and dependency validation |
+| [Worker](worker/README.md) | right-agent-right-job selection + semantic acceptance |
+| [Agent Team](agent-team/README.md) | collaboration policy |
+| [Workflow](workflow/README.md) | durable sequencing/recovery |
+| [Website Agent](website-agent/README.md) | operational Website agent core + protocol ports |
+| [A2A](a2a/README.md) | Website Agent <-> Team Member peer collaboration |
+| [DSH Agent Team](dsh/agent-team.md) | Team runtime mechanics |
+| [DSH Subagents](dsh/subagents.md) | delegated provider registry/lifecycle |
+| [DSH ACP](dsh/acp.md) | first ACP runtime/client integration |
+| [DSH Workflow runtime](dsh/workflow-runtime.md) | storage/jobs/timers/runtime mechanics |
+
+## Whole-system architecture
 
 ~~~mermaid
 flowchart TB
-    Runtime[DSH / ACP-compatible runtime]
-    AgentOS[AgentOS plugin]
-    Workflow[Workflow plugin]
-    Team[Agent Team plugin]
-    Worker[Worker plugin]
-    Website[Website Agent plugin]
-    A2A[A2A plugin]
+    User[User / Local Agent]
+    Host[DSH / Cordis]
+    AO[AgentOS]
 
-    DSHAT[DSH ctx.agentTeams]
-    Sub[DSH ctx.subagents]
-    ACPClient[DSH ACP client/provider]
-    WebsiteACP[Website ACP Agent adapter]
-    WebsiteCore[Website Agent Core]
+    WF[Workflow]
+    Team[Agent Team]
+    Worker[Worker]
+
+    DSHAT[ctx.agentTeams]
+    Sub[ctx.subagents]
+    ACPClient[DSH ACP Client]
+
+    WebACP[Website ACP Agent]
+    WebCore[Website Agent Core]
+    A2A[A2A]
     Member[Agent Team Member]
-    RuntimeCaps[DSH runtime capabilities]
 
-    Runtime --> AgentOS
-    AgentOS --> Workflow
-    AgentOS --> Team
-    AgentOS --> Worker
-    AgentOS --> Website
-    AgentOS --> A2A
-
-    Workflow --> Team
-    Workflow --> Worker
+    User --> Host --> AO
+    AO --> WF
+    WF --> Team
+    WF --> Worker
     Team --> Worker
+
     Team --> DSHAT
     Worker --> Sub
     Sub --> ACPClient
-    ACPClient --> WebsiteACP --> WebsiteCore
+    ACPClient -->|ACP| WebACP --> WebCore
 
+    Member <--> Team
     Member <--> A2A
-    A2A <--> WebsiteCore
-
-    Workflow --> RuntimeCaps
+    A2A <--> WebCore
 ~~~
 
-## Plugin rule
-
-Before creating or changing a plugin:
-
-1. identify the exact invariant it owns;
-2. identify upstream DSH/protocol/library mechanics already available;
-3. keep one canonical folder for the plugin contract;
-4. keep protocol roles orthogonal rather than overloading one transport;
-5. add a new plugin only when behavior/lifecycle/replacement requires a real boundary;
-6. prefer composition/adapters over duplicate engines.
-
-## Canonical Website Agent split
+## Protocol axes
 
 ~~~text
-Website Agent Core
-  = account + provider + browser + conversation + reconciliation + retained result
+runtime/control axis:
+DSH or another runtime -- ACP --> Website Agent
 
-ACP adapter
-  = runtime <-> Website Agent
+peer collaboration axis:
+Agent Team Member <------ A2A ------> Website Agent
 
-A2A adapter
-  = Website Agent <-> peer Agent / Team Member
+tool/data axis:
+Agent -------------------- MCP ------> Tool / Data / Capability
 ~~~
 
-**Everything Is A Plugin means executable behavior is composable; it does not mean every noun becomes a package.**
+Do not collapse these into one universal Agent protocol.
+
+## Direct-model invariant
+
+Use upstream objects directly:
+
+~~~text
+ACP Session/Prompt/Update
+A2A Task/Message/Artifact/Part
+DSH provider/Team/runtime objects
+MCP tool/resource objects
+~~~
+
+Adapters are behavioral glue, not normalization layers.
+
+Add an AgentOS type only when AgentOS owns a semantic not represented upstream.
+
+## Plugin creation rule
+
+A new plugin boundary is justified only when it has at least one of:
+
+- independent lifecycle;
+- replaceable implementation;
+- distinct authority/security boundary;
+- distinct semantic responsibility;
+- protocol/transport endpoint;
+- reusable capability used by multiple Profiles.
+
+Do not create a plugin only because a noun exists in the architecture.
+
+## TDD rule
+
+Behavioral implementation is **Red -> Green -> Refactor**.
+
+The first Red test for a plugin should normally be a conformance/characterization test proving what upstream DSH/protocol mechanics already guarantee. Production code is added only for the residual semantic gap.
