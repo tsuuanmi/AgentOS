@@ -1,261 +1,106 @@
-# DSH Agent Teams core deep dive
+# DSH Agent Teams provider deep dive
 
 - **Status:** active provider research
-- **Canonical semantics:** [Agent Team contract](../requirements/agent-team.md)
-- **Goal:** identify the smallest DSH-backed implementation needed without duplicating DSH Team mechanics.
+- **Canonical semantics:** [Agent Team requirements](../requirements/agent-team.md), [Worker Protocol](../reference/worker-protocol.md)
+- **Scope:** DSH-specific implementation evidence only. This document does not redefine Agent Team or Worker semantics.
 
-## Confirmed DSH ownership
+## Confirmed DSH reuse
 
-DSH Agent Teams already owns:
+The first Agent Team provider should reuse DSH Agent Teams for mechanics it already owns:
 
-- implicit root Team identity;
-- durable roster/member identity;
-- Lead/member authority;
-- durable peer mailbox;
-- Team task DAG + CAS revisions;
-- teammate continuation/cold resume;
-- wait/change observation;
-- interruption;
-- Team/session projection and recovery.
+| Concern | DSH ownership |
+|---|---|
+| Team identity and roster | DSH Team runtime |
+| member authority/lifecycle | DSH Team runtime |
+| durable peer mailbox | DSH Team runtime |
+| Team task graph and task revisions | DSH Team runtime |
+| teammate continuation/cold resume | DSH Agent/session runtime |
+| Team wait/change observation | DSH Team runtime |
+| Team/session projection and recovery | DSH runtime |
 
-AgentOS must not build parallel versions of these.
+AgentOS must not create parallel stores or semantic identities for these mechanics.
 
-## Direct peer messaging is sufficient for debate
+## Remaining provider gaps
 
-DSH `send_message` is peer-to-peer Team messaging.
+### Dedicated Team lifecycle
 
-The desired research/review pattern is therefore:
+One software collaboration should use one dedicated ordinary DSH Team rather than the user's long-lived Local Team.
 
-~~~text
-A initial Website Agent result
-B initial Website Agent result
+The provider still needs to define how the Team reference is created, recovered, and attached to direct Local use or a Workflow phase without exposing DSH Team identity as public AgentOS semantics.
 
-barrier
+### Capability-based member provisioning
 
-A -> B through send_message
-B -> A through send_message
+Members are selected/provisioned from semantic capability requirements.
 
-A forwards peer evidence to Website Agent A
-B forwards peer evidence to Website Agent B
+Do not encode permanent Primary/Challenger/Reviewer identities in the provider. Member names and provider/model choices are implementation details.
 
-revised conclusions -> Team
-                -> Lead/synthesizer
-~~~
+### WorkerBinding persistence
 
-Lead does not proxy routine debate messages.
+Each DSH member that delegates substantive work needs an isolated provider binding.
 
-## DSH member as Website Agent proxy
-
-A semantic DSH member should have one isolated Website Agent binding.
+Conceptually the provider must recover enough AgentOS-owned state to answer:
 
 ~~~text
-DSH member
-  owns:
-    Team identity/task/mailbox participation
-    wake/resume
-    Website Agent binding
-    bridging Team evidence in/out
-
-Website Agent
-  owns:
-    substantive provider-native reasoning/work
+which Worker belongs to this DSH member?
+which provider adapter owns its current execution?
+which assignment/attempt is current?
+which provider-local continuation reference can be reused?
 ~~~
 
-The local DSH member should not duplicate all source-heavy reasoning already performed by its Website Agent.
+The exact record shape remains open.
 
-### Required binding properties
+Persist this state in an AgentOS-owned domain; do not mirror DSH roster, mailbox, or TeamTask data.
 
-The binding must preserve:
+### Provider continuation
 
-- one member -> one current Website Agent/conversation;
-- no accidental conversation sharing between members;
-- durable recovery after Host/Session restart;
-- provider/account/conversation identity hidden below AgentOS semantics;
-- cancellation/re-auth/error handling without changing DSH Team state.
+DSH teammates are continuable locally, but a bound provider may have different continuation semantics.
 
-The exact persistence/identity design remains open and is the highest-ROI implementation research item.
+For the first Website MCP provider, local code must not assume it can wake an inactive Website conversation. A Worker may advertise multi-round capabilities such as `debate` only when its provider profile can actually deliver later Messages and continue the same assignment safely.
 
-## Dedicated Team root
+### Completion bridge
 
-A semantic software collaboration should use a dedicated ordinary DSH root Team, not the user's long-lived Local Team.
-
-Why:
-
-- Team member names are immutable within one Team;
-- Team state accumulates;
-- research/review independence is easier to preserve;
-- Local stays outside Team transcript/state;
-- Workflow and direct Local use can share the same provider path.
-
-The same dedicated Team can persist across:
+The provider must keep these boundaries distinct:
 
 ~~~text
-research -> implementation -> review
+current Worker completion Artifact accepted
+  -> relevant DSH TeamTask may complete
+  -> Lead/synthesizer commits typed phase result
+  -> Local/Workflow observes phase completion
 ~~~
 
-This is a provider-v1 choice, not public Agent Team semantics.
+DSH member inactivity, message delivery, or TeamTask completion alone is not AgentOS phase completion.
 
-## Fixed role registry
+## Direct peer communication
 
-Do not generate member responsibilities ad hoc per run.
+DSH `send_message` is the correct member-to-member channel for ordinary debate.
 
-The provider should instantiate a fixed software role registry:
+The target member bridges peer evidence into a Worker Message for its own provider execution. Lead does not relay routine peer traffic.
 
-~~~text
-Lead / Synthesizer
-Researcher Primary
-Researcher Challenger
-Implementer
-Reviewer Correctness
-Reviewer Architecture
-~~~
-
-Run-specific objectives and exact inputs vary; mission/output schema/peer relationships remain stable.
-
-## Suggested Team topology
-
-Not every run needs every member, but the software profile may use:
-
-~~~text
-Lead/Synthesizer <-> Website Agent S
-
-Research:
-  researcher-a <-> Website Agent A
-  researcher-b <-> Website Agent B
-
-Implementation:
-  implementer  <-> Website Agent I
-
-Review:
-  reviewer-a   <-> Website Agent RA
-  reviewer-b   <-> Website Agent RB
-~~~
-
-Lead provides Team-level continuity. Research/review members remain independent.
-
-## DSH TeamTask boundary
-
-~~~text
-Workflow WorkItem != DSH TeamTask
-~~~
-
-Workflow WorkItems are outer durable semantic phases.
-
-DSH TeamTasks are internal collaboration tasks.
-
-Example:
-
-~~~text
-Workflow WorkItem: research
-
-DSH Team:
-  brainstorm-a
-  brainstorm-b
-  debate-a
-  debate-b
-  synthesis
-~~~
-
-Workflow sees only the typed phase result.
-
-## Deterministic structure, model-driven content
-
-Highest-ROI provider split:
-
-### Adapter deterministically owns
-
-- dedicated Team root creation;
-- required member provisioning;
-- TeamTask structure/dependencies;
-- exact semantic input binding;
-- phase barriers;
-- typed completion validation;
-- provider result recovery.
-
-### DSH members / Website Agents own
-
-- source-heavy reasoning;
-- direct peer discussion;
-- challenge/revision;
-- implementation reasoning;
-- review reasoning;
-- synthesis content.
-
-This avoids both extremes:
-
-- no custom AgentOS Team runtime;
-- no requirement that the Lead rediscover the product topology every call.
-
-## Continuable-provider reality
-
-DSH Team membership depends on the continuable teammate seam.
-
-Current DSH-native `spawn`/`fork` support that seam.
-
-One-shot product subagent providers should not be assumed directly rosterable unless they gain compatible continuation.
-
-For v1, Website Agents are therefore modeled as **bindings owned by DSH teammates**, not as direct replacements for DSH teammate identity.
-
-## Completion ladder
-
-Do not collapse provider/Team/AgentOS completion into one flag.
-
-~~~text
-Website assignment durable completion
-  -> DSH TeamTask completed
-  -> Lead typed phase result durable
-  -> Workflow may complete its WorkItem
-~~~
-
-DSH `inactive`, `send_message` success, and TeamTask completion alone are not sufficient semantic completion.
-
-## Typed completion is the real semantic gap
-
-DSH has Team mechanics but not AgentOS phase results.
-
-Required bridge:
-
-~~~text
-research       -> ResearchResult
-implementation -> ImplementationReport
-review         -> ReviewResult
-~~~
-
-Completion must:
-
-- be typed;
-- bind exact phase input;
-- become durable before success is reported;
-- reject stale/wrong invocation output;
-- survive restart;
-- contain no DSH Team/member/task/message identifiers as semantic identity.
-
-A scoped completion tool/event is the leading v1 approach, but API shape remains open.
+This research only needs to prove the DSH mapping; independent-first policy and Message/Artifact meaning remain canonical elsewhere.
 
 ## What not to build
 
-Do not add:
+The first provider must not add a second:
 
-- AgentOS TeamId;
-- roster/member DB;
+- TeamId or roster;
 - mailbox;
 - Team task graph;
-- member status model;
-- Team transcript store;
-- Team scheduler;
-- Team continuation manager;
-- generic DebateRound runtime;
-- parallel Internet Team runtime.
+- teammate lifecycle manager;
+- Team persistence/event journal;
+- persona registry;
+- transport-specific semantic identity.
 
-## Provider tests to write first
+## TDD evidence for the provider
 
-1. two DSH members have distinct Website Agent bindings;
-2. bindings survive recovery without cross-member reuse;
-3. independent research completes before peer debate begins;
-4. A/B debate directly through DSH Team messaging;
-5. peer evidence reaches each member's own Website Agent;
-6. Lead receives distilled conclusions and emits typed result;
-7. Local sees synthesis by default;
-8. Workflow sees one phase result, not Team internals;
-9. typed completion is recoverable after restart;
-10. DSH Team state remains the only Team runtime authority.
+The first tests should prove:
+
+1. one collaboration receives one dedicated recoverable DSH Team;
+2. two Workers with the same capabilities still receive isolated provider bindings;
+3. arbitrary provider/session handles never become Worker identity;
+4. peer DSH messages become target-Worker Messages without Lead relay;
+5. stale provider attempts cannot complete current TeamTasks;
+6. TeamTask completion cannot precede current Worker completion acceptance;
+7. typed phase completion cannot precede the required current Worker Artifacts;
+8. restarting the Host recovers binding/phase state without recreating DSH Team state in AgentOS.
+
+These scenarios remain research evidence until they become executable tests and implementation documentation.

@@ -34,7 +34,7 @@ See [interaction model](interaction-model.md) for end-to-end flow and [Worker bo
 | Boundary | Owns | Does not own |
 |---|---|---|
 | Local Agent | user interaction and environment-native work | durable Workflow state or Team internals |
-| Workflow | durable lifecycle, sequencing, recovery, waiting, authority, reattachment | Team membership, debate, Website Agent lifecycle |
+| Workflow | durable lifecycle, sequencing, recovery, waiting, authority, reattachment | Team membership, debate, provider execution lifecycle |
 | Agent Team | collaborative work and typed phase completion | outer Workflow lifecycle or DSH runtime mechanics |
 | DSH/Cordis | agents, sessions, Team runtime, tools, storage/runtime primitives | AgentOS product semantics |
 | Worker provider | provider-specific execution/binding behind Worker semantics | Workflow or Team semantic identity |
@@ -56,9 +56,11 @@ Workflow must not mutate Team internals directly. Agent Team must not mutate Wor
 
 ## Current implementation choices
 
-DSH Agent Teams is the current Team runtime. The first Workflow provider is expected to reuse DSH persistence/runtime primitives. These are current provider choices, not permanent architecture requirements.
+DSH Agent Teams is the current Team runtime.
 
-Detailed provider mechanisms stay in proposal/research until implemented; then they belong in `design/` or source-local documentation when such artifacts genuinely exist.
+The first Workflow provider is expected to reuse DSH persistence/runtime primitives. Website-backed Workers use the MCP provider profile; ACP and A2A remain future provider options behind the same Worker semantics.
+
+These are implementation choices, not permanent architecture requirements. Unresolved implementation work belongs in the [initial implementation proposal](../proposals/initial-implementation.md).
 
 ## Cross-cutting invariants
 
@@ -71,12 +73,12 @@ Detailed provider mechanisms stay in proposal/research until implemented; then t
 7. Real effects are validated from actual state or receipts rather than model claims.
 8. Authority and effect completion remain separate.
 9. Provider choices stay replaceable behind requirements/reference boundaries.
-10. New abstractions require evidence of a real boundary.
+10. New abstractions require evidence of a real semantic, lifecycle, authority, or replacement boundary.
 
 ## Canonical neighbors
 
 - [Requirements](../requirements/README.md) — normative behavior.
-- [Reference](../reference/README.md) — exact protocols, APIs, MCP mapping, and schemas.
-- [Skills](../skills/README.md) — agent usage guidance.
-- [Proposal](../proposals/plugin-first-architecture.md) — unresolved implementation change.
-- [Research](../research/README.md) — supporting evidence and alternatives.
+- [Reference](../reference/README.md) — exact protocols, APIs, MCP mapping, server invariants, and schemas.
+- [software-worker Skill](../../.agents/skills/software-worker/SKILL.md) — procedural Worker methodology.
+- [Initial implementation proposal](../proposals/initial-implementation.md) — unresolved implementation change.
+- [Research](../research/README.md) — temporary provider/runtime evidence.

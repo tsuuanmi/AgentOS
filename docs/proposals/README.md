@@ -1,7 +1,7 @@
 # Proposals
 
-Proposals describe changes that are not yet current architecture.
+Proposals contain unresolved changes that are being prepared for implementation. They are not current architecture.
 
-- [Plugin-first architecture](plugin-first-architecture.md) — define AgentOS as a lightweight DSH-native composition of replaceable capability plugins.
+- [Initial implementation](initial-implementation.md) — remaining pre-TDD work for Worker conformance, the Website MCP provider, the DSH Agent Team provider, and the first durable Workflow provider.
 
-Accepted proposal conclusions must be promoted into canonical architecture and implementation rather than leaving this directory as the long-term source of truth.
+Accepted conclusions are promoted into canonical requirements, architecture, reference, schemas, source/tests, or decisions when durable rationale is needed. Implemented or obsolete proposal text should not remain a second copy of current truth.
