@@ -11,11 +11,12 @@ The first proving workflow is intentionally narrower than Internet's full coding
 ~~~text
 Local
   -> start W1
-  -> Agent Team research
-  -> implementation worker
-  -> local validation
-  -> Agent Team review
-  -> optional bounded remediation
+  -> create/attach dedicated DSH Agent Team T1
+  -> research: brainstorm + debate + synthesis
+  -> Team implementation
+  -> local/deterministic validation
+  -> review: independent review + debate + synthesis
+  -> optional bounded Team remediation
   -> optional user authority action
   -> terminal result
 ~~~
@@ -56,19 +57,21 @@ input: objective + repository context + bounded questions
 Execution:
 
 ~~~text
-Agent Team capability
-  -> Internet-backed Agent Team OR another provider
-  -> typed research result
+same DSH Agent Team T1
+  -> independent brainstorm
+  -> bounded debate
+  -> Lead synthesis
+  -> typed ResearchResult
   -> ResultRef R-research
 ~~~
 
-Workflow does not model member turns, debate rounds, website accounts, or synthesis internals.
+Workflow does not model member turns, debate rounds, DSH TeamTasks, mailbox messages, or synthesis internals. Those remain Team-owned.
 
 ### B. Implementation
 
 ~~~text
 id: implementation
-capability: software.implementation
+capability: agent_team.implementation
 dependsOn: [research]
 input: objective + research result + exact repository/base state
 ~~~
@@ -76,18 +79,18 @@ input: objective + research result + exact repository/base state
 Preferred execution mapping:
 
 ~~~text
-Workflow worker adapter
-  -> resolve owner Local Session
-  -> if cold, ctx.agents.resume
-  -> ctx.subagents using selected worker provider
-  -> structured completion
-  -> reconcile actual workspace/git state
+same DSH Agent Team T1
+  -> implementation TeamTask(s)
+  -> implementer follows Red -> Green -> Refactor
+  -> optional disjoint DSH writeScopes
+  -> typed ImplementationReport
+  -> Workflow/local validation reconciles actual workspace/git state
   -> ResultRef + ReceiptRef
 ~~~
 
-Resuming the Local Session supplies environment/context authority for DSH worker dispatch. It does not make Local model reasoning the workflow controller.
+The Team's implementation report is evidence/data, not proof of the side effect. Actual repository/workspace state remains authoritative.
 
-If Host crashes during implementation, the live subagent attempt may disappear. Workflow keeps the WorkItem and ExecutionRef, then reconciles repository state before any retry.
+If Host crashes during implementation, Workflow keeps the WorkItem and ExecutionRef, resumes/reconciles the Team provider when possible, and reconciles repository state before any retry.
 
 ### C. Validation
 
@@ -121,7 +124,10 @@ input: objective + exact current implementation state + validation receipt
 Execution:
 
 ~~~text
-Agent Team
+same DSH Agent Team T1
+  -> fresh/independent reviewers
+  -> review debate / false-positive challenge
+  -> Lead synthesis
   -> typed verdict
      PASS
      or CHANGES_REQUIRED + findings
@@ -221,12 +227,12 @@ No generic DAG subsystem is required to represent this.
 |---|---|---|
 | durable state | ctx.storageDomain | semantic run/work/action state |
 | Local cold resume | ctx.agents.resume | when/why Agent context is needed |
-| worker execution | ctx.subagents | WorkItem identity, input binding, recoveryMode, result commit |
+| Team implementation | DSH Agent Teams + continuable teammates | outer WorkItem identity, exact input, recoveryMode, observed effects |
 | bounded fan-out inside a step | ctx.workflowEngine | outer durable WorkItem |
 | background progress | ctx.jobs | semantic completion/recovery |
 | live sensitive approval | ctx.approval | durable PendingAction |
 | live clarification | ctx.userQuestions | durable clarification action if disconnect-safe waiting is required |
-| Agent collaboration | Agent Team provider / possibly ctx.agentTeams | research/review semantic request/result |
+| Agent collaboration | DSH Agent Teams core | research/debate/implementation/review internal collaboration; Workflow sees only phase results |
 | user reminder | Schedule | workflow waiting semantics |
 | Local visibility | Session events/projections | authoritative Workflow state remains outside Session |
 
@@ -329,19 +335,22 @@ No blind retry after an ambiguous response.
 
 ## 9. Agent Team boundary
 
-Workflow sees:
+Workflow sees semantic phase boundaries:
 
 ~~~text
-agent_team.research(request) -> result
-agent_team.review(request)   -> verdict/findings
+agent_team.research(...)       -> ResearchResult
+agent_team.implementation(...) -> ImplementationReport
+agent_team.review(...)         -> ReviewResult
 ~~~
+
+The DSH-backed provider may reuse the same dedicated Team root across those phase calls.
 
 Workflow does not see:
 
 ~~~text
 member accounts
 website session ids
-round/debate mechanics
+brainstorm/debate rounds
 peer-context routing
 provider-specific search/browser state
 ~~~
@@ -379,7 +388,7 @@ Continuity comes from durable Workflow state, not one continuously alive agent t
 6. PendingAction survives restart.
 7. Local client disconnect does not change Workflow lifecycle by itself.
 8. A cold owner Session can be resumed when an execution adapter needs Agent context.
-9. Switching Agent Team implementation does not change research/review WorkItem identity.
+9. Reusing the same Team provider context across research/implementation/review does not change Workflow WorkItem identities.
 10. Switching DSH storage backend JSON <-> SQLite does not change Workflow semantics.
 11. Session projection loss does not lose W1.
 12. Validation retry does not replay implementation.
