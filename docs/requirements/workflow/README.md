@@ -1,7 +1,7 @@
 # Workflow requirements
 
 - **Status:** canonical / living requirements
-- **Owner:** AgentOS Workflow plugin
+- **Owner:** AgentOS Workflow capability composition
 
 Workflow owns durable lifecycle for long-running work.
 
@@ -29,4 +29,4 @@ A WorkflowRun must survive Local/client disconnect and Host restart according to
 - [Interaction](interaction.md) — durable PendingAction, user/external authority and reattachment.
 - [Agent Team integration](agent-team.md) — semantic phase boundary between Workflow and Agent Team.
 
-Architecture: [Workflow plugin](../../architecture/plugins/workflow/README.md).
+Architecture: [Workflow capability composition](../../architecture/plugins/workflow/README.md).
