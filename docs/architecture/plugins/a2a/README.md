@@ -27,13 +27,13 @@ A2A = Website Agent <-> peer agent / Team Member
 The A2A plugin owns protocol integration only and uses the official A2A SDK/types directly:
 
 - AgentCard / AgentSkill exposure and discovery;
-- Task / TaskStatus mapping;
+- native Task / TaskStatus handling;
 - Message / Part exchange;
 - Artifact / Part exchange;
 - contextId propagation;
 - cancellation/update handling;
 - authentication/transport integration;
-- passing native A2A context/task identities into the owning semantic boundary where their semantics already match.
+- passing native contextId/taskId directly into the owning semantic boundary where their semantics already match.
 
 It does not own:
 
