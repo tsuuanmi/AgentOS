@@ -97,47 +97,38 @@ The semantic surface is intentionally empty-by-default. A concept enters it only
 
 ## Product interaction semantics
 
-The first AgentOS-specific semantic boundary is the **role-optimized interaction model**, not a particular provider identity.
-
-AgentOS separates four roles:
+The first v1 architecture should focus on **Local Agent + Workflow + Agent Team**.
 
 ~~~text
-Controller
-  access / human interaction / cloud-native capabilities
-
-Local Agent
-  environment-native execution
-
-Internet Team
-  external reasoning / research / native ecosystems
-
-Workflow
-  durable deterministic coordination
-~~~
-
-Controller and Local Agent are both valid user entry points.
-
-~~~text
-User -> Controller -> Local Agent when environment execution is needed
-
-User -> Local Agent directly
-
-Local Agent -> Internet Team / Workflow
-
-Workflow -> Internet Team / Local or external workers / validation / review
+User
+  <-> Local Agent
+        |
+        +-> direct tools/capabilities
+        +-> Agent Team
+        +-> Workflow
+              |
+              +-> Agent Team
+              +-> Local/external workers
+              +-> Validation / Review
 ~~~
 
 The key principle is:
 
 > **Local can do almost everything, but AgentOS should not force Local to do everything.**
 
-The separation exists to optimize accessibility, environment authority, token/context placement, provider-native capabilities, replaceability, and durability — not because Local is inherently incapable.
+Workflow is the durable coordination boundary. Agent Team is the replaceable collaborative/external-reasoning capability.
 
-A durable Workflow may outlive the Local Agent or Controller session that started it. New clients may reattach through workflow state where the provider contract supports it.
+A durable Workflow may outlive the Local Agent session that started it. A new Local client may reattach through workflow state where the provider contract supports it.
 
-This does **not** imply that AgentOS owns the Team runtime, Workflow engine, Controller product, or Local implementation. AgentOS owns only the cross-capability interaction semantics that must remain stable.
+Terminology is explicit:
 
-See [Controller, Local Agent, Internet Team, and Workflow interaction model](../architecture/interaction-model.md).
+- **Agent Team** = AgentOS semantic capability.
+- **DSH Agent Teams** = one possible DSH substrate/runtime.
+- **Internet-backed Agent Team** = one provider/implementation using `internet` and website-native capabilities.
+
+Controller remains a future/optional interaction surface. It should reuse the same Local, Workflow, and Agent Team semantic boundaries when introduced rather than driving the v1 architecture.
+
+See [Local Agent, Workflow, and Agent Team interaction model](../architecture/interaction-model.md).
 
 ## Ownership rule
 
@@ -557,46 +548,52 @@ If these questions do not produce strong answers, do not create the plugin yet.
 
 ## Current proposed v1
 
-The architecture should initially own as little runtime infrastructure as possible while still delivering the role-optimized interaction model:
+The architecture should initially own as little runtime infrastructure as possible while proving the two most important composable boundaries: **Workflow** and **Agent Team**.
 
 ~~~text
-Controller (optional / replaceable)
+DSH / Cordis
   |
-  +-> cloud/public capabilities
-  |
-  +-> Local Agent capability
+  +-> Local Agent
         |
         +-> AgentOS root plugin/profile
               |
-              +-> Skills / prompt guidance
               +-> direct DSH/public capabilities
-              +-> Internet Team capability
+              +-> Agent Team capability
               +-> Workflow capability
                     |
-                    +-> Research / Internet Team
+                    +-> Agent Team
                     +-> Local / external Worker
                     +-> Validation / Review
 ~~~
 
-The root plugin/profile supplies the coherent interaction experience; the underlying Team, Workflow, research, and worker implementations remain independently owned plugins/capabilities.
+V1 should prove:
+
+1. Local can call Agent Team directly.
+2. Local can start/inspect/respond/cancel/reattach a durable Workflow.
+3. Workflow can call Agent Team without routing every step through Local.
+4. Workflow can dispatch environment-native work to Local/worker capabilities.
+5. Agent Team and Workflow implementations remain replaceable behind semantic contracts where a real boundary is needed.
+
+Controller integration is deliberately postponed until these boundaries are working.
 
 Do not pre-create additional AgentOS semantic packages merely to mirror these paths. Add a contract only when the interaction semantics cannot be preserved by directly consuming the provider's existing surface.
 
 ## Research questions
 
-The interaction model now answers the highest-level product question: AgentOS coordinates replaceable Controller, Local execution, external reasoning, and durable Workflow roles without forcing one agent or provider to own every capability.
+Current research priority is **Workflow first, Agent Team second, Controller later**.
 
 Open questions are now:
 
-1. What is the smallest Controller <-> Local capability contract needed for remote delegation without coupling to one Controller or Local implementation?
-2. Which parts of Local/Controller <-> Workflow interaction should remain provider-native versus become a shared AgentOS contract?
-3. Which behavior must remain stable when Controller, Local, Workflow, Internet Team, or public implementations change?
-4. Does AgentOS need any durable identity/state independent of DSH and delegated Workflow providers?
-5. Which first concrete Workflow demonstrates Controller -> Local -> Workflow -> Internet Team/Worker composition end-to-end?
-6. Which existing DSH/public capability can serve as the first alternate implementation behind a proven semantic boundary?
-7. Which AgentOS capability, if any, needs a portable long-running projection such as MCP Tasks rather than only DSH-native lifecycle?
-8. Which concrete capability first proves a real Local-worker substitution boundary?
-9. What compatibility/version contract should AgentOS declare against DSH and remote Controller surfaces?
+1. What is the minimal Local-facing Workflow contract: start, inspect, respond, cancel, reattach, status/result projection, and authority semantics?
+2. Which Workflow semantics must be durable and provider-independent versus provider-native?
+3. What is the minimal Agent Team semantic contract for research, critique, review, synthesis, and artifact/result projection?
+4. Which parts of the current `internet` Team behavior are semantic Agent Team responsibilities versus implementation details?
+5. Can DSH Agent Teams serve as an implementation substrate for some Agent Team semantics without becoming the semantic definition?
+6. How should Workflow call Agent Team and workers without coupling to one provider/runtime?
+7. Does AgentOS need any durable identity/state independent of DSH and delegated Workflow providers?
+8. Which first vertical slice proves Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end?
+9. Which long-running operations need MCP Tasks or another transport projection after the Workflow contract is clear?
+10. What compatibility/version contract should AgentOS declare against DSH?
 
 ## Acceptance criteria
 
@@ -612,9 +609,11 @@ Before implementation expands beyond the root plugin/profile:
 - Component boundaries follow real lifecycle/authority/failure/replacement differences.
 - Replaceability is backed by conformance tests or a clearly independently owned host boundary.
 - Static behavior stays in Skills/profile configuration where sufficient.
-- Controller and Local Agent are both valid user interaction entry points.
-- Local remains usable when Controller/Internet Team are unavailable; optional intelligence planes degrade gracefully.
-- Controller, Local Agent, Internet Team, and Workflow remain replaceable roles rather than provider identities.
-- A durable Workflow may outlive the originating Local/Controller connection when durability is part of its provider contract.
-- A Workflow may compose Internet Team and other capabilities without routing every internal step through Local.
+- Local Agent is the primary v1 user interaction surface.
+- Local remains usable when Agent Team is unavailable; optional reasoning capabilities degrade gracefully.
+- Workflow and Agent Team remain replaceable semantic capabilities rather than provider identities.
+- A durable Workflow may outlive the originating Local connection when durability is part of its provider contract.
+- A Workflow may compose Agent Team and other capabilities without routing every internal step through Local.
+- DSH Agent Teams and Internet-backed teams are implementation/substrate choices, not the Agent Team semantic definition.
+- Controller remains future/optional and does not block v1.
 - The package tree is derived from proven contracts, not designed speculatively.
