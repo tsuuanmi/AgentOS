@@ -45,7 +45,7 @@ See [DSH ACP](../architecture/plugins/dsh/acp.md).
 
 ## Website Agent
 
-Website bounded execution should reuse Worker -> DSH ACP provider -> Website ACP bridge.
+Website bounded execution should reuse Worker -> DSH ACP provider -> Website ACP Agent adapter over the shared Website core.
 
 See [Website Agent plugin](../architecture/plugins/website-agent/README.md).
 
