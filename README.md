@@ -1,8 +1,28 @@
 # AgentOS
 
-AgentOS is a lightweight, plugin-first agent capability layer designed to run inside [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+AgentOS is a lightweight, plugin-first **interactive local-agent system** designed to run inside [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
 The project is intentionally small. AgentOS should not become a second harness, runtime, plugin manager, lifecycle engine, or orchestration kernel. DSH owns composition and plugin lifecycle. AgentOS follows a contract-first rule: **own AgentOS semantics, compose implementations**, and add an AgentOS-specific component only when an existing DSH/public contract cannot preserve the required meaning.
+
+## Interaction
+
+The user interacts with a Local Agent running on DSH. That Local Agent can work directly, consult a Team such as Internet Team, or hand work to a Workflow that can itself compose research, Team, worker, validation, and review capabilities.
+
+```text
+User
+  <-> Local Agent
+        |
+        +-> Direct capabilities
+        +-> Team / Internet Team
+        +-> Workflow
+              +-> Research / Consult
+              +-> Worker
+              +-> Validation / Review
+```
+
+Workflow delegation does not replace the Local Agent. The user can continue interacting locally while delegated work runs, and progress/results/pending actions return through the Local surface.
+
+See [the local-first interaction model](docs/architecture/interaction-model.md).
 
 ## Direction
 
