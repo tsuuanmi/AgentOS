@@ -1,278 +1,179 @@
 # Website Agent protocol adapters
 
 - **Status:** canonical architecture
-- **Owner:** AgentOS Website Agent plugin
-- **Core:** [Website Agent core](core.md)
+- **Owner:** Website Agent plugin
+- **Core:** [Website Agent Core](core.md)
 
-One Website Agent core is exposed through multiple adapters.
+Website Agent exposes two orthogonal protocol ports:
+
+~~~text
+ACP = runtime/control port
+A2A = peer collaboration port
+~~~
+
+They both terminate at the same Website Agent Core.
+
+## Topology
 
 ~~~mermaid
 flowchart LR
-    Worker[Worker plugin]
-
-    DshAcp[DSH ACP provider/client]
-    A2AClient[AgentOS A2A provider/client]
-
+    Runtime[DSH / ACP-compatible runtime]
+    ACPClient[ACP Client]
     ACPAdapter[Website ACP Agent adapter]
+
+    Member[Agent Team Member]
+    MemberA2A[Team Member A2A adapter]
     A2AAdapter[Website A2A Agent adapter]
 
-    Core[Website Agent core]
-    Providers[ChatGPT Web / Gemini Web / future]
+    Core[Website Agent Core]
 
-    Worker --> DshAcp
-    DshAcp --> ACPAdapter
-
-    Worker --> A2AClient
-    A2AClient --> A2AAdapter
-
-    ACPAdapter --> Core
-    A2AAdapter --> Core
-    Core --> Providers
+    Runtime --> ACPClient --> ACPAdapter --> Core
+    Member <--> MemberA2A
+    MemberA2A <--> A2AAdapter
+    A2AAdapter <--> Core
 ~~~
 
-Adapters translate protocol lifecycle into the core contract.
+## ACP adapter: Runtime <-> Website Agent
 
-They do not implement browser/auth/conversation/retry logic.
+ACP's purpose in AgentOS is to make Website Agent consumable by DSH or another ACP-compatible runtime through a standard Agent interface.
 
-## ACP adapter
+Official ACP defines a standard interface between AI agents and client applications/runtimes.
 
-The Website ACP adapter exposes the core as an **ACP Agent** using the official `@agentclientprotocol/sdk`.
+### Boundary
+
+~~~text
+ACP-compatible runtime/client
+  -> ACP
+      -> Website ACP Agent adapter
+          -> Website Agent Core
+~~~
+
+DSH's dsh-subagent-acp is the first ACP Client integration.
+
+It is not part of Website Agent Core.
 
 ### Mapping
 
-| ACP | Website core |
+| ACP | Website Core |
 |---|---|
-| `initialize` | advertise supported ACP capabilities |
-| `session/new` | create adapter session -> core conversation key |
-| ACP `sessionId` | opaque adapter handle |
-| `session/prompt` | execute one core logical request |
-| `session/update` | progress/result projection when useful |
-| prompt terminal response | adapter terminal state after core result |
-| `session/cancel` | core AbortSignal/provider cancellation |
-| stable v1 `session/load` | restore existing adapter session/core conversation when supported |
+| initialize | capability negotiation |
+| session/new | create adapter session -> core conversation mapping |
+| sessionId | runtime-facing session handle |
+| session/prompt | execute a core logical request |
+| session/update | progress/result projection |
+| session/cancel | core cancellation |
+| session/load where supported | restore ACP session -> core conversation mapping |
 
-ACP stable v1 already has session loading for Agents advertising `loadSession`.
+### Runtime portability
 
-### Initial DSH composition
+Nothing in the core should assume DSH.
+
+A future runtime can connect as long as it implements the ACP Client side required by the Website ACP Agent adapter.
 
 ~~~text
-Worker
-  -> DSH ctx.subagents
-      -> @deepseek-ai/dsh-subagent-acp
-          -> Website ACP Agent adapter
-              -> Website Agent core
+DSH ------------\
+Other runtime --- ACP ---> Website Agent Core
+Future runtime -/
 ~~~
-
-DSH's ACP provider is the ACP **Client** side.
-
-The Website adapter is the ACP **Agent** side.
-
-The core itself knows nothing about ACP.
 
 ### Current DSH limitation
 
-Current `dsh-subagent-acp` starts a fresh process and fresh ACP session for every run.
+Current dsh-subagent-acp creates a fresh process/session per run.
 
-It currently sends:
+Therefore current DSH composition initially supports bounded Website tasks.
 
-~~~text
-initialize
-session/new(cwd, mcpServers)
-session/prompt(sessionId, prompt)
-~~~
+The Website Core already has stable conversation continuity. Multi-run ACP continuation requires the ACP Client/runtime to reconnect/load the corresponding ACP session; it does not require a second Website Core.
 
-and then tears the child down.
+## A2A adapter: Website Agent <-> Agent Team Member
 
-It does not currently use `session/load` to reconnect to a prior Website ACP session.
+A2A's purpose in AgentOS is horizontal communication/collaboration between agents.
 
-Therefore:
+Primary AgentOS use:
 
 ~~~text
-bounded one-shot Website work
-  -> supported by current DSH ACP composition
-
-multi-run conversation continuation
-  -> core supports the necessary stable Website binding
-  -> Website ACP Agent can support load
-  -> DSH ACP provider/client needs continuation/load support
+Website Agent
+  <-> A2A
+  <-> Agent Team Member
 ~~~
 
-This is a provider capability gap, not a Worker/core architecture gap.
+A2A v1 defines independent-agent interoperability around AgentCard/skills, Tasks, Messages, Artifacts, context, updates, and cancellation.
 
-### ACP identity mapping
+### Website side
 
-The ACP adapter owns:
+The Website A2A adapter exposes Website Agent as an A2A Agent/Server.
 
 ~~~text
-ACP sessionId
-  -> core conversation key
+A2A request
+  -> Website A2A adapter
+      -> Website Core
 ~~~
 
-For each prompt it also creates/maps a stable core logical request key.
+### Team Member side
 
-Do not use ACP JSON-RPC request ids as durable core request identity unless conformance proves the identity survives the required restart/retry boundary.
-
-For initial one-shot execution, adapter-local mapping is sufficient.
-
-For durable continuation, the session/request mapping must be persisted or recoverable.
-
-### ACP modes
-
-Do not encode `chat` versus `research` in ad-hoc prompt syntax.
-
-Prefer provider/adapter configuration such as:
+An Agent Team Member uses an A2A client/peer adapter.
 
 ~~~text
-provider: website-chat
-  -> adapter mode: chat
-
-provider: website-research
-  -> adapter mode: research
+Agent Team Member
+  -> A2A peer/client adapter
+      -> A2A
+          -> Website A2A adapter
 ~~~
 
-Worker selects the provider through capabilities.
-
-## A2A adapter
-
-The Website A2A adapter exposes the same core as an **A2A Server/Agent** using the official `@a2a-js/sdk`.
-
-The official SDK boundary maps cleanly:
-
-~~~text
-AgentCard
-  -> endpoint/capability discovery
-
-DefaultRequestHandler
-  -> A2A request/task/cancellation infrastructure
-
-WebsiteAgentExecutor
-  -> thin AgentExecutor implementation
-      -> Website Agent core
-~~~
-
-The `AgentExecutor` is protocol glue; Website execution remains in the core.
+The Team Member may itself be a DSH agent, ACP-backed agent, or another runtime-backed agent. A2A keeps peer communication independent of the execution runtime.
 
 ### Mapping
 
-| A2A | Website core |
+| A2A | Website Core |
 |---|---|
-| AgentCard | Website Agent endpoint metadata/capability advertisement |
-| AgentSkill | discoverable web-chat / deep-research capabilities |
-| `contextId` | stable collaborative conversation context |
-| `taskId` | task/request correlation |
-| incoming Message/Part | prompt/input |
-| Task `working` | core execution active |
-| A2A Artifact/Part | caller-facing deliverable projection |
-| terminal TaskStatus | adapter lifecycle completion |
-| task cancellation | core AbortSignal/provider cancellation |
+| AgentCard / AgentSkill | Website Agent capabilities |
+| contextId | collaboration/conversation context mapping |
+| Task / taskId | peer work lifecycle/correlation |
+| Message / Part | peer instructions/context |
+| Artifact / Part | peer deliverable projection |
+| TaskStatus | peer-visible work status |
+| cancellation | core cancellation |
 
-A2A documentation explicitly uses the same `contextId` for later messages in one interaction context, making it a natural adapter-level key for Website conversation continuity.
+### Context
 
-The adapter may still persist a private mapping rather than expose native Website conversation ids.
+A2A contextId groups related Tasks/Messages, so it is a natural peer-side context key.
 
-### Generic Worker composition
+The Website adapter maps it to a private core conversation key without exposing the native Website conversation id.
 
-The Website A2A server adapter and AgentOS generic A2A Worker provider are different sides:
+### A2A is not runtime control
 
-~~~text
-Worker
-  -> AgentOS A2A provider/client
-      -> A2A wire
-          -> Website A2A Agent adapter/server
-              -> Website Agent core
-~~~
-
-This is useful when the Website Agent runs independently/remotely.
-
-If Website Agent runs in the same DSH Host, the ACP path or a future narrow direct provider may be cheaper than creating a network hop.
-
-### A2A modes/skills
-
-A2A AgentSkill is primarily capability discovery.
-
-Current A2A work is still tracking a standardized client-directed skill-selection hint, so AgentOS should not require a custom skill-routing extension merely to choose chat vs research.
-
-Initial options are:
-
-1. separate configured Website A2A endpoints/cards per mode;
-2. one endpoint whose deployment policy deterministically maps supported input to one mode;
-3. adopt standardized skill-selection only when upstream protocol support is stable.
-
-Do not add an AgentOS-specific A2A extension for this.
-
-### Zero-extension default
-
-Do not send AgentOS-specific fields for:
-
-- Worker id;
-- ExecutionBinding generation;
-- Workflow input digest;
-- retry counter;
-- core artifact id;
-- Website conversation id.
-
-Keep those local.
-
-Use an A2A extension only if an external peer genuinely must consume an AgentOS-specific semantic.
-
-### A2A Artifact vs core artifact
+Do not use A2A to replace ACP's runtime/client role in the primary Website Agent architecture.
 
 ~~~text
-core Website artifact
-  = private retained Website result/evidence
+ACP
+  -> start/control/use Website Agent from a runtime
 
-A2A Artifact
-  = remote protocol deliverable
+A2A
+  -> Website Agent collaborates with another agent
 ~~~
 
-The A2A adapter may project a core result into an A2A Artifact/Part.
+A2A can technically delegate Tasks, but AgentOS assigns it the horizontal collaboration boundary to keep responsibilities clear.
 
-It does not expose the private artifact store as the A2A data model.
+## One process may expose both
 
-## Existing DSH tool adapter
+A Website Agent instance can expose:
 
-`@tsuuanmi/internet` already exposes DSH tools such as:
+- an ACP Agent endpoint/transport to its runtime;
+- an A2A Agent endpoint to peer agents.
 
-~~~text
-internet_chat
-internet_research
-internet_artifact
-internet_browser
-~~~
+Both adapters share Core state but maintain protocol-specific lifecycle/identities.
 
-These remain useful for direct Local Agent/user use and prove that the core can support thin adapters.
+## No duplicated logic
 
-They are not the canonical Worker execution seam.
+Neither adapter may implement:
 
-AgentOS Worker should use provider adapters, while direct DSH tools may continue to coexist.
-
-## Optional direct DSH provider
-
-A direct Website provider registered on `ctx.subagents` is not required initially.
-
-It becomes attractive only if:
-
-- same-Host execution is materially simpler/faster than ACP;
-- ACP continuation remains unavailable while stable Website continuation is required;
-- it can reuse the exact same core API without duplicating ACP/A2A behavior.
-
-Even then:
-
-~~~text
-direct DSH provider
-ACP Agent adapter
-A2A Agent adapter
-  -> same Website Agent core
-~~~
-
-## Adapter invariant
-
-> **Protocols own protocol lifecycle; the Website core owns Website lifecycle.**
-
-ACP/A2A adapters may map, persist, and project identities, but they must not reimplement:
-
-- login/auth state;
+- account/auth;
+- provider drivers;
+- browser automation;
 - native Website conversation binding;
-- provider completion detection;
-- provider retry/reconciliation;
-- Website result retention.
+- Website completion detection;
+- reconcile-before-resubmit;
+- core result retention.
+
+## Canonical invariant
+
+> **ACP connects runtimes to Website Agent. A2A connects Website Agent to peer agents. Both terminate at one shared Website Agent Core.**
