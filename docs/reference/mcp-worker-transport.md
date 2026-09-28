@@ -4,7 +4,7 @@
 - **Worker semantics:** [Worker Protocol](worker-protocol.md)
 - **Local API:** [Worker API](worker-api.md)
 - **Schemas:** [MCP schema mapping](../../schemas/mcp/README.md)
-- **Runtime invariants:** [Worker server invariants](worker-server-invariants.md)
+- **Runtime invariants:** [Worker Exchange invariants](worker-exchange-invariants.md)
 
 ## Purpose
 
@@ -65,7 +65,7 @@ The result contains zero or more canonical Messages plus the next cursor.
 
 ### agentos.worker.send
 
-Sends one canonical Message from the Website execution to the local Worker server.
+Sends one canonical Message from the Website execution to the Worker Exchange Service.
 
 A Message is communication, not completion.
 
@@ -124,7 +124,7 @@ MRTR does not provide arbitrary future Website turn creation and does not replac
 
 Agent Skills teach the agent how to perform semantic capabilities; MCP tools expose callable operations.
 
-The canonical Worker Skill is [software-worker](../../.agents/skills/software-worker/SKILL.md).
+The current [software-worker Skill](../../.agents/skills/software-worker/SKILL.md) is an initial software capability procedure pack; Worker itself remains capability-agnostic.
 
 When a Website host supports the MCP Skills extension (`io.modelcontextprotocol/skills`), an adapter may serve that same Skill over MCP. Skill transport is optional and does not alter Worker semantics.
 
