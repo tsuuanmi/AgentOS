@@ -37,6 +37,8 @@ Roles:
 
 See [interaction-model.md](interaction-model.md).
 
+For the Local Worker <-> Website Agent responsibility split, see [Worker boundary model](worker-boundaries.md).
+
 ## DSH is the runtime kernel
 
 AgentOS does not replace DSH ownership of:
@@ -350,17 +352,18 @@ DSH Agent Teams is experimental today, so DSH-specific public types should stay 
 4. DSH Agent Teams is the practical current Team core; no second Team runtime is built.
 5. Team members may debate peer-to-peer; Lead is synthesis/coordination authority, not a message proxy.
 6. Worker capabilities and protocol shape are stable across runs; objectives/inputs change without inventing new Agent personas.
-7. DSH Worker <-> Website Agent communication follows the Worker Protocol; MCP is the default Website interoperability profile when supported, but not the semantic contract.
-8. Each semantic DSH Worker has an isolated Website Agent binding when website-backed work is used.
-9. Website Agent completion is explicit/durable and owned by the Agent Team provider; Workflow never infers it from DSH activity.
-10. Local receives synthesis/results by default rather than internal Team transcript.
-11. Workflow owns durable lifecycle; Agent Team owns collaborative work inside phases.
-12. Validation/effects are established from the real environment, not model claims.
-13. Provider/transport identities stay below semantic identities.
-14. Unknown execution outcomes reconcile according to an admitted policy; missing handles never authorize blind retry.
-15. Authority and effect completion are distinct.
-16. Current provider choices do not become permanent contract requirements without evidence.
-17. New abstractions require a real semantic/lifecycle/authority/replacement boundary.
+7. DSH Worker <-> Website Agent communication follows the Worker Protocol; MCP exposes callable transport operations, Skills teach agent usage, JSON Schemas constrain structure, and server/domain logic enforces current semantic truth.
+8. Skill guidance is never a correctness, authorization, lifecycle, or security boundary and must not duplicate MCP signatures or canonical schema definitions.
+9. Each semantic DSH Worker has an isolated Website Agent binding when website-backed work is used.
+10. Website Agent completion is explicit/durable and owned by the Agent Team provider; Workflow never infers it from DSH activity.
+11. Local receives synthesis/results by default rather than internal Team transcript.
+12. Workflow owns durable lifecycle; Agent Team owns collaborative work inside phases.
+13. Validation/effects are established from the real environment, not model claims.
+14. Provider/transport identities stay below semantic identities.
+15. Unknown execution outcomes reconcile according to an admitted policy; missing handles never authorize blind retry.
+16. Authority and effect completion are distinct.
+17. Current provider choices do not become permanent contract requirements without evidence.
+18. New abstractions require a real semantic/lifecycle/authority/replacement boundary.
 
 ## Documentation authority
 
