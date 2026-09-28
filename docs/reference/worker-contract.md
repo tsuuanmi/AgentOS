@@ -26,7 +26,7 @@ MCP
 
 AgentOS owns only the semantic requirements a caller depends on.
 
-See [Protocol stack](../architecture/protocol-stack.md) and [Minimal semantic delta](../architecture/minimal-semantic-delta.md).
+See [Protocol stack](../architecture/protocol-stack.md) and [Minimal semantic delta](../architecture/plugins/agentos/semantic-delta.md).
 
 ## Worker
 
@@ -189,7 +189,7 @@ Any of these may be introduced later only if a failing conformance/behavioral te
 ## Related reference
 
 - [Protocol stack](../architecture/protocol-stack.md)
-- [Minimal semantic delta](../architecture/minimal-semantic-delta.md)
+- [Minimal semantic delta](../architecture/plugins/agentos/semantic-delta.md)
 - [Worker plugin](../architecture/plugins/worker/README.md)
 - [Worker boundaries](../architecture/plugins/worker/boundaries.md)
 - [Plugin architecture](../architecture/plugins/README.md)
