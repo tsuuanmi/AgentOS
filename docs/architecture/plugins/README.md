@@ -2,62 +2,68 @@
 
 AgentOS follows DSH's **Everything Is A Plugin** composition model.
 
-DSH/Cordis remains the fixed Host. Individual AgentOS plugins may compose existing DSH services, register new DSH providers, wrap standard protocol SDKs, or wrap external runtimes/libraries. Replaceability happens **behind a plugin boundary**, not by replacing the DSH host.
+DSH/Cordis remains the fixed Host. AgentOS plugins may compose existing DSH services, register providers, wrap protocol SDKs, or wrap external libraries/runtimes.
 
-The important distinction is between a product composition, a capability composition, an adapter/provider plugin, and an underlying implementation dependency.
+Replaceability happens **behind plugin boundaries**, not by replacing the Host.
 
 ## Composition hierarchy
 
 ~~~mermaid
 flowchart TB
     Host[DSH / Cordis Host]
-    AgentOS[AgentOS composition plugin / bundle]
+    AgentOS[AgentOS composition]
 
-    Team[Agent Team capability composition]
-    Workflow[Workflow capability composition]
-    Worker[Worker contracts + adapters]
+    Team[Agent Team semantic plugin]
+    Workflow[Workflow semantic plugin]
+    Website[Website ACP bridge]
+    A2A[A2A adapter]
+    Profiles[Workflow Profiles / Skills]
 
     Host --> AgentOS
     AgentOS --> Team
     AgentOS --> Workflow
-    AgentOS --> Worker
+    AgentOS -.-> Website
+    AgentOS -.-> A2A
+    AgentOS --> Profiles
 
     Team --> DSHAT[DSH ctx.agentTeams]
     Team --> Sub[DSH ctx.subagents]
+    Website --> ACP[DSH ACP provider]
+    A2A --> A2ASDK[official A2A SDK]
+
     Workflow --> Store[DSH ctx.storageDomain]
-    Workflow -.-> Jobs[DSH ctx.jobs]
-    Workflow -.-> DSHWF[DSH ctx.workflowEngine]
     Workflow --> Team
+    Workflow -.-> Runtime[optional DSH/external runtime mechanics]
 ~~~
 
-## Current AgentOS capability compositions
+Worker is intentionally absent as a service box: it is a capability-driven semantic execution role over provider seams.
 
-| Capability | Shape | Canonical architecture |
+## Current logical plugins
+
+| Logical plugin/capability | Shape | Canonical architecture |
 |---|---|---|
 | AgentOS | top-level composition/bundle | [AgentOS composition](agentos/README.md) |
-| Agent Team | DSH Team/Subagent composition + AgentOS semantic delta | [Agent Team](agent-team/README.md) |
-| Workflow | domain-agnostic Core + declarative Definitions/Profiles + DSH persistence/execution/interaction composition | [Workflow](workflow/README.md) |
-| Worker | capability-driven execution role over DSH provider seams; not necessarily a standalone plugin | [Worker model](../worker-model.md) |
-| Website Agent provider | `ctx.subagents` provider that makes Website execution look like normal delegated execution | [Plugin inventory](inventory.md) |
-| A2A adapter | remote independent-agent interoperability using the official A2A SDK | [Protocol stack](../protocol-stack.md) |
-
-Agent Team and Workflow may eventually ship as separate installable bundles/plugins, but architecture does not require each to be a monolithic package.
+| Agent Team | thin AgentOS policy above DSH Team/Subagent mechanics | [Agent Team](agent-team/README.md) |
+| Workflow | domain-agnostic semantic plugin + declarative Profiles | [Workflow](workflow/README.md) |
+| Website ACP bridge | bridge reused through existing DSH ACP provider | [Plugin inventory](inventory.md) |
+| A2A adapter | remote independent-agent interoperability | [Protocol stack](../protocol-stack.md) |
+| Worker | semantic role, not necessarily a plugin/package | [Worker model](../worker-model.md) |
+| domain Profiles/Skills | configuration/procedure, usually not service plugins | [Workflow definitions](workflow/definitions.md) |
 
 ## Rule
 
-Before building a new AgentOS subsystem:
+Before building a new AgentOS behavior:
 
-1. identify the required product semantic;
-2. find existing DSH capability seams/plugins that already implement the mechanics;
-3. compose those capabilities;
-4. add only the missing semantic state/invariants;
-5. isolate experimental/provider-specific dependencies behind adapters.
+1. identify the product invariant;
+2. find the DSH/plugin/protocol/library primitive that already owns the mechanic;
+3. compose or wrap that primitive;
+4. add only the missing semantic policy/state;
+5. create a new plugin boundary only when behavior/lifecycle/replacement justifies one.
 
-Shared DSH dependencies are mapped in [DSH capability reuse](../dsh-reuse.md). The canonical package/capability/reuse map is [Plugin inventory and reuse map](inventory.md), and the semantics that remain AgentOS-owned are narrowed in [Minimal semantic delta](../minimal-semantic-delta.md).
+See [Plugin inventory and reuse map](inventory.md), [DSH capability reuse](../dsh-reuse.md), and [Minimal semantic delta](../minimal-semantic-delta.md).
 
+## Domain extension
 
-## Workflow extension rule
+New domains are Profiles/Skills first, not new engines.
 
-Workflow domains are configuration, not new engines.
-
-A new profile should normally add a Workflow Definition plus capability packs/schemas and reuse installed adapters. Core code changes are reserved for new generic lifecycle/recovery semantics.
+A new domain should normally add configuration, capability requirements, tools, and result schemas. Core plugin changes require a genuinely new cross-domain invariant.
