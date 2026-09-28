@@ -125,15 +125,14 @@ core conversation key
   -> native Website conversation id/url
 ~~~
 
-Protocol identities are mapped into this key:
+When protocol identity semantics already match, use them directly as this key:
 
 ~~~text
-ACP sessionId ----\
-                   -> core conversation key
-A2A contextId ----/
+ACP sessionId -> core conversation key
+A2A contextId -> core conversation key
 ~~~
 
-Neither protocol id becomes native Website identity.
+Neither protocol id becomes native Website provider identity; it remains the Core's logical conversation key while the Core privately binds that key to the native Website conversation.
 
 ## Reconcile-before-resubmit
 
@@ -146,7 +145,7 @@ unknown submission outcome
   -> AMBIGUOUS -> fail closed
 ~~~
 
-ACP retry and A2A retry must reuse this same core mechanism.
+ACP and A2A integrations must reuse this same core mechanism without wrapping protocol objects in duplicate AgentOS retry/task models.
 
 ## Result retention
 
@@ -183,3 +182,7 @@ See [Protocol adapters](adapters.md).
 ## Canonical invariant
 
 > **Account, provider, browser, native conversation, reconciliation, and result retention exist exactly once in Website Agent Core.**
+
+## No protocol mirrors
+
+Website Core accepts only the minimal operational values it needs. ACP/A2A adapters should pass native identifiers/content through directly where semantics match. Do not create structurally equivalent Website-specific copies of ACP Session, A2A Task, Message, Artifact, or status objects.
