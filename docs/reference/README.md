@@ -1,14 +1,12 @@
 # Reference
 
-Reference owns exact stable lookup material: protocols, callable interfaces, transport mappings, runtime invariants, schemas, and examples.
+Reference owns exact AgentOS-specific lookup material that is not already defined by DSH or an upstream protocol.
 
-- [Worker Contract](worker-protocol.md) — shared Worker semantics, vocabulary, minimum capability guarantees, and identity; file path retained pending A2A/ACP schema pruning.
-- [Worker API](worker-api.md) — transport-neutral local callable interface.
-- [Worker Exchange invariants](worker-exchange-invariants.md) — authorization, fencing, idempotency, durable commit, lifecycle, and dynamic-validation rules.
-- [MCP Worker transport](mcp-worker-transport.md) — Website-facing MCP compatibility mapping.
-- [Protocol stack](../architecture/protocol-stack.md) — canonical ACP / A2A / MCP boundary ownership.
-- [JSON Schemas](../../schemas/README.md) — canonical machine-readable structural contracts.
+- [Worker Contract](worker-contract.md) — minimum provider-neutral capability, input, execution, output, and effect guarantees.
+- [Execution binding](execution-binding.md) — residual cross-provider recovery/replacement/result-acceptance invariants.
+- [Protocol stack](../architecture/protocol-stack.md) — canonical ACP / A2A / MCP ownership.
+- [JSON Schemas](../../schemas/README.md) — AgentOS-owned serialized structures only.
 
-Machine-readable shapes remain authoritative under repository-root `/schemas`.
+Do not duplicate ACP, A2A, MCP, or DSH protocol/runtime references here. Link to upstream specifications and keep only AgentOS-specific semantic mappings.
 
-Procedural agent methodology is executable guidance, not reference authority; see the [software-development Skill](../../.agents/skills/software-development/SKILL.md).
+Procedural methodology belongs in Skills; see the [software-development Skill](../../.agents/skills/software-development/SKILL.md).
