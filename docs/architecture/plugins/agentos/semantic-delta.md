@@ -24,7 +24,7 @@ The residual semantics are distributed across plugins:
 | collaboration barriers and typed phase result | [Agent Team](../agent-team/README.md) |
 | Definition/Profile, WorkItem transitions, durable recovery | [Workflow](../workflow/README.md) |
 | Website transport/ACP translation | [Website Agent](../website-agent/README.md) |
-| remote A2A provider mapping | [A2A](../a2a/README.md) |
+| Website Agent <-> Agent Team Member peer collaboration | [A2A](../a2a/README.md) |
 | composition/defaults/plugin wiring | AgentOS |
 
 ## What AgentOS plugins need to own
