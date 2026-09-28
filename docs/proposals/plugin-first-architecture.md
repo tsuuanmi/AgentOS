@@ -23,6 +23,7 @@ AgentOS should apply that discipline more aggressively because it is intended to
 
 See:
 
+- [Workflow restart and reconciliation v0](../research/workflow-restart-reconciliation-v0.md)
 - [Workflow DSH reuse](../research/workflow-dsh-reuse.md)
 - [Internet architecture review](../research/internet-architecture-review.md)
 - [Plugin boundary inventory](../research/plugin-boundary-inventory.md)
@@ -388,6 +389,20 @@ The in-memory scheduler is derived and disposable. On Host restart the plugin sc
 
 Long-running v1 means durability across Local/client disconnect and Host restart. It does not require active execution while the machine is powered off.
 
+### Unknown-outcome recovery
+
+Every admitted WorkItem must carry a stable recovery policy for the case where Host/process loss makes an execution outcome unknown:
+
+~~~text
+SAFE_RETRY
+RECONCILE_BEFORE_RETRY
+BLOCK_ON_UNKNOWN
+~~~
+
+The reconciler must never infer "not executed" merely because a Job/subagent/provider handle is missing after restart.
+
+Consequential authority and side-effect completion are also separate facts. Resolving a durable PendingAction records authority; the actual merge/publish/mutation runs as its own WorkItem with fencing, reconciliation, and a ReceiptRef.
+
 See:
 
 - [Durable long-running Workflow over DSH](../research/workflow-long-running-dsh-runtime.md)
@@ -700,7 +715,7 @@ Open questions are now:
 6. Can DSH Agent Teams serve as an implementation substrate for some Agent Team semantics without becoming the semantic definition?
 7. How should Workflow call Agent Team and workers without coupling to one provider/runtime?
 8. Does AgentOS need any durable identity/state independent of DSH and delegated Workflow providers?
-9. Use the software vertical slice v0 to prove Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end; which missing semantic, if any, is actually required? proves Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end?
+9. Use the software vertical slice v0 and restart crash matrix to prove Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end and promote only semantics that are actually required.
 10. Which long-running operations need MCP Tasks or another transport projection after the Workflow contract is clear?
 11. What compatibility/version contract should AgentOS declare against DSH?
 
@@ -722,6 +737,8 @@ Before implementation expands beyond the root plugin/profile:
 - Local remains usable when Agent Team is unavailable; optional reasoning capabilities degrade gracefully.
 - Workflow and Agent Team remain replaceable semantic capabilities rather than provider identities.
 - A durable Workflow may outlive the originating Local connection when durability is part of its provider contract.
+- Unknown execution outcomes follow an admitted WorkItem recovery mode; missing live handles never authorize blind retry.
+- User authority resolution and consequential side-effect completion remain separate durable facts.
 - A Workflow may compose Agent Team and other capabilities without routing every internal step through Local.
 - DSH Agent Teams and Internet-backed teams are implementation/substrate choices, not the Agent Team semantic definition.
 - Controller remains future/optional and does not block v1.
