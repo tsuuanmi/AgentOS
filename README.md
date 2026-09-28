@@ -28,16 +28,15 @@ See the canonical [architecture](docs/architecture/README.md).
 
 Start at [docs/README.md](docs/README.md).
 
-- [Requirements](docs/requirements/README.md) — modular capability contracts.
 - [Architecture](docs/architecture/README.md) — composition, ownership, protocols, and dependency boundaries.
 - [Product principles](docs/architecture/product-principles.md) — why AgentOS exists: cost/context allocation, right-agent-right-job, plugin-first replacement, Artifact reuse, and real workflow goals.
 - [AgentOS composition](docs/architecture/plugins/agentos/README.md) — plugin-of-plugins model.
-- [Agent Team composition](docs/architecture/plugins/agent-team/README.md) — DSH Team/Subagent reuse plus AgentOS semantic delta.
-- [Workflow composition](docs/architecture/plugins/workflow/README.md) — domain-agnostic Core plus DSH persistence/execution/interaction reuse.
+- [Agent Team plugin](docs/architecture/plugins/agent-team/README.md) — DSH Team/Subagent reuse, collaboration policy, and behavioral invariants.
+- [Workflow plugin](docs/architecture/plugins/workflow/README.md) — domain-agnostic semantics, durable invariants, and replaceable runtime mechanics.
 - [Workflow definitions/profiles](docs/architecture/plugins/workflow/definitions.md) — config-driven domain workflows.
 - [Worker model](docs/architecture/worker-model.md) — agnostic capability-driven Worker and provider bindings.
 - [Protocol stack](docs/architecture/protocol-stack.md) — ACP for interchangeable coding Workers, A2A for agent-to-agent collaboration, MCP for tools/Website compatibility.
-- [Reference](docs/reference/README.md) — Worker Contract/API/Exchange and transport mappings.
+- [Reference](docs/reference/README.md) — exact AgentOS-owned contracts and transitional compatibility notes.
 - [JSON Schemas](schemas/README.md) — machine-readable Worker structures.
 - [software-development Skill](.agents/skills/software-development/SKILL.md) — initial software capability procedure pack, not Worker identity.
 - [Initial implementation proposal](docs/proposals/initial-implementation.md) — composition-first TDD sequence.
