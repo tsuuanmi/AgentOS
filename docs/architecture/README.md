@@ -46,6 +46,7 @@ The important boundary is not "local versus remote". It is **AgentOS semantic st
 - **Agent Team** owns collaborative phase semantics and typed phase completion.
 - **DSH/Cordis** owns reusable runtime machinery.
 - **Worker boundary** preserves provider-neutral work semantics.
+- **Website Agent** is the current first-class external Worker execution participant, connected to the local Worker boundary through MCP.
 - **Validation** grounds correctness-bearing effects in observed state or receipts.
 
 See [Interaction model](interaction-model.md) for the end-to-end flows and [Worker boundary model](worker-boundaries.md) for the Contract / Schema / MCP / Skill / Server invariant separation.
@@ -106,10 +107,43 @@ The planes are conceptual ownership boundaries, not necessarily separate process
 | Agent Team | collaborative phase policy, capability-based Worker selection, provider-backed Worker bindings, typed phase completion | DSH Agent Teams, Worker Protocol/server, validation evidence | outer Workflow lifecycle, DSH runtime persistence mechanics |
 | DSH Agent Teams | Team identity, roster, mailbox, Team tasks, teammate lifecycle/continuation and Team persistence | Cordis/runtime primitives | AgentOS Workflow or phase-result semantics |
 | Worker server | current durable Worker assignment/message/artifact state, fencing, acceptance and authorization invariants | canonical schemas and Worker Protocol | Team semantics, Workflow semantics, provider UI/session semantics |
-| Provider adapter/execution | provider-specific binding, transport and execution lifecycle | Worker Protocol-compatible exchange | AgentOS semantic identity or completion authority |
+| Website Agent | remote substantive Worker execution; claiming assignments; consuming Messages; publishing Messages/Artifacts through MCP | MCP Worker transport, Worker Protocol semantics, optional Skill guidance | DSH Team identity, Workflow lifecycle, local completion authority |
+| Provider adapter | provider-specific binding and transport/lifecycle mapping | Worker Protocol-compatible exchange | AgentOS semantic identity or completion authority |
 | Validation | observed repository/environment/effect state and explicit receipts | actual tools/environment | model consensus as correctness authority |
 
 Canonical normative behavior stays in [Workflow requirements](../requirements/workflow.md) and [Agent Team requirements](../requirements/agent-team.md).
+
+## Agent communication and protocols
+
+Agents do not all communicate through the same protocol. Protocol choice follows the ownership boundary:
+
+| Interaction | Protocol / interface |
+|---|---|
+| Local Agent -> Agent Team | AgentOS Agent Team semantic interface |
+| Local Agent -> Workflow | AgentOS Workflow semantic interface |
+| Workflow <-> Agent Team | typed AgentOS phase interface |
+| DSH Worker <-> DSH Worker | DSH Agent Teams TeamTask + mailbox / `send_message` |
+| DSH Worker <-> Worker server | Worker API carrying Worker Protocol objects |
+| Website Agent <-> Worker server | MCP Worker transport carrying Worker Protocol semantics |
+| Website Agent <-> Website Agent | no direct protocol; communication composes MCP + Worker Protocol + DSH Team messaging |
+
+The full routing model, including Website-to-Website peer communication, lives in [Agent communication architecture](agent-communication.md).
+
+A critical distinction is:
+
+~~~text
+DSH Team messaging
+  = local teammate collaboration
+
+Worker Protocol
+  = provider-neutral Assignment / Message / Artifact semantics
+
+MCP
+  = current Website-facing transport
+
+AgentOS phase interface
+  = typed collaboration result exposed to Local / Workflow
+~~~
 
 ## Dependency direction
 
@@ -271,6 +305,7 @@ These are implementation choices, not permanent architecture requirements. Unres
 ## Canonical neighbors
 
 - [Interaction model](interaction-model.md) — end-to-end request, collaboration, completion, and recovery flows.
+- [Agent communication architecture](agent-communication.md) — Agent roles, protocol matrix, Website Agent boundary, and peer-message routing.
 - [Worker boundary model](worker-boundaries.md) — placement of Contract, Schema, MCP, Skill, and Server invariant concerns.
 - [Requirements](../requirements/README.md) — normative behavior.
 - [Reference](../reference/README.md) — exact protocols, APIs, MCP mapping, server invariants, and schemas.
