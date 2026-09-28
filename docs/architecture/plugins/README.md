@@ -34,7 +34,7 @@ flowchart TB
 |---|---|---|
 | AgentOS | top-level composition/bundle | [AgentOS composition](agentos/README.md) |
 | Agent Team | DSH Team/Subagent composition + AgentOS semantic delta | [Agent Team](agent-team/README.md) |
-| Workflow | DSH persistence/execution/interaction composition + AgentOS durable semantic delta | [Workflow](workflow/README.md) |
+| Workflow | domain-agnostic Core + declarative Definitions/Profiles + DSH persistence/execution/interaction composition | [Workflow](workflow/README.md) |
 | Worker | provider-neutral contracts, capability model, exchange/adapters | [Worker model](../worker-model.md) |
 
 Agent Team and Workflow may eventually ship as separate installable bundles/plugins, but architecture does not require each to be a monolithic package.
@@ -50,3 +50,10 @@ Before building a new AgentOS subsystem:
 5. isolate experimental/provider-specific dependencies behind adapters.
 
 Shared DSH dependencies are mapped in [DSH capability reuse](../dsh-reuse.md).
+
+
+## Workflow extension rule
+
+Workflow domains are configuration, not new engines.
+
+A new profile should normally add a Workflow Definition plus capability packs/schemas and reuse installed adapters. Core code changes are reserved for new generic lifecycle/recovery semantics.
