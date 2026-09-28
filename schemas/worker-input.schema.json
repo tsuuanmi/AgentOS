@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentos.dev/schemas/worker-input.schema.json",
+  "title": "AgentOS Worker Input",
+  "description": "Structured additional input delivered to an existing Worker assignment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "inputId",
+    "workerId",
+    "assignmentId",
+    "inputBinding",
+    "kind",
+    "payloadSchemaRef",
+    "payload"
+  ],
+  "properties": {
+    "inputId": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "workerId": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "assignmentId": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "inputBinding": {
+      "$ref": "worker-common.schema.json#/$defs/inputBinding"
+    },
+    "kind": {
+      "$ref": "worker-common.schema.json#/$defs/semanticName"
+    },
+    "source": {
+      "$ref": "worker-common.schema.json#/$defs/source"
+    },
+    "payloadSchemaRef": {
+      "$ref": "worker-common.schema.json#/$defs/schemaRef"
+    },
+    "payload": {
+      "description": "Structured payload validated by the application against payloadSchemaRef."
+    },
+    "inReplyTo": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "extensions": {
+      "$ref": "worker-common.schema.json#/$defs/extensions"
+    }
+  }
+}
