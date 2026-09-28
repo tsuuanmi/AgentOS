@@ -1,100 +1,53 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentos.dev/schemas/worker-request.v1.json",
-  "title": "AgentOS Worker Request v1",
+  "$id": "https://agentos.dev/schemas/worker-request.schema.json",
+  "title": "AgentOS Worker Request",
+  "description": "Starts one capability-driven Worker assignment against an exact input binding.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "protocolVersion",
-    "requestId",
     "assignmentId",
-    "phase",
     "requiredCapabilities",
     "objective",
     "inputBinding",
     "expectedOutput"
   ],
   "properties": {
-    "protocolVersion": {
-      "const": "1"
-    },
-    "requestId": {
-      "type": "string",
-      "minLength": 1
-    },
     "assignmentId": {
-      "type": "string",
-      "minLength": 1
-    },
-    "phase": {
-      "type": "string",
-      "enum": [
-        "research",
-        "implementation",
-        "review",
-        "synthesis"
-      ]
+      "$ref": "worker-common.schema.json#/$defs/identifier"
     },
     "requiredCapabilities": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
       "items": {
-        "type": "string",
-        "pattern": "^[a-z][a-z0-9.-]*$"
+        "$ref": "worker-common.schema.json#/$defs/capability"
       }
     },
     "objective": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "goal"
-      ],
-      "properties": {
-        "goal": {
-          "type": "string",
-          "minLength": 1
-        },
-        "acceptanceCriteria": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "questions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
+      "$ref": "worker-common.schema.json#/$defs/objective"
     },
     "inputBinding": {
-      "type": "string",
-      "minLength": 1
+      "$ref": "worker-common.schema.json#/$defs/inputBinding"
     },
-    "contextRefs": {
+    "context": {
       "type": "array",
       "items": {
-        "type": "string"
+        "$ref": "worker-common.schema.json#/$defs/reference"
       }
     },
     "constraints": {
       "type": "array",
       "items": {
-        "type": "string"
-      }
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
     },
     "acceptedResults": {
       "type": "array",
       "items": {
-        "type": "string"
-      }
-    },
-    "peerEvidence": {
-      "type": "array",
-      "items": {
-        "$ref": "worker-message.schema.json"
+        "$ref": "worker-common.schema.json#/$defs/reference"
       }
     },
     "expectedOutput": {
@@ -105,20 +58,12 @@
       ],
       "properties": {
         "schemaRef": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "worker-common.schema.json#/$defs/schemaRef"
         }
       }
     },
-    "completion": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "explicit": {
-          "type": "boolean",
-          "const": true
-        }
-      }
+    "extensions": {
+      "$ref": "worker-common.schema.json#/$defs/extensions"
     }
   }
 }
