@@ -977,3 +977,108 @@ ResearchResult / ReviewResult
 ~~~
 
 No custom AgentOS Team scheduler, transcript store, roster, mailbox, task graph, or member lifecycle is required.
+
+
+## 28. Preferred v1 orchestration: deterministic outer adapter, native DSH Team mechanics
+
+There are two possible ways to use DSH Agent Teams:
+
+~~~text
+A. Lead model creates/coordinates teammates through Team tools
+
+B. AgentOS provider deterministically creates the Team shape through ctx.agentTeams,
+   then teammates and Lead use normal DSH Team messaging/tools for their work
+~~~
+
+For semantic research/review v1, **B has higher ROI**.
+
+Why:
+
+- Team topology is product policy, not something the Lead must rediscover every call;
+- it avoids depending on the stock tool-agent-team rule that teammate creation requires explicit user request;
+- member count/task dependencies become deterministic and testable;
+- DSH service remains the only authority for roster/mailbox/task changes;
+- Lead model tokens are spent on synthesis rather than mechanical team setup;
+- Workflow and direct Local calls use the same provider behavior.
+
+### Candidate research execution
+
+~~~text
+AgentOS provider
+  |
+  +-> create dedicated root Lead R1
+  |
+  +-> ctx.agentTeams.createTask(research-a)
+  +-> ctx.agentTeams.createTask(research-b)
+  |
+  +-> ctx.agentTeams.spawnTeammate(researcher-a, fresh/spawn)
+  +-> ctx.agentTeams.spawnTeammate(researcher-b, fresh/spawn)
+  |
+  +-> assign/wake bounded research work
+  |
+  +-> teammates:
+  |      use native DSH Team tools/mailbox
+  |      send concise findings to Lead
+  |      complete their Team tasks
+  |
+  +-> provider observes Team task state/waits for change
+  |
+  +-> when required tasks are complete:
+         wake/followup Lead with synthesis instruction
+         Lead consumes already-delivered Team messages
+         Lead submits typed ResearchResult
+~~~
+
+The same pattern applies to review.
+
+### No transcript scraping
+
+The provider should **not** read teammate Session histories to reconstruct a transcript.
+
+DSH mailbox already delivers teammate content into the Lead Session with sender attribution and de-duplication.
+
+Lead synthesis should consume that normal model context.
+
+The deterministic adapter observes only coordination facts such as roster/task state and semantic completion.
+
+## 29. Stock Team tools are reused selectively
+
+The DSH Team tool package remains useful for teammates:
+
+- send_message;
+- task get/list/update;
+- wait where model-driven coordination needs it.
+
+The AgentOS provider itself should call ctx.agentTeams directly for deterministic topology/setup instead of shelling through model-facing tools.
+
+This is not duplication: the service is the authority and the model-facing tool package is one consumer.
+
+If future AgentOS needs a different model-facing Team creation policy, prefer an upstream/configurable DSH tool-policy seam over copying the nine tool definitions into AgentOS.
+
+## 30. Minimal Team result tool
+
+The one new model-facing primitive with strong evidence is a scoped semantic completion tool for the dedicated Lead.
+
+Conceptually:
+
+~~~text
+submit_agent_team_result({
+  invocationId,
+  kind,
+  result
+})
+~~~
+
+Requirements:
+
+- only the exact invocation Lead scope can call it;
+- schema is ResearchResult or ReviewResult;
+- result binds to the invocation's exact semantic input;
+- result becomes durable before the tool reports success;
+- duplicate identical submission is idempotent or rejected deterministically;
+- stale/wrong invocation cannot commit;
+- it stores no roster/mailbox/task state.
+
+This tool is the bridge from DSH's collaboration runtime to AgentOS semantic capability completion.
+
+It should be implemented only after contract tests define the exact behavior.
