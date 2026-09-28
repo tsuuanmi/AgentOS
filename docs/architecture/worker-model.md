@@ -7,7 +7,9 @@ A **Worker** is an AgentOS **agnostic, capability-driven semantic execution role
 
 Worker identity stays stable while capability sets and concrete providers evolve.
 
-A Worker may be executed by a DSH subagent, Codex, Claude Code, a Website Agent, ACP/A2A agent, or another provider as long as the provider satisfies the required Worker capabilities and Worker Protocol semantics.
+A Worker may be executed by a DSH subagent, an ACP-compatible coding agent, a Website Agent, a remote A2A agent, or another provider as long as the provider satisfies the required Worker capabilities and Worker Contract semantics.
+
+For software-development Workers, **ACP is the preferred standard execution/control boundary** when available. **A2A is separate: it is the preferred protocol for communication between independent agents.** See [Protocol stack](protocol-stack.md).
 
 ## Core distinction
 
@@ -72,24 +74,24 @@ flowchart TB
     Registry[Worker Provider Registry]
 
     DSH[DSH subagent provider]
-    Codex[Codex provider]
-    Claude[Claude Code provider]
+    ACP[ACP-compatible coding provider]
     Web[Website Agent provider]
-    Future[ACP / A2A / other]
+    Remote[A2A remote agent provider]
+    Future[other provider]
 
     Team --> Exchange
     Team --> Registry
 
     Registry --> DSH
-    Registry --> Codex
-    Registry --> Claude
+    Registry --> ACP
     Registry --> Web
+    Registry --> Remote
     Registry -.-> Future
 
     DSH <--> Exchange
-    Codex <--> Exchange
-    Claude <--> Exchange
+    ACP <--> Exchange
     Web <--> Exchange
+    Remote <--> Exchange
     Future <--> Exchange
 ~~~
 
@@ -112,13 +114,15 @@ Current DSH provider families include:
 
 AgentOS should integrate through the subagent service/provider seam rather than depend on one concrete DSH child implementation.
 
-### Codex and Claude Code
+### ACP-compatible coding agents
 
-Codex and Claude Code are valid Worker provider candidates.
+Codex, Claude Agent, Gemini CLI, Cursor, OpenCode, OpenHands, and other ACP-compatible agents are valid Worker provider candidates through one common client/provider boundary.
 
-They are not "special Worker types"; they are provider implementations behind the Worker binding.
+They are not "special Worker types"; they are replaceable provider implementations behind the Worker binding.
 
-Current DSH Codex and Claude Code subagent providers are one-shot providers. They do not currently provide durable continuation/resume. Therefore a Worker bound to one of these providers must not advertise continuation-dependent semantic capabilities unless an AgentOS adapter can safely provide those guarantees.
+Prefer the generic ACP seam when it exposes the lifecycle, tools, permissions, continuation, and output behavior the Worker capability requires. A product-native provider remains valid when it provides materially stronger guarantees than the ACP adapter.
+
+Provider capability advertisement must be based on the actual selected ACP/native implementation. A provider that is one-shot or cannot resume must not advertise continuation-dependent semantic capabilities unless an adapter can safely provide those guarantees.
 
 For example:
 
@@ -132,20 +136,20 @@ debate requiring later peer Messages in the same execution
 
 Capability advertisement must reflect actual provider guarantees.
 
-### Website Agent
+### Remote and Website Agents
 
-A Website Agent is another Worker provider.
-
-The current mapping is:
+An independently hosted agent that supports A2A can be bound as a remote Worker/provider through an A2A adapter.
 
 ~~~text
 Worker
-  -> Website Worker Provider
-      -> MCP Worker transport
-          -> Website Agent
+  -> remote Worker Provider
+      -> A2A
+          -> remote Agent
 ~~~
 
-The Website conversation id remains provider-local. Worker identity, assignment identity, and completion authority remain AgentOS-owned.
+A Website Agent that only exposes MCP-client integration may continue to use the MCP Worker compatibility bridge.
+
+A2A task/context ids, Website conversation ids, and MCP Task ids remain provider/transport-local. Worker identity, assignment identity, and completion authority remain AgentOS-owned.
 
 ## Worker Binding
 
@@ -168,6 +172,8 @@ workerId
   != DSH session id
   != Codex thread/process id
   != Claude Code query/session id
+  != ACP session id
+  != A2A task/context id
   != Website conversation id
   != MCP Task id
 ~~~
@@ -221,11 +227,15 @@ The architecture does not require every Worker to use a network server.
 flowchart LR
     Exchange[Worker Exchange Service]
 
-    Local[Local/DSH/Codex/Claude provider]
-    MCP[MCP adapter]
+    Local[DSH/native provider]
+    ACP[ACP coding provider]
+    A2A[A2A remote provider]
+    MCP[MCP compatibility adapter]
     Website[Website Agent]
 
-    Local <--> |in-process or local adapter| Exchange
+    Local <--> |in-process| Exchange
+    ACP <--> Exchange
+    A2A <--> Exchange
     Website <--> MCP
     MCP <--> Exchange
 ~~~
@@ -252,12 +262,12 @@ provider disappears
   -> bind a replacement provider execution when safe
 ~~~
 
-Replacing a DSH provider with Codex, Claude, or Website execution should affect the Worker Binding and provider adapter, not Agent Team or Workflow semantics.
+Replacing one ACP agent with another, or replacing an ACP/native provider with an A2A/Website provider, should affect the Worker Binding and provider adapter, not Agent Team or Workflow semantics.
 
 ## Architectural rules
 
 1. Worker is provider-neutral.
-2. DSH/Codex/Claude/Website are provider/runtime choices, not Worker identity.
+2. DSH/ACP/A2A/Website integrations are provider/runtime choices, not Worker identity.
 3. Worker Exchange Service is logical authority, not another Agent.
 4. Worker and Worker Exchange Service may be implemented in one plugin/process while preserving separate responsibilities.
 5. Provider-native ids never become Worker or Assignment identity.
