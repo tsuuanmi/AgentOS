@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:agentos:schema:mcp-worker-send-request",
   "title": "AgentOS MCP Worker Send Request",
-  "description": "Sends one Worker Message from the Website execution to the local Worker server.",
+  "description": "Sends one Worker Message from the Website execution to the AgentOS Worker Exchange service.",
   "type": "object",
   "additionalProperties": false,
   "required": [
