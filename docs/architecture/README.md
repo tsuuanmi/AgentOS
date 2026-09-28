@@ -69,7 +69,8 @@ flowchart TB
     Worker --> Sub
     Sub --> ACP
     ACP --> Website
-    Sub --> A2A
+    Team <--> A2A
+    A2A <--> Website
 
     WF --> Runtime
 ~~~
