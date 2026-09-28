@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentos:schema:mcp-worker-claim-request",
+  "title": "AgentOS MCP Worker Claim Request",
+  "description": "Requests the current or next queued assignment for one explicit Worker.",
+  "$ref": "urn:agentos:schema:mcp-worker-common#/$defs/workerLookup"
+}
