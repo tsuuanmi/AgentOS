@@ -2,61 +2,93 @@
 
 - **Owner:** DeepSeek Harness / Cordis
 - **AgentOS consumer:** Workflow plugin
+- **Role:** reusable runtime mechanics below Workflow semantics
 
-Workflow should compose DSH runtime capabilities before implementing generic durability mechanics.
+Workflow should compose these mechanics before implementing infrastructure itself.
 
-## Default substrate
+## Runtime substrate
 
-~~~text
-ctx.storageDomain
-  + Agent Team / Worker plugins
-  + optional ctx.jobs
-  + optional ctx.workflowEngine
-  + optional Schedule
-  + optional approval/questions
-  + Session/workspace/effect capabilities
+~~~mermaid
+flowchart TB
+    WF[AgentOS Workflow]
+
+    Store[ctx.storageDomain]
+    Jobs[ctx.jobs]
+    Engine[ctx.workflowEngine]
+    Schedule[Schedule]
+    Human[approval / userQuestions]
+    Session[Session]
+    Tools[workspace / fs / shell / web / MCP]
+
+    WF --> Store
+    WF -. optional .-> Jobs
+    WF -. optional .-> Engine
+    WF -. optional .-> Schedule
+    WF -. presentation .-> Human
+    WF -. projection .-> Session
+    WF --> Tools
 ~~~
 
-## Ownership
+## Ownership table
 
-### ctx.storageDomain
+| Capability | DSH owns | Workflow owns |
+|---|---|---|
+| `ctx.storageDomain` | storage mechanics | semantic record content/invariants |
+| `ctx.jobs` | background execution mechanics | whether a WorkItem is semantically complete |
+| `ctx.workflowEngine` | bounded orchestration mechanics | Workflow Definition/WorkItem meaning |
+| Schedule | timer/wake delivery | why/when semantic state is waiting |
+| approval/questions | interaction presentation | durable authority decision if required |
+| Session | DSH persistence/projection | WorkflowRun semantic identity |
+| workspace/fs/shell/web/MCP | effect/tool access | effect authorization/acceptance policy |
 
-Preferred persistence seam for AgentOS-owned durable semantic records.
+## Key invariant
 
-### ctx.jobs
+~~~text
+DSH runtime primitive
+  != AgentOS semantic identity
+~~~
 
-Optional background-work/progress mechanic.
+Examples:
 
-### ctx.workflowEngine
+~~~text
+DSH Job != Workflow WorkItem
+DSH workflow execution != WorkflowRun
+DSH approval UI != durable authority decision
+Session != WorkflowRun
+~~~
 
-Optional bounded/live orchestration mechanic.
+## Recovery rule
 
-It is not AgentOS Workflow semantic identity.
+After restart, Workflow reloads its semantic state and asks the runtime/effect boundaries what actually happened.
 
-### Schedule
+It does not infer semantic completion from the presence/absence of a DSH runtime handle alone.
 
-Optional timer/wake delivery.
+## External runtime adapter
 
-### approval / userQuestions
+Only if a concrete generic durability gap is proven:
 
-Presentation/interaction mechanics.
+~~~mermaid
+flowchart LR
+    Host[DSH/Cordis Host]
+    WF[Workflow semantic plugin]
+    Adapter[Cordis runtime adapter]
+    External[Temporal / Inngest / other]
 
-If a human/external decision must survive restart, Workflow owns the durable semantic decision record; these plugins present/collect it.
+    Host --> WF --> Adapter --> External
+~~~
 
-### Session
+The external runtime implements mechanics only. DSH/Cordis remains the AgentOS Host.
 
-DSH persistence/projection state.
+## Conformance gates
 
-Do not mirror it merely for convenience.
+Characterize before building replacements:
 
-### workspace/fs/shell/web/tools/MCP
+1. storage durability and atomicity assumptions;
+2. Job lifecycle/restart behavior;
+3. workflowEngine boundaries;
+4. timer/wake behavior;
+5. approval/question lifetime;
+6. Session reload/projection;
+7. effect/tool cancellation and observability.
 
-Execution/effect-observation capabilities used by Worker or Workflow adapters.
-
-## External runtime substitution
-
-If a concrete Workflow requirement proves DSH generic durability insufficient, an external runtime such as Inngest or Temporal may be wrapped behind a Cordis plugin.
-
-DSH/Cordis remains the Host and Workflow semantic identity remains AgentOS-owned.
-
-See [Workflow plugin](../workflow/README.md).
+Only a failing real Workflow requirement justifies another runtime dependency.
