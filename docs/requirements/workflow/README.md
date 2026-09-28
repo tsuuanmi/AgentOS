@@ -5,6 +5,8 @@
 
 Workflow owns durable lifecycle for long-running work.
 
+Workflow Core is domain-agnostic. Domain/product behavior is supplied by a validated Workflow Definition/Profile that the Core interprets.
+
 It does not own generic execution, Team collaboration, DSH Jobs, DSH workflow scripts, subagents, or provider transports.
 
 ## Required behavior
@@ -23,6 +25,7 @@ A WorkflowRun must survive Local/client disconnect and Host restart according to
 
 ## Canonical requirement modules
 
+- [Definition](definition.md) — config-driven domain policy and exact Definition binding.
 - [Lifecycle](lifecycle.md) — WorkflowRun/WorkItem identity and state transitions.
 - [Execution](execution.md) — execution adapters, exact input binding, result/effect authority.
 - [Recovery](recovery.md) — unknown outcomes, fencing, restart reconciliation.
