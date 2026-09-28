@@ -1,107 +1,316 @@
 # MCP Worker transport
 
-- **Status:** v1 transport profile
+- **Status:** canonical Website interoperability profile
 - **Worker semantics:** [Worker Protocol](../contracts/worker-protocol.md)
-- **Worker API:** [Worker API](../api/worker-api.md)
+- **Local API:** [Worker API](../api/worker-api.md)
 - **Schemas:** [repository schemas](../../schemas/README.md)
 
-## Principle
+## Purpose
 
-MCP transports the Worker API.
+MCP is the default interoperability boundary between a Website Agent and the local Worker bridge when that Website host supports MCP.
 
-It does not redefine Worker identity, capability semantics, assignment lifecycle, or completion.
+The Website Agent is the MCP **client**.
 
-MCP 2026-07-28 standardized tool input/output schemas on JSON Schema 2020-12 and made core MCP stateless. AgentOS therefore keeps assignment/conversation state explicit through AgentOS handles rather than hidden transport sessions.
-
-## Tool mapping
-
-Candidate v1 tools:
+The AgentOS/local Worker bridge is the MCP **server**.
 
 ~~~text
-agentos.worker.capabilities
-agentos.worker.start
-agentos.worker.continue
-agentos.worker.inspect
-agentos.worker.cancel
+Website Agent
+   |
+   | MCP tools
+   v
+local Worker MCP server
+   |
+   v
+DSH Agent Team / local runtime
 ~~~
 
-### agentos.worker.start
+MCP transports Worker semantics; it does not redefine them.
 
-Input:
+## Reachability
+
+For OpenAI-hosted Website Agents, Secure MCP Tunnel is a strong default:
 
 ~~~text
-/schemas/worker-request.schema.json
+ChatGPT / OpenAI product
+  -> OpenAI-hosted MCP tunnel endpoint
+  -> outbound tunnel-client
+  -> private AgentOS MCP server
 ~~~
 
-Output:
+Tunnel identity is reachability/authorization infrastructure.
+
+It is not Worker or assignment identity.
+
+Other Website Agents may use:
+
+- public HTTPS MCP;
+- a vendor/browser MCP bridge;
+- another secure tunnel implementation.
+
+The Worker protocol remains unchanged.
+
+## Explicit identity
+
+Modern MCP is stateless at its core.
+
+Every semantic exchange therefore carries explicit application handles.
+
+Do not depend on:
+
+- MCP session id;
+- tunnel id;
+- HTTP connection;
+- browser tab;
+- Website conversation identity;
+- model/provider name.
+
+Core handles include:
 
 ~~~text
-/schemas/worker-result.schema.json
-~~~
-
-### agentos.worker.continue
-
-Uses the same assignment identity and returns the same WorkerResult shape.
-
-Its input should be finalized as implementation clarifies whether continuation is a WorkerRequest variant or deserves a separate canonical schema.
-
-Do not invent transport-only semantic fields.
-
-### agentos.worker.inspect / cancel / capabilities
-
-These expose the transport-neutral Worker API with MCP-specific tool envelopes only.
-
-## JSON Schema reuse
-
-MCP `inputSchema` and `outputSchema` should reuse/derive directly from the canonical repository schemas.
-
-Do not maintain independent MCP schema copies.
-
-## Stateless transport
-
-MCP transport/session state is not Worker assignment state.
-
-Explicit handles remain in AgentOS payloads:
-
-~~~text
+workerId
 assignmentId
 inputBinding
-provider binding/conversation reference below the AgentOS provider boundary
+cursor/message ids where needed
 ~~~
 
-Reconnect or a new MCP request must be able to continue/inspect the same logical Worker assignment using explicit AgentOS state.
+Authentication principal may authorize access to a Worker, but does not become Worker identity.
 
-## MCP Tasks extension
+## Required tools
 
-For genuinely long-running Worker calls, the optional MCP Tasks extension may project a tool call as an asynchronous Task.
+Prefer a small Website-oriented surface.
+
+### agentos.worker.claim
+
+Website Agent asks for the next assignment available to its Worker binding.
+
+Conceptual input:
+
+~~~json
+{
+  "workerId": "..."
+}
+~~~
+
+Conceptual result:
+
+~~~text
+assignment
+or
+no_work
+~~~
+
+An assignment validates against:
+
+~~~text
+/schemas/worker-assignment.schema.json
+~~~
+
+Claiming is atomic: one assignment is not silently claimed by multiple Website conversations unless the provider explicitly supports shared execution.
+
+### agentos.worker.receive
+
+Returns structured input queued for an active assignment.
+
+Conceptual input:
+
+~~~text
+workerId
+assignmentId
+cursor?
+waitMs?
+~~~
+
+Output contains zero or more:
+
+~~~text
+/schemas/worker-input.schema.json
+~~~
+
+Typical inputs:
+
+- peer evidence from another DSH Worker;
+- actual result of an authorized local action;
+- remediation context;
+- cancellation/control.
+
+Debate continues the same Website assignment/conversation; it does not create a fresh persona or assignment.
+
+If no input is ready, the tool may return an empty result plus polling guidance.
+
+A provider may optionally project a long wait through MCP Tasks when both sides support the extension.
+
+### agentos.worker.submit
+
+Submits Website Agent output for the current assignment.
+
+Input contains:
+
+~~~text
+workerId
+WorkerSubmission
+~~~
+
+WorkerSubmission validates against:
+
+~~~text
+/schemas/worker-submission.schema.json
+~~~
+
+Submission kinds distinguish intermediate from terminal work.
+
+For example:
+
+~~~text
+contribution
+  = independent brainstorm/review result before debate
+
+completion
+  = terminal revised result for the assignment
+~~~
+
+The local bridge validates assignment/input binding and persists the submission before acknowledging it.
+
+### agentos.worker.inspect
+
+Read-only recovery/debug surface.
+
+It returns current Worker/assignment state without claiming or starting work.
+
+## Website Agent lifecycle
+
+MCP does not portably let local code create an unrelated new Website Agent turn.
+
+Therefore local work is durable and pull-based.
+
+~~~text
+local AgentOS queues work
+
+Website Agent becomes active
+  -> worker.claim
+  -> reason/use allowed tools
+  -> worker.submit contribution
+  -> worker.receive peer/local input
+  -> revise
+  -> worker.submit completion
+~~~
+
+If the Website conversation is inactive, queued work remains pending until that conversation/provider is resumed by a supported host mechanism.
+
+This is an important correctness boundary, not a transport failure.
+
+## Debate
+
+Research/review peers use DSH Team messaging locally.
+
+The target Worker receives peer evidence through its local queue.
+
+The Website Agent retrieves that evidence through `agentos.worker.receive`.
+
+~~~text
+DSH Worker A -> DSH send_message -> DSH Worker B
+                                  -> Worker B input queue
+                                  -> MCP worker.receive
+                                  -> Website Agent B
+~~~
+
+Website Agent B continues its existing assignment and submits a revised contribution/completion.
+
+## MCP Tasks
+
+MCP Tasks may represent long-running MCP calls/waits when negotiated.
 
 ~~~text
 MCP Task
   = transport/execution projection
 
-Worker assignment
-  = AgentOS semantic/provider state
+AgentOS assignment
+  = application semantic state
 ~~~
 
-Task identity does not replace `assignmentId`.
+Never use MCP Task id as assignment id.
 
-A Task result may carry the eventual WorkerResult once the Worker API reaches a result boundary.
+Worker protocol remains usable without Tasks.
 
-Use Tasks only when both sides negotiate/support the extension; the Worker API must remain usable without it.
+## Multi-round-trip requests
 
-## Cancellation
+Modern MCP supports multi-round-trip input-required results during an existing client-originated call.
 
-MCP task/request cancellation maps to Worker API `cancel`.
+AgentOS may use this for bounded missing input/approval inside one call where host support is appropriate.
 
-Transport cancellation does not permit stale Website output to commit later.
+Do not use it as a substitute for the durable Worker assignment/mailbox protocol.
+
+It cannot portably create a new unrelated Website Agent turn.
+
+## Sampling
+
+Do not design new AgentOS Worker behavior around MCP sampling.
+
+Sampling is deprecated in current MCP for new integrations.
+
+Website reasoning should occur in the Website Agent that is already acting as the MCP client.
+
+## MCP schemas
+
+MCP tool `inputSchema` / `outputSchema` should derive from the canonical repository schemas.
+
+Do not maintain MCP-specific semantic schema copies.
+
+Because MCP hosts may not resolve external schema resources, the adapter should bundle/dereference canonical schemas into self-contained tool schemas when advertising tools.
+
+The root `$schema` declaration remains JSON Schema Draft 2020-12 because that identifies the standard dialect; it is not AgentOS product versioning.
+
+## Authentication and authorization
+
+Keep three concerns distinct:
+
+~~~text
+MCP authentication
+  = may this principal reach the server?
+
+Worker authorization
+  = may this principal access workerId/assignmentId?
+
+Local effect authority
+  = may this assignment perform this local action?
+~~~
+
+Do not infer Worker authorization only from tunnel/session identity.
+
+Production public/remote MCP should use the applicable MCP authorization standard/platform-managed auth.
+
+## Scoped local tools
+
+A Website Worker may need local files/tests/git.
+
+Two implementation profiles are valid:
+
+### Worker-only bridge
+
+Website Agent requests local actions through structured Worker input/submission exchange.
+
+Strongest isolation.
+
+### Scoped local MCP tools
+
+Website Agent directly calls selected local tools.
+
+Every exposed tool must resolve and authorize explicit Worker/assignment context.
+
+Do not let connector-global mutable state decide which assignment a tool call belongs to.
 
 ## Conformance
 
 Tests should prove:
 
-- MCP tool schemas are derived from canonical schemas;
-- MCP and direct API calls validate the same Worker request/result semantics;
-- reconnect/stateless calls preserve assignment identity through explicit handles;
-- MCP Task id never becomes Worker assignment id;
-- cancellation maps cleanly to Worker cancellation/fencing;
-- unsupported MCP Tasks does not change Worker semantics.
+- Website Agent is treated as MCP client and local bridge as server;
+- one MCP server/tunnel may host several explicit Workers without identity collision;
+- MCP session/tunnel identity never substitutes for workerId/assignmentId;
+- claim is atomic;
+- receive returns only current assignment input;
+- submit rejects stale worker/assignment/input bindings;
+- contributions do not terminate an assignment;
+- completion is durable before acknowledgement;
+- inactive Website conversations leave work queued rather than falsely failed;
+- MCP Task id never becomes assignment id;
+- MCP and direct/local API preserve the same canonical data semantics;
+- advertised MCP schemas are generated from canonical repository schemas.
