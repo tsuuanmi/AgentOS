@@ -182,8 +182,9 @@ Tests cover:
 - core logical-request reconciliation independent of ephemeral JSON-RPC ids;
 - Website/core ids hidden above Worker;
 - one-shot research through current DSH ACP provider;
-- stable v1 session loading in the Website ACP Agent;
-- exact gap preventing current DSH ACP client/provider from reusing that session across Worker runs.
+- native ACP Session Modes expose chat/research without a custom wire field;
+- continuation capability is advertised only when the actual ACP client/agent path supports it;
+- exact gap preventing current DSH Worker-side ACP client/provider from reusing a Website session across runs.
 
 Start with bounded one-shot execution.
 
@@ -204,8 +205,11 @@ Tests cover:
 - implement the native A2A AgentExecutor/server interface directly;
 - AgentCard/AgentSkill capability discovery;
 - pass `contextId` directly as the core conversation key when present;
-- pass `taskId` directly as the core logical request key when semantics match;
-- native Artifact/Part result projection;
+- preserve/generate `contextId` according to A2A v1 semantics;
+- use native `messageId` as the per-turn Core logical request identity;
+- keep server-generated `taskId` as A2A Task identity rather than a client request id;
+- native Artifact/Part Task deliverables; Messages remain communication rather than the only Task output;
+- initial JSON-RPC client/server integration through the official SDK;
 - cancellation -> core AbortSignal;
 - zero AgentOS protocol extensions;
 - chat/research routing without inventing a custom A2A skill-selection extension.
@@ -329,7 +333,7 @@ Implementation can begin when:
 1. DSH ownership is explicit under `plugins/dsh/`;
 2. each AgentOS-owned plugin has one canonical architecture folder;
 3. Worker is the only semantic provider-selection boundary consumed by Agent Team/Workflow;
-4. ACP/A2A/MCP roles are unambiguous;
+4. ACP/A2A/MCP roles and lifecycle ownership are unambiguous;
 5. legacy Worker/MCP wire schemas are absent;
-6. ACP/A2A/DSH SDK/runtime types are consumed directly rather than mirrored in AgentOS types;
+6. ACP/A2A/DSH SDK/runtime types and native identities are consumed directly rather than mirrored in AgentOS types;
 7. each first Red test distinguishes upstream mechanics from a real AgentOS semantic invariant.
