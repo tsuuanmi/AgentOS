@@ -1,69 +1,300 @@
 # Architecture
 
-Architecture owns current AgentOS structure, responsibility boundaries, dependency direction, and cross-cutting invariants.
+Architecture owns the current AgentOS structural boundaries, dependency direction, semantic ownership rules, and cross-cutting invariants.
 
-## Current baseline
+AgentOS is intentionally small. It is **not** a standalone harness and it is **not** another general-purpose agent platform.
 
-AgentOS is intentionally not a standalone harness.
+## North star
 
-Its architectural boundary is:
+> **AgentOS is a thin semantic composition plugin for DSH: it owns only the contracts that define AgentOS behavior, uses DSH/public capabilities for mechanics, and keeps independently owned implementations replaceable behind explicit boundaries.**
+
+The design is informed by the current and vNext architecture of `tsuuanmi/internet`, especially its shift toward:
+
+- host-owned lifecycle;
+- capability-first routing;
+- contract-first replaceable components;
+- semantic identities that do not leak implementation handles;
+- conformance-tested substitution;
+- explicit authority and correctness boundaries.
+
+See [Internet architecture review](../research/internet-architecture-review.md) for the detailed derivation.
+
+## Layer model
 
 ```text
-DSH / Cordis
-  owns: boot, plugin lifecycle, composition, configuration, loading, disposal
-        |
-        +------ existing DSH plugins/services
-        |
-        +------ public tools
-        |
-        v
-AgentOS plugin / bundle
-  owns: thin AgentOS-specific policy and composition
-        |
-        v
-AgentOS-specific capability plugins
-  only where an existing DSH/public capability is insufficient
++--------------------------------------------------+
+| DSH / Cordis host kernel                         |
+| boot · lifecycle · DI · config · composition     |
++--------------------------+-----------------------+
+                           |
+                           v
++--------------------------------------------------+
+| AgentOS semantic surface                         |
+| minimal AgentOS-owned contracts + invariants     |
++--------------------------+-----------------------+
+                           |
+              semantic capability boundary
+                           |
+          +----------------+----------------+
+          |                |                |
+          v                v                v
+   DSH services      public tools      AgentOS adapters /
+   and plugins       / plugins         implementations
+          \                |                /
+           +---------------+----------------+
+                           |
+                           v
++--------------------------------------------------+
+| AgentOS profiles / bundles                       |
+| select and compose capabilities                  |
++--------------------------------------------------+
 ```
 
-## Invariants
+The semantic surface may initially be extremely small. It grows only when a concrete feature requires an AgentOS-owned invariant that DSH or an existing public capability does not already own.
 
-### DSH is the core
+## Ownership
 
-AgentOS must not introduce a competing plugin runtime, loader, service container, hot-reload system, profile system, plugin manager, lifecycle engine, or general workflow kernel.
+### DSH / Cordis owns the host kernel
 
-Lifecycle and composition should be expressed through DSH/Cordis and existing DSH plugins.
+AgentOS does not create a competing implementation of:
 
-### Reuse before implementation
+- plugin discovery/loading/disposal;
+- dependency injection/context;
+- configuration layering;
+- HMR;
+- process/application boot;
+- agent/session lifecycle;
+- generic subagent lifecycle;
+- generic Agent Teams substrate;
+- generic workflow engine/runtime;
+- goals, todos, jobs, scheduling;
+- tool registration/execution;
+- LLM transport/adapters;
+- filesystem, shell, terminal, sandbox, LSP;
+- generic persistence;
+- compaction;
+- host UI extension mechanisms.
 
-For every needed behavior, resolve ownership in this order:
+When DSH semantics fit, AgentOS consumes them directly.
 
-1. use an existing DSH service/plugin directly when its contract fits;
-2. use an existing public tool when the capability is naturally tool-shaped;
-3. compose existing capabilities inside the AgentOS plugin/bundle;
-4. add an AgentOS-specific plugin only when a real semantic gap remains.
+### Public tools/plugins own bounded external capabilities
 
-Do not wrap an existing DSH capability merely to give it an AgentOS name.
+Browser, research, repository, external service, or other bounded actions should use an existing public tool/plugin when its contract already expresses the required behavior.
 
-### Public tools are first-class dependencies
+AgentOS does not wrap a public capability merely to rename it.
 
-AgentOS may delegate bounded actions to public tools instead of rebuilding those actions as internal services. Tool use should remain explicit and replaceable; correctness-critical state must not be hidden inside an opaque tool invocation when AgentOS itself needs to own that state.
+### AgentOS owns only AgentOS semantics
 
-### AgentOS is composable, not monolithic
+AgentOS may own a contract when the behavior:
 
-The AgentOS product experience may be distributed as one DSH bundle/plugin composition, but individual AgentOS-specific capabilities should remain independently replaceable when there is a real provider seam.
+- defines observable AgentOS product semantics;
+- carries an AgentOS-specific correctness or authority invariant;
+- must remain stable while the implementation changes;
+- cannot be expressed cleanly by directly consuming an existing DSH/public contract.
 
-### No privileged internal feature layer
+Implementation is not automatically ownership.
 
-A capability should not require editing an AgentOS central switch statement merely to exist. New behavior should attach through DSH/Cordis-native plugin registration, services, events, public tools, or explicit capability contracts.
+## Core invariants
 
-### Minimal shared core
+### 1. Own semantics; compose implementations
 
-Shared code is justified only when it owns a stable cross-plugin contract or invariant. Convenience code that belongs to one feature stays with that feature.
+The preferred dependency direction is:
 
-### Dependency direction
+```text
+AgentOS semantic contract
+  -> DSH service / public capability / AgentOS adapter
+  -> selected implementation
+  -> typed result / receipt / binding when needed
+```
 
-AgentOS-specific consumers depend on capability contracts, not concrete providers. Providers may depend on contracts and lower-level DSH services. AgentOS composition may select providers or tools, but contracts must not depend on that composition.
+AgentOS should not absorb an infrastructure subsystem merely because an AgentOS feature uses it.
+
+### 2. Capability-first, provider-agnostic
+
+Where AgentOS owns a semantic dependency, product logic should request the semantic capability rather than a provider/model/tool implementation.
+
+```text
+semantic capability
+  -> resolution/composition
+  -> concrete provider/plugin/tool
+```
+
+Provider/model/tool identity remains below the semantic layer unless that identity is explicitly part of the requested behavior.
+
+### 3. DSH authority is not mirrored
+
+When DSH already owns durable state or lifecycle semantics, AgentOS should not maintain an equivalent shadow state machine.
+
+Examples:
+
+- DSH Agent Teams owns roster/mailbox/task-board mechanics.
+- DSH subagents own child lifecycle.
+- DSH workflow owns its workflow execution semantics.
+- DSH jobs/goals/schedule own their respective state.
+
+AgentOS may add higher-level semantics above them but should not duplicate their authoritative state.
+
+### 4. Working context is not correctness authority
+
+Model conversations, prompt context, hidden reasoning, tool transcripts, and provider sessions may be useful working state.
+
+They are not AgentOS correctness authority unless AgentOS explicitly defines and persists a typed semantic fact from them.
+
+If AgentOS later owns durable state, it must be reconstructable without hidden chain-of-thought or opaque provider memory.
+
+### 5. Model output is data, not authority
+
+A model, tool, or plugin may propose decisions or actions.
+
+Consequential authority must come from explicit user/host/policy state and validated contracts, not from prose emitted by a model.
+
+### 6. Profiles compose capabilities
+
+A profile/bundle selects capabilities and implementations. It does not become a hidden semantic kernel.
+
+```text
+profile
+  -> semantic capabilities / policy
+  -> selected DSH/public/AgentOS implementations
+```
+
+Profiles may differ without forcing capability contracts to change.
+
+## Replaceable component rule
+
+A separate AgentOS component/port is justified when one or more of these differ materially:
+
+- lifecycle;
+- authority requirements;
+- failure isolation;
+- persistence/retention;
+- scaling;
+- caller population;
+- implementation candidates;
+- replacement cadence.
+
+Avoid both extremes:
+
+```text
+too coarse:
+one AgentOS service owns everything
+
+too fine:
+every helper/method becomes a plugin
+```
+
+Closely related functions may remain one component when they are normally implemented and configured together.
+
+## Contract-first rule
+
+When AgentOS defines a replaceable boundary, the stable object is the **AgentOS-owned contract**, not the first implementation.
+
+Where relevant, a contract should define:
+
+- stable contract identifier and version;
+- input/output/error schema;
+- side-effect classification;
+- authority/provenance requirements;
+- idempotency/reconciliation behavior;
+- cancellation/deadline semantics;
+- stable AgentOS-owned identities;
+- conformance tests.
+
+Implementation-native handles may be retained for diagnostics or reconciliation, but must not become canonical AgentOS semantic IDs.
+
+Examples of forbidden leakage in principle:
+
+```text
+provider conversation id as AgentOS work identity
+DSH internal execution id as AgentOS semantic identity
+external task id as AgentOS capability identity
+framework checkpoint id as AgentOS state identity
+```
+
+unless the external identity itself is explicitly the semantic object being represented.
+
+## Replaceability is proven, not declared
+
+An interface alone does not prove that a component is replaceable.
+
+A real replacement boundary should support:
+
+```text
+contract
+  + implementation A
+  + implementation B or credible independent owner
+  + shared black-box conformance tests
+```
+
+For migrations:
+
+```text
+characterize
+  -> define contract
+  -> adapt current implementation
+  -> add replacement
+  -> run shared conformance suite
+  -> cut over
+  -> delete superseded mechanism
+```
+
+Behavioral migrations use TDD: Red -> Green -> Refactor.
+
+## Skill vs plugin vs local code
+
+Use the smallest mechanism that owns the behavior correctly.
+
+```text
+static guidance / methodology / role instructions
+  -> Skill
+
+existing bounded external action
+  -> DSH/public tool or plugin
+
+dynamic AgentOS behavior with independent semantics
+  -> AgentOS plugin/component
+
+implementation detail used by one component
+  -> local library code
+```
+
+Do not promote static prompting or repository conventions into runtime plugins without a real lifecycle/semantic reason.
+
+## Dependency direction
+
+AgentOS contracts must not depend on their concrete implementations.
+
+Preferred direction:
+
+```text
+AgentOS semantic contract
+        ^
+        |
+consumer / profile
+        |
+        +------ implementation adapter
+                    |
+                    +------ DSH/public/external dependency
+```
+
+Where DSH already supplies the correct stable contract, use that contract directly instead of adding an AgentOS alias layer.
+
+## Deliberate non-adoption from Internet
+
+AgentOS follows Internet's ownership principles, not its product-specific object model.
+
+Do **not** introduce by default:
+
+- Internet's browser/account/session model;
+- its coding workflow graph;
+- Workstream/WorkflowRun/Need/WorkItem/Artifact vocabulary;
+- PR/head/CI/merge semantics;
+- handoff stores;
+- execution leases/fencing;
+- website reconciliation state.
+
+An analogous AgentOS concept should appear only when a concrete AgentOS requirement proves that semantic ownership is necessary.
 
 ## Under active proposal
 
-The detailed target package topology, capability seams, bundle strategy, public-tool boundaries, and migration rules are still under discussion in [the plugin-first architecture proposal](../proposals/plugin-first-architecture.md).
+The first concrete AgentOS semantic contracts, profiles, and component boundaries remain under discussion in [the plugin-first architecture proposal](../proposals/plugin-first-architecture.md).
