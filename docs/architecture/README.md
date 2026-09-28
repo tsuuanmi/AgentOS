@@ -73,35 +73,33 @@ The semantic surface may initially be extremely small. It grows only when a conc
 
 ## Interaction model
 
-AgentOS is a **local-first interactive system**.
+AgentOS uses **role-optimized capability planes** rather than one mandatory super-agent.
 
-The user interacts with a DSH Local Agent. That Local Agent can:
+- **Controller** optimizes ubiquitous user interaction, remote access, web/cloud-native capabilities, and pre-local research.
+- **Local Agent** optimizes environment-native execution over repository, files, shell, local data, services, and hardware.
+- **Internet Team** optimizes external reasoning, research, critique, synthesis, and provider-native ecosystems.
+- **Workflow** optimizes durable deterministic coordination, recovery, pending actions, and authority gates.
 
-- reason and use tools directly;
-- call Team/consultation capabilities such as Internet Team;
-- hand off bounded or long-running objectives to a Workflow;
-- continue ordinary conversation while delegated work runs;
-- receive compact progress, artifacts/results, and pending actions back from delegated capabilities.
-
-A Workflow can itself compose research, Internet Team/consultation, workers, validation, review, and other plugins without routing every internal step back through Local.
+Controller and Local are both valid user entry points. Local can perform work that would otherwise be delegated, so Controller/Internet Team are optimizations rather than hard dependencies.
 
 ```text
 User
-  <-> Local Agent
-        |
-        +-> Direct capabilities
-        +-> Team / Internet Team
-        +-> Workflow
-              |
-              +-> Research
-              +-> Team / Consult
-              +-> Worker
-              +-> Validation / Review
+  +-> Controller
+  |     +-> cloud/public capabilities
+  |     +-> Local Agent when environment execution is needed
+  |
+  +-> Local Agent directly
+          +-> local tools
+          +-> Internet Team
+          +-> Workflow
+                 +-> Internet Team / Research
+                 +-> Local / external workers
+                 +-> Validation / Review
 ```
 
-Local remains the user-facing authority broker; Workflow/Team providers retain authority over their own state.
+A durable Workflow must not depend on the originating Local Agent staying connected when the workflow provider claims durable execution; another Controller or Local client may later reattach through durable state.
 
-See [Local-first interaction model](interaction-model.md) for the complete flow and ownership rules.
+See [Controller, Local Agent, Internet Team, and Workflow interaction model](interaction-model.md) for the complete rationale and flow.
 
 ## Ownership
 
