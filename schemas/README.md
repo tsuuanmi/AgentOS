@@ -9,9 +9,26 @@ Schemas are repository-level contracts and intentionally live outside `docs/`.
 - [worker-common.schema.json](worker-common.schema.json)
 - [worker-capabilities.schema.json](worker-capabilities.schema.json)
 - [worker-assignment.schema.json](worker-assignment.schema.json)
-- [worker-input.schema.json](worker-input.schema.json)
-- [worker-submission.schema.json](worker-submission.schema.json)
+- [worker-input.schema.json](worker-input.schema.json) — transitional filename; canonical concept is **Message**
+- [worker-submission.schema.json](worker-submission.schema.json) — transitional mixed schema; durable contribution/completion becomes **Artifact**
 - [worker-state.schema.json](worker-state.schema.json)
+
+### Pending naming normalization
+
+Before the conformance suite freezes these contracts, normalize the machine-readable schemas around:
+
+~~~text
+Message
+  = communication / contextual exchange
+
+Artifact
+  = durable Worker work product
+
+WorkerState
+  = execution lifecycle
+~~~
+
+Do not mechanically rename WorkerSubmission to Artifact because its current `input_required`, `failure`, and `cancelled` variants are lifecycle/control concerns rather than durable deliverables.
 
 MCP tool-envelope schemas live under [`schemas/mcp/`](mcp/README.md).
 
@@ -46,9 +63,9 @@ Human-readable semantics:
 - `format` annotations such as `uri-reference` are not treated as security boundaries by themselves; the conformance validator/application must perform any required URI checks.
 - Dynamic payloads are paired with an explicit `schemaRef`; runtime code validates the payload against the referenced registered schema.
 - MCP adapters bundle/dereference shared schemas into self-contained tool schemas for hosts that do not resolve external resources.
-- Intermediate `contribution` and terminal `completion` are distinct WorkerSubmission kinds.
+- Intermediate `contribution` and terminal `completion` are distinct Artifact semantics.
 - Explicit application ids are authoritative; MCP sessions/tunnels are never semantic identity.
-- `assignmentId` identifies durable work; an opaque `attemptId` identifies the current Website execution claim and rotates when execution is superseded or rebound.
+- `assignmentId` identifies durable work; an opaque `attemptId` identifies the current provider execution attempt and rotates when execution is superseded or rebound.
 
 ## Validation expectation
 
