@@ -49,6 +49,19 @@ DSH Lead         <-> Website Agent S / synthesis
 
 Research/review peers debate directly through DSH Team messaging. Local receives compact synthesis/results by default rather than the internal Team transcript.
 
+Software Team roles are stable across runs:
+
+~~~text
+Lead / Synthesizer
+Researcher Primary
+Researcher Challenger
+Implementer
+Reviewer Correctness
+Reviewer Architecture
+~~~
+
+Website Agent completion is explicit: the Agent Team provider records an assignment result durably, then the DSH TeamTask may complete, then Lead commits the typed phase result. Workflow advances only from that final typed phase completion; it never infers completion from teammate inactivity or message delivery.
+
 ## Workflow
 
 Workflow is a thin durable semantic layer over DSH primitives, not another general-purpose workflow engine.
