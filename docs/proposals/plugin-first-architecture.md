@@ -95,6 +95,40 @@ Chat / Work / CLI / another host
 
 The semantic surface is intentionally empty-by-default. A concept enters it only when AgentOS must own its meaning independently of the implementation. A host task/session handle may reference a semantic operation, but it does not become that operation's identity.
 
+## Product interaction semantics
+
+The first AgentOS-specific semantic boundary is now clearer: **AgentOS is local-first and interactive**.
+
+The user interacts with a Local Agent running on DSH. That Local Agent can choose among three first-class paths:
+
+~~~text
+User
+  <-> Local Agent
+        |
+        +-> Direct capabilities
+        +-> Team / consultation
+        +-> Workflow delegation
+~~~
+
+A Workflow may itself compose Internet Team/consultation, research, workers, validation, review, and other plugins.
+
+This does **not** imply that AgentOS owns the Team runtime or Workflow engine. It defines how those capabilities participate in the AgentOS product interaction model.
+
+Key semantics:
+
+1. Local Agent remains the primary user-facing conversational surface.
+2. Direct work does not need to be wrapped in a Workflow.
+3. Team/consultation can be called directly or from inside a Workflow.
+4. Workflow is delegated work, not a mode that replaces the Local Agent.
+5. Local conversation may continue while delegated work exists.
+6. Delegated systems return compact progress/results/pending actions rather than forcing all internal reasoning through Local.
+7. User authority returns through Local and explicit validated operations.
+8. Workflow/Team providers remain authoritative for their own internal durable state.
+
+See [Local-first interaction model](../architecture/interaction-model.md).
+
+This interaction model may initially be implemented mostly through the root profile, Skills, and existing plugin tool surfaces. It becomes a separate AgentOS service/API contract only if multiple providers need one shared Local-facing protocol or AgentOS must own additional cross-provider invariants.
+
 ## Ownership rule
 
 For every proposed behavior, ask in order:
@@ -513,29 +547,41 @@ If these questions do not produce strong answers, do not create the plugin yet.
 
 ## Current proposed v1
 
-The architecture should initially assume as little AgentOS-owned runtime as possible:
+The architecture should initially own as little runtime infrastructure as possible while still delivering the local-first interaction model:
 
 ~~~text
 DSH / Cordis
   |
-  +-> AgentOS root plugin/profile
+  +-> Local Agent
         |
-        +-> Skills / prompt guidance
-        +-> existing DSH services
-        +-> public tools/plugins
-        +-> zero or very few AgentOS semantic components
+        +-> AgentOS root plugin/profile
+              |
+              +-> Skills / prompt guidance
+              +-> direct DSH/public capabilities
+              +-> Team / Internet Team capability
+              +-> Workflow capability
+                    |
+                    +-> Research / Consult
+                    +-> Worker
+                    +-> Validation / Review
 ~~~
 
-The first real AgentOS semantic component should be discovered from a concrete use case rather than preselected from architecture aesthetics.
+The root plugin/profile supplies the coherent interaction experience; the underlying Team, Workflow, research, and worker implementations remain independently owned plugins/capabilities.
+
+Do not pre-create additional AgentOS semantic packages merely to mirror these paths. Add a contract only when the interaction semantics cannot be preserved by directly consuming the provider's existing surface.
 
 ## Research questions
 
-1. What behavior actually defines AgentOS, beyond being a convenient DSH composition?
-2. Which behavior must remain stable when DSH/public implementations change?
+The local-first interaction model now answers the highest-level product question: AgentOS exists to give the user one Local Agent that can interact directly or delegate into composable Team/Workflow capabilities.
+
+Open questions are now:
+
+1. Which parts of the Local -> Workflow interaction should remain provider-native tools versus become a shared AgentOS interaction contract?
+2. Which behavior must remain stable when Workflow/Team/public implementations change?
 3. Is delegation policy runtime-enforced semantics or mostly Skill guidance?
-4. Does AgentOS need any durable identity/state independent of DSH?
-5. Which first use case proves a real AgentOS semantic boundary?
-6. Which existing DSH/public capability can serve as the first alternate implementation behind such a boundary?
+4. Does AgentOS need any durable identity/state independent of DSH and the delegated Workflow provider?
+5. Which first concrete Workflow demonstrates Local -> Workflow -> Internet Team -> Worker end-to-end composition?
+6. Which existing DSH/public capability can serve as the first alternate implementation behind a proven semantic boundary?
 7. Which AgentOS capability, if any, needs a portable long-running projection such as MCP Tasks rather than only DSH-native lifecycle?
 8. Which concrete capability first proves a real DSH-vs-external worker substitution boundary?
 9. What compatibility/version contract should AgentOS declare against DSH?
@@ -554,4 +600,6 @@ Before implementation expands beyond the root plugin/profile:
 - Component boundaries follow real lifecycle/authority/failure/replacement differences.
 - Replaceability is backed by conformance tests or a clearly independently owned host boundary.
 - Static behavior stays in Skills/profile configuration where sufficient.
+- The Local Agent remains the primary user-facing surface and can use Direct, Team, and Workflow paths.
+- A Workflow may compose Internet Team and other capabilities without routing every internal step through Local.
 - The package tree is derived from proven contracts, not designed speculatively.
