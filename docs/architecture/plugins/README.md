@@ -1,69 +1,144 @@
 # AgentOS plugin architecture
 
-AgentOS follows DSH's **Everything Is A Plugin** composition model.
+AgentOS follows DeepSeek Harness / Cordis's **Everything Is A Plugin** philosophy.
 
-DSH/Cordis remains the fixed Host. AgentOS plugins may compose existing DSH services, register providers, wrap protocol SDKs, or wrap external libraries/runtimes.
+DSH/Cordis is the fixed Host. AgentOS is composed from explicit plugins with one canonical folder per plugin boundary.
 
-Replaceability happens **behind plugin boundaries**, not by replacing the Host.
+## Canonical tree
 
-## Composition hierarchy
+~~~text
+docs/architecture/plugins/
+  README.md
+
+  agentos/
+    README.md
+
+  worker/
+    README.md
+    boundaries.md
+
+  agent-team/
+    README.md
+    composition.md
+
+  workflow/
+    README.md
+    composition.md
+    definitions.md
+
+  website-agent/
+    README.md
+
+  a2a/
+    README.md
+
+  dsh/
+    README.md
+    agent-team.md
+    subagents.md
+    acp.md
+    workflow-runtime.md
+~~~
+
+## Ownership
+
+### AgentOS-owned plugins
+
+| Plugin | Responsibility |
+|---|---|
+| [AgentOS](agentos/README.md) | top-level composition/configuration |
+| [Worker](worker/README.md) | capability-driven provider selection, execution binding, result acceptance |
+| [Agent Team](agent-team/README.md) | collaboration policy above DSH Team mechanics |
+| [Workflow](workflow/README.md) | durable sequencing/recovery semantics + declarative Profiles |
+| [Website Agent](website-agent/README.md) | Website execution bridge/provider integration |
+| [A2A](a2a/README.md) | remote independent-agent provider/protocol adapter |
+
+### Reused DSH plugins/services
+
+DSH-owned implementation seams are grouped under [DSH plugins and capabilities](dsh/README.md):
+
+- [Agent Team service](dsh/agent-team.md);
+- [Subagents provider registry](dsh/subagents.md);
+- [ACP plugins](dsh/acp.md);
+- [Workflow/runtime capabilities](dsh/workflow-runtime.md).
+
+Their ownership stays with DSH even when AgentOS depends on them.
+
+## Dependency direction
 
 ~~~mermaid
 flowchart TB
     Host[DSH / Cordis Host]
-    AgentOS[AgentOS composition]
+    AgentOS[AgentOS plugin]
 
-    Team[Agent Team semantic plugin]
-    Workflow[Workflow semantic plugin]
-    Website[Website ACP bridge]
-    A2A[A2A adapter]
-    Profiles[Workflow Profiles / Skills]
+    Workflow[Workflow plugin]
+    Team[Agent Team plugin]
+    Worker[Worker plugin]
+    Website[Website Agent plugin]
+    A2A[A2A plugin]
+
+    DSHAT[DSH ctx.agentTeams]
+    Sub[DSH ctx.subagents]
+    ACP[DSH ACP provider]
+    Runtime[DSH storage/jobs/workflow/schedule/tools]
 
     Host --> AgentOS
-    AgentOS --> Team
     AgentOS --> Workflow
+    AgentOS --> Team
+    AgentOS --> Worker
     AgentOS -.-> Website
     AgentOS -.-> A2A
-    AgentOS --> Profiles
 
-    Team --> DSHAT[DSH ctx.agentTeams]
-    Team --> Sub[DSH ctx.subagents]
-    Website --> ACP[DSH ACP provider]
-    A2A --> A2ASDK[official A2A SDK]
-
-    Workflow --> Store[DSH ctx.storageDomain]
     Workflow --> Team
-    Workflow -.-> Runtime[optional DSH/external runtime mechanics]
+    Workflow --> Worker
+    Team --> Worker
+
+    Team --> DSHAT
+    Worker --> Sub
+    Sub --> ACP
+    ACP --> Website
+    Sub --> A2A
+
+    Workflow --> Runtime
 ~~~
 
-Worker is intentionally absent as a service box: it is a capability-driven semantic execution role over provider seams.
+The important boundary is:
 
-## Current logical plugins
+~~~text
+Workflow / Agent Team
+  -> Worker plugin
+      -> DSH provider seam
+          -> concrete provider
+~~~
 
-| Logical plugin/capability | Shape | Canonical architecture |
-|---|---|---|
-| AgentOS | top-level composition/bundle | [AgentOS composition](agentos/README.md) |
-| Agent Team | thin AgentOS policy above DSH Team/Subagent mechanics | [Agent Team](agent-team/README.md) |
-| Workflow | domain-agnostic semantic plugin + declarative Profiles | [Workflow](workflow/README.md) |
-| Website ACP bridge | bridge reused through existing DSH ACP provider | [Plugin inventory](inventory.md) |
-| A2A adapter | remote independent-agent interoperability | [Protocol stack](../protocol-stack.md) |
-| Worker | semantic role, not necessarily a plugin/package | [Worker model](../worker-model.md) |
-| domain Profiles/Skills | configuration/procedure, usually not service plugins | [Workflow definitions](workflow/definitions.md) |
+This keeps provider-specific logic out of Workflow and Agent Team.
 
-## Rule
+## Plugin rule
 
-Before building a new AgentOS behavior:
+Before creating or changing a plugin:
 
-1. identify the product invariant;
-2. find the DSH/plugin/protocol/library primitive that already owns the mechanic;
-3. compose or wrap that primitive;
-4. add only the missing semantic policy/state;
-5. create a new plugin boundary only when behavior/lifecycle/replacement justifies one.
+1. identify the exact product invariant it owns;
+2. identify which DSH/protocol/library primitives already implement mechanics below it;
+3. keep one canonical folder for the plugin contract;
+4. keep upstream-owned mechanics under the upstream ownership folder;
+5. add a new plugin only when behavior/lifecycle/replacement requires a real boundary;
+6. prefer composition and adapters over duplicate engines.
 
-See [Plugin inventory and reuse map](inventory.md), [DSH capability reuse](../dsh-reuse.md), and [Minimal semantic delta](../minimal-semantic-delta.md).
+## What is not necessarily a plugin
 
-## Domain extension
+Profiles, Skills, capability names, result schemas, and internal types do not automatically need Cordis plugin packages.
 
-New domains are Profiles/Skills first, not new engines.
+For example:
 
-A new domain should normally add configuration, capability requirements, tools, and result schemas. Core plugin changes require a genuinely new cross-domain invariant.
+~~~text
+software-development Profile
+scientific-research Profile
+research capability
+ExecutionBinding type
+A2A Artifact
+domain result schema
+~~~
+
+may remain configuration/types/contracts consumed by plugins.
+
+**Everything Is A Plugin means executable behavior is composable; it does not mean every noun becomes a package.**
