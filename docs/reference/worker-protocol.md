@@ -58,7 +58,15 @@ WorkerCapabilities are semantic behavior guarantees used by Agent Team selection
 
 Provider names, models, sessions, transports, and tool availability are not semantic Worker capabilities.
 
-## Minimum capability guarantees
+## Capability extensibility
+
+Worker capability identifiers form an open semantic namespace.
+
+The capabilities documented below are the **initial software capability profile**, not a closed Worker taxonomy. Plugins may define additional capabilities as long as their caller-visible guarantees are documented and their providers advertise only behavior they can actually satisfy.
+
+Adding a capability does not create a new Worker type.
+
+## Initial software capability guarantees
 
 These guarantees define what a caller may depend on. Detailed software-capability procedure currently lives in the [software-worker Skill](../../.agents/skills/software-worker/SKILL.md); other capability packs may be added without changing Worker identity.
 
@@ -137,7 +145,7 @@ MCP
 Skill
   = procedural agent working method
 
-Server invariant
+Exchange invariant
   = correctness over current durable state
 ~~~
 
@@ -154,4 +162,4 @@ Worker selection, capability profiles, independent-first barriers, Team peer rou
 - [MCP Worker transport](mcp-worker-transport.md)
 - [Worker Exchange invariants](worker-exchange-invariants.md)
 - [Schema registry](../../schemas/README.md)
-- [software-worker Skill](../../.agents/skills/software-worker/SKILL.md)
+- [software-worker capability Skill](../../.agents/skills/software-worker/SKILL.md)
