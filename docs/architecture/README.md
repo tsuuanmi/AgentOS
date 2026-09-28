@@ -242,5 +242,4 @@ A new domain normally adds Workflow/Profile config, Skills, result schemas, and 
 - [Protocol stack](protocol-stack.md)
 - [Agent communication](agent-communication.md)
 - [DSH reuse](dsh-reuse.md)
-- [Requirements](../requirements/README.md)
 - [Reference](../reference/README.md)
