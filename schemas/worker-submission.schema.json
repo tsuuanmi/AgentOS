@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentos.dev/schemas/worker-submission.schema.json",
+  "title": "AgentOS Worker Submission",
+  "description": "Intermediate or terminal output submitted by a Website-backed Worker.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/contribution"
+    },
+    {
+      "$ref": "#/$defs/completion"
+    },
+    {
+      "$ref": "#/$defs/inputRequired"
+    },
+    {
+      "$ref": "#/$defs/failure"
+    },
+    {
+      "$ref": "#/$defs/cancelled"
+    }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": [
+        "submissionId",
+        "workerId",
+        "assignmentId",
+        "inputBinding",
+        "kind"
+      ],
+      "properties": {
+        "submissionId": {
+          "$ref": "worker-common.schema.json#/$defs/identifier"
+        },
+        "workerId": {
+          "$ref": "worker-common.schema.json#/$defs/identifier"
+        },
+        "assignmentId": {
+          "$ref": "worker-common.schema.json#/$defs/identifier"
+        },
+        "inputBinding": {
+          "$ref": "worker-common.schema.json#/$defs/inputBinding"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "contribution",
+            "completion",
+            "input_required",
+            "failure",
+            "cancelled"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "worker-common.schema.json#/$defs/reference"
+          }
+        },
+        "extensions": {
+          "$ref": "worker-common.schema.json#/$defs/extensions"
+        }
+      }
+    },
+    "contribution": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "contribution"
+            },
+            "outputSchemaRef": {
+              "$ref": "worker-common.schema.json#/$defs/schemaRef"
+            },
+            "output": {
+              "description": "Intermediate typed output validated against outputSchemaRef."
+            }
+          },
+          "required": [
+            "outputSchemaRef",
+            "output"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "completion": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "completion"
+            },
+            "outputSchemaRef": {
+              "$ref": "worker-common.schema.json#/$defs/schemaRef"
+            },
+            "output": {
+              "description": "Terminal typed output validated against outputSchemaRef."
+            }
+          },
+          "required": [
+            "outputSchemaRef",
+            "output"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "inputRequired": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "input_required"
+            },
+            "request": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "message"
+              ],
+              "properties": {
+                "kind": {
+                  "$ref": "worker-common.schema.json#/$defs/semanticName"
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "schemaRef": {
+                  "$ref": "worker-common.schema.json#/$defs/schemaRef"
+                }
+              }
+            }
+          },
+          "required": [
+            "request"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "failure": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "failure"
+            },
+            "error": {
+              "$ref": "worker-common.schema.json#/$defs/error"
+            }
+          },
+          "required": [
+            "error"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "cancelled": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "cancelled"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}
