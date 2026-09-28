@@ -4,7 +4,7 @@ Reference owns exact stable lookup material: protocols, callable interfaces, tra
 
 - [Worker Protocol](worker-protocol.md) — shared Worker semantics, vocabulary, minimum capability guarantees, and identity.
 - [Worker API](worker-api.md) — transport-neutral local callable interface.
-- [Worker server invariants](worker-server-invariants.md) — authorization, fencing, idempotency, durable commit, lifecycle, and dynamic-validation rules.
+- [Worker Exchange invariants](worker-exchange-invariants.md) — authorization, fencing, idempotency, durable commit, lifecycle, and dynamic-validation rules.
 - [MCP Worker transport](mcp-worker-transport.md) — Website-facing MCP mapping.
 - [JSON Schemas](../../schemas/README.md) — canonical machine-readable structural contracts.
 
