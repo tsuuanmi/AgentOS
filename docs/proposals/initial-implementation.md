@@ -247,4 +247,5 @@ Behavioral implementation can begin when:
 2. Worker remains agnostic and capability-driven;
 3. DSH capability ownership is explicit;
 4. the first Red tests can distinguish reused DSH guarantees from AgentOS-owned semantic gaps;
-5. the software-development workflow can be represented as a Definition/Profile without encoding software phases in Workflow Core.
+5. the software-development workflow can be represented as a Definition/Profile without encoding software phases in Workflow Core;
+6. the A2A/ACP compatibility gate has identified which Worker wire/provider semantics are reused versus genuinely AgentOS-owned.
