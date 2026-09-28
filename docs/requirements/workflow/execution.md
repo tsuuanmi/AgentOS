@@ -1,6 +1,10 @@
 # Workflow execution requirements
 
-Workflow executes WorkItems through replaceable semantic adapters.
+Workflow executes WorkItems through replaceable semantic adapters selected by the exact bound Workflow Definition.
+
+Workflow Core must not hard-code domain phase names or provider brands.
+
+A WorkItemDefinition names the semantic adapter kind and required capabilities. The runtime WorkItem carries current execution state.
 
 Possible adapters include:
 
@@ -41,3 +45,10 @@ Effect-bearing WorkItems require observed state or an explicit receipt before se
 Workflow must preserve its semantics when an adapter is process-local, one-shot, non-resumable, or otherwise weaker than Workflow durability.
 
 Adapter limitations must affect recovery policy rather than silently weakening Workflow guarantees.
+
+
+## Config-driven execution
+
+Changing a domain workflow graph, capability mix, or adapter selection belongs to the Workflow Definition/Profile.
+
+A valid Definition that references only already-installed capabilities/adapters must execute without modifying Workflow Core code.
