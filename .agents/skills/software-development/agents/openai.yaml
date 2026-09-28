@@ -1,0 +1,3 @@
+interface:
+  display_name: "Software Development"
+  short_description: "Software-development procedure pack for AgentOS Workers"
