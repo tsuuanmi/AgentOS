@@ -1,36 +1,48 @@
 # DSH Agent Team conformance research
 
 - **Status:** active proving research
-- **Canonical semantics:** [Agent Team plugin contract](../architecture/plugins/agent-team/README.md)
-- **Scope:** determine the smallest AgentOS policy delta over DSH's current experimental ctx.agentTeams + ctx.subagents services.
+- **Canonical semantics:** [Agent Team plugin](../architecture/plugins/agent-team/README.md)
+- **DSH dependency:** [DSH Agent Team](../architecture/plugins/dsh/agent-team.md)
+- **Execution dependency:** [Worker plugin](../architecture/plugins/worker/README.md)
+- **Scope:** prove the smallest Agent Team collaboration policy above DSH Team + Worker.
 
-DSH already provides Team identity/roster, durable peer mailbox, task board, continuable teammate lifecycle, recovery, and Session projection.
+DSH owns Team runtime mechanics.
 
-AgentOS therefore does not build those mechanics.
+Worker owns participant execution/provider selection.
 
-The remaining question is:
+Agent Team should own only collaboration semantics.
 
-> **Which collaboration/capability/acceptance invariants are not already satisfied by DSH Team + Subagent contracts?**
+## Confirmed reuse
 
-## Confirmed upstream reuse
+### DSH Agent Team
 
-Prefer DSH ownership for:
+Reuse for:
 
-- Team identity and roster;
-- durable Team messages;
-- dependency-aware Team tasks;
+- Team identity/roster;
+- mailbox;
+- dependency-aware tasks;
 - task revisions/ownership;
-- teammate spawn/resume/interruption;
-- Team change waiting;
-- Team state replay/recovery;
-- Team Session projection;
-- delegated-provider registry/lifecycle through ctx.subagents.
+- teammate lifecycle;
+- waiting/interruption;
+- Team recovery/projection.
+
+### Worker
+
+Reuse for:
+
+- capability -> provider selection;
+- provider conformance;
+- delegated execution;
+- minimal ExecutionBinding;
+- result acceptance.
+
+Agent Team must not duplicate either layer.
 
 ## Conformance questions
 
 ### 1. Semantic phase wrapper
 
-Prove the smallest AgentOS service that exposes:
+Prove the smallest Agent Team service exposing:
 
 ~~~text
 execute phase
@@ -39,77 +51,53 @@ cancel phase
 read typed phase result
 ~~~
 
-without leaking DSH Session/member/task/provider ids to Local Agent or Workflow.
+without leaking DSH Team/provider ids upward.
 
-### 2. Capability-driven provider selection
+### 2. Worker integration
 
-Prove one Team phase can select execution from the same semantic capability requirement across:
+Prove a Team phase can request semantic capabilities from Worker without knowing whether execution comes from:
 
-- DSH local providers;
-- ACP-compatible providers through existing DSH ACP;
-- Website Agent through the Website ACP bridge;
-- A2A remote agents when configured.
+- DSH-native provider;
+- ACP provider;
+- Website Agent plugin;
+- A2A provider.
 
-Do not require Worker == DSH teammate.
+### 3. Independent-first barrier
 
-### 3. Minimal ExecutionBinding
+Prove independent work can complete before peer evidence is revealed, using DSH Team coordination plus Worker results.
 
-Most phase executions should use provider-native lifecycle directly.
+No universal AgentOS Artifact envelope is required.
 
-Prove which cases actually require AgentOS-owned binding state:
+### 4. Peer revision
 
-~~~text
-semantic phase/work item
-  -> current provider
-  -> provider-native handle
-  -> optional generation only if replacement can race
-~~~
-
-Do not add a universal Assignment, attempt id, Message/Artifact store, or Worker Exchange.
-
-### 4. Independent-first barrier
-
-Prove independent-first research/review policy above generic Team mechanics without modifying the DSH Team domain.
-
-The barrier may consume provider-native results/evidence. It must not require an AgentOS universal Artifact envelope.
+Prove accepted Worker results/evidence can be exchanged through DSH Team collaboration and revised without Agent Team owning provider sessions.
 
 ### 5. Typed phase completion
 
-Prove:
-
 ~~~text
-required current provider evidence/results
+required Worker results accepted
   -> collaboration policy satisfied
-  -> output contract valid
-  -> required effects/evidence valid
+  -> collaboration-specific evidence/effects valid
   -> typed phase result
 ~~~
 
-DSH task completion, ACP end-turn, or A2A terminal TaskStatus is runtime/provider evidence, not phase completion authority by itself.
+Provider terminal state is never phase completion authority by itself.
 
-### 6. Capability projection
+### 6. Restart
 
-Provider capabilities differ.
+Prove Team recovery uses DSH state plus only demonstrated Agent Team semantic records.
 
-Prove capability advertisement from real guarantees:
-
-- DSH spawn/fork may be continuable;
-- current DSH ACP provider is one-shot;
-- Website ACP bridge is initially one-shot;
-- A2A capabilities come from AgentCard/AgentSkill plus conformance;
-- effect capabilities require actual tools/environment authorization.
+Worker-specific recovery/binding remains Worker-owned.
 
 ## TDD proving order
 
-1. Adapter can create/recover one DSH Team without copying Team state.
-2. AgentOS phase identity remains distinct from DSH Session/Team ids.
-3. Capability selector can choose a local ACP/DSH provider.
-4. Website ACP bridge can satisfy a research capability through the same provider seam.
-5. Independent-first barrier is enforceable above DSH Team state.
-6. Provider-native peer evidence can be routed without a universal Worker Message.
-7. A replacement race, if reproducible, is rejected using minimal local binding/fence state.
-8. Typed phase result cannot commit before declared evidence/output/effect conditions.
-9. A2A remote provider can be added without changing the phase caller contract.
-10. Host restart recovers phase semantics through DSH + only demonstrated AgentOS-owned state.
+1. create/recover one DSH Team without copying Team state;
+2. phase identity remains distinct from DSH Team/session ids;
+3. Agent Team invokes Worker by semantic capability;
+4. independent-first barrier works across multiple Worker invocations;
+5. peer evidence/revision works without provider-specific branches;
+6. typed phase result cannot commit before collaboration contract is satisfied;
+7. adding Website/A2A execution requires Worker/provider configuration, not Agent Team code;
+8. host restart recovers phase semantics without provider registry duplication.
 
-Once executable tests answer these questions, this research file should be pruned and the remaining facts promoted into implementation/reference docs.
+When executable tests answer these questions, prune this research and promote only residual implementation facts.
