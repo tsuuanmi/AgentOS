@@ -1,138 +1,107 @@
 # Worker communication
 
 - **Status:** canonical architecture
-- **Owner:** AgentOS Worker plugin
-- **Scope:** provider execution and communication boundaries used by Worker
+- **Owner:** Worker plugin
+- **Scope:** semantic dispatch without protocol normalization
 
-Worker coordinates **semantic execution** without normalizing wire formats.
-
-Each protocol/runtime keeps the data model it owns:
+## Boundary model
 
 ~~~text
-DSH ctx.subagents
-  = delegated provider registry/lifecycle
-
-ACP
-  = Client <-> Agent execution/control
+Worker
+  -> DSH ctx.subagents
+      -> native DSH provider
+      -> ACP Client/provider
+          -> ACP Agent
 
 A2A
-  = Agent <-> Agent Task / Message / Artifact
-
-MCP
-  = Agent <-> Tool / Capability / Data
+  -> separate Agent Team <-> Website Agent peer path
 ~~~
 
-See the cross-cutting [Protocol stack](../../protocol-stack.md).
-
-## Worker dispatch
+## Dispatch sequence
 
 ~~~mermaid
 sequenceDiagram
-    participant C as Agent Team / Workflow
-    participant W as Worker plugin
-    participant S as DSH ctx.subagents
-    participant P as Selected provider
+    participant C as Workflow / Agent Team
+    participant W as Worker
+    participant S as ctx.subagents
+    participant P as Provider / ACP Agent
 
-    C->>W: execute semantic work + required capabilities
+    C->>W: work + required capabilities
     W->>W: select provider
-    W->>S: dispatch through provider seam
-    S->>P: provider-native execution
-    P-->>S: native provider/protocol result
-    S-->>W: native result
-    W->>W: binding / semantic acceptance
+    W->>S: DSH-native provider request
+    S->>P: provider/protocol-native execution
+    P-->>S: native result
+    S-->>W: native DSH provider result
+    W->>W: semantic/domain/effect acceptance
     W-->>C: native result or domain-owned result
 ~~~
 
-Agent Team and Workflow do not branch on concrete runtime/provider types. A2A peer communication is handled by Agent Team/Website adapters rather than by Worker dispatch.
+## ACP Website path
 
-## ACP path
+~~~mermaid
+flowchart LR
+    Worker[Worker]
+    Sub[ctx.subagents]
+    Client[DSH subagent-acp]
+    ACP[ACP]
+    Agent[Website ACP Agent]
+    Core[Website Core]
 
-~~~text
-Worker
-  -> ctx.subagents
-      -> DSH ACP provider
-          -> ACP-compatible Agent
+    Worker --> Sub --> Client --> ACP --> Agent --> Core
 ~~~
 
-ACP session ids and updates remain provider state.
-
-Current DSH ACP provider is one-shot. Continuation is a provider capability to add only when a real workflow requires it.
-
-See [DSH ACP](../dsh/acp.md).
-
-## Website Agent path
-
-~~~text
-Worker
-  -> ctx.subagents
-      -> DSH ACP provider
-          -> Website ACP Agent adapter
-              -> shared Website core
-              -> Website Agent
-~~~
-
-Website conversation/session ids remain hidden below the Website Agent plugin boundary.
-
-See [Website Agent plugin](../website-agent/README.md).
+ACP session/update/stop-reason objects remain ACP objects.
 
 ## A2A peer path
 
-A2A is horizontal collaboration, not Worker dispatch:
+~~~mermaid
+flowchart LR
+    Team[Agent Team Member]
+    A2A[A2A]
+    Website[Website Agent]
 
-~~~text
-Worker/runtime
-  -> ACP -> Website Agent
-               <-> A2A <-> Agent Team Member
+    Team <--> A2A <--> Website
 ~~~
 
-Use native A2A AgentCard/AgentSkill, Task/TaskStatus, Message, Artifact/Part, context, auth, and update mechanisms.
-
-The initial adapter uses zero AgentOS extensions.
-
-See [A2A plugin](../a2a/README.md).
+This path does not pass through Worker dispatch.
 
 ## DSH Team communication
 
-Peer communication inside a DSH Team is not a Worker wire protocol.
-
 ~~~text
-Agent Team plugin
-  -> DSH ctx.agentTeams
-      -> DSH peer mailbox
+Agent Team policy
+  -> ctx.agentTeams
+      -> native DSH mailbox/task/team mechanics
 ~~~
 
-The Worker plugin handles participant execution. The Agent Team plugin handles collaboration policy.
+Do not wrap DSH mailbox messages in WorkerMessage.
 
 ## MCP
 
-MCP equips the selected provider/agent with tools, resources, and data.
+MCP equips an Agent/provider with tools/resources/data.
 
-It does not become a Worker transport.
+MCP is neither Worker runtime transport nor Agent-to-Agent peer communication.
 
 ## Completion propagation
 
-~~~text
-native provider/protocol terminal/result
-  -> Worker semantic acceptance
-  -> Agent Team phase result or Workflow WorkItem result
-  -> Workflow transition/completion
-  -> verified effect when required
+~~~mermaid
+flowchart LR
+    Native[Native provider result]
+    Worker[Worker semantic acceptance]
+    Team[Optional Agent Team phase acceptance]
+    Workflow[Workflow WorkItem acceptance]
+    Effect[Verified external effect when required]
+
+    Native --> Worker --> Team --> Workflow --> Effect
 ~~~
 
-Provider terminal state alone is not semantic completion.
+Layers may be skipped when they do not apply, but no lower layer may claim completion for a higher semantic layer.
 
 ## Rules
 
-1. Worker owns provider-neutral dispatch/acceptance.
+1. Worker owns semantic selection/acceptance.
 2. DSH owns provider registry/lifecycle.
-3. ACP owns runtime/client <-> Agent execution/control.
-4. A2A owns Website Agent <-> Agent Team Member peer collaboration.
-5. MCP owns tools/capabilities/data.
-6. Website-specific transport stays inside Website Agent plugin.
-7. Provider/protocol ids remain implementation handles.
-8. Add ExecutionBinding/fencing only for demonstrated recovery/replacement needs.
-
-
-## Direct-type rule
-
-At each boundary, use the SDK/runtime type owned by that boundary directly. Do not convert ACP/A2A/DSH traffic into generic Worker message/status/artifact/result types before processing it.
+3. ACP owns runtime/client <-> Agent execution protocol.
+4. A2A owns Website Agent <-> Team Member peer collaboration.
+5. MCP owns Agent <-> tool/data access.
+6. Use native SDK/runtime objects directly.
+7. Add local binding only for a proven semantic recovery need.
