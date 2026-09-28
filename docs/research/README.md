@@ -4,6 +4,7 @@ Research is exploratory and non-normative. It collects evidence needed to decide
 
 ## Current research
 
+- [Workflow restart and reconciliation v0](workflow-restart-reconciliation-v0.md) — crash matrix for research/implementation/validation/review/PendingAction, execution admission/fencing, and the only valid recovery action after unknown outcomes.
 - [Software Workflow vertical slice v0](workflow-software-vertical-slice-v0.md) — prove the reduced durable model on research -> implementation -> validation -> review -> remediation/authority using DSH adapters.
 - [Durable long-running Workflow over DSH](workflow-long-running-dsh-runtime.md) — define the single-Host v1 runtime that survives Local/client disconnect and Host restart by combining DSH Storage Domain, cold Session resume, reconciliation, and existing execution plugins.
 - [Internet Workflow concept classification](workflow-internet-concept-classification.md) — classify current/vNext Internet concepts into v1 core, DSH reuse, Agent Team, software profile, adapter detail, defer, or do-not-adopt.
