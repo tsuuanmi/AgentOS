@@ -68,22 +68,22 @@ Local
        +-> PendingAction / delivery
 ~~~
 
-The same Team may be reused across the software collaboration for continuity, while research/review members remain independent where useful.
+The same Team may be reused across the software collaboration for continuity. Research/review independence comes from distinct Worker instances and Website Agent bindings, not permanent semantic personas.
 
 ## Team communication
 
-Each DSH Team member can bind to a separate Website Agent/conversation.
+Each DSH Team Worker can bind to a separate Website Agent/conversation and communicates with it through the versioned Worker Protocol.
 
 Normal peer debate is direct:
 
 ~~~text
-DSH member A <---- send_message ----> DSH member B
+DSH Worker A <---- send_message ----> DSH Worker B
       |                                 |
       v                                 v
 Website Agent A                    Website Agent B
 ~~~
 
-Each DSH member bridges peer evidence to its own Website Agent and returns the revised conclusion through DSH Team messaging.
+Each DSH Worker validates the structured peer message, continues its existing Website Agent assignment with that evidence, and returns the revised typed conclusion through DSH Team messaging.
 
 Lead does not proxy every peer message.
 
