@@ -71,7 +71,7 @@ Worker and its caller validate:
 - caller/domain output contract;
 - required evidence/effect state.
 
-Provider-native output remains provider-native until mapped to the caller's typed result.
+Provider/protocol output remains native. Validate it directly; create a typed result only when the caller/domain genuinely owns a different semantic object.
 
 ### Effect validation
 
@@ -113,7 +113,7 @@ Workflow WorkItem / Agent Team phase
       -> provider execution
       -> optional ExecutionBinding
       -> result acceptance
-  -> caller typed result
+  -> native result or domain-owned typed result
   -> effect validation when required
 ~~~
 
@@ -142,3 +142,8 @@ Before adding any field, schema, store, service, or plugin:
 5. keep state out of wire formats unless a remote peer truly needs it.
 
 **No field, service, or plugin exists only to make the architecture look symmetrical.**
+
+
+## Direct protocol reuse
+
+ACP/A2A/DSH objects remain canonical at their owning boundaries. AgentOS does not add equivalent Task/Message/Artifact/Session/Status/Result types merely to create a uniform internal model.
