@@ -39,6 +39,23 @@ External runtimes are dependencies **behind plugins**, not replacements for the 
 | adapter plugin | maps a protocol/runtime into an AgentOS or DSH boundary |
 | domain profile/capability pack | configuration + Skills + schemas; not necessarily a Cordis service plugin |
 
+## Initial AgentOS-owned plugin set
+
+These are logical plugin boundaries; package names are intentionally not frozen yet.
+
+| Logical plugin | Initial status | Main reuse |
+|---|---|---|
+| AgentOS composition | required | Cordis lifecycle + DSH bundles |
+| Agent Team semantic plugin | required | ctx.agentTeams + ctx.subagents |
+| Workflow semantic plugin | required | ctx.storageDomain + optional DSH runtime capabilities |
+| Website ACP bridge | required for Website Worker | existing DSH ACP provider + Website-native integration |
+| A2A adapter | optional until remote Agent-to-Agent is used | official A2A JavaScript SDK |
+| continuable ACP provider | deferred | ctx.subagents continuable contract + ACP |
+| Workflow runtime adapter | deferred | Inngest or Temporal only if DSH gap is proven |
+| domain Profiles/Skills | required by use case, usually not service plugins | Workflow config + Skills + schemas/tools |
+
+ACP itself and MCP tooling are normally **reused DSH/upstream capabilities**, not AgentOS plugins.
+
 ## Canonical inventory
 
 ### 1. AgentOS composition
@@ -132,8 +149,9 @@ AgentOS composition
 **External implementation candidates behind optional plugins:**
 
 - **Inngest** for TypeScript-native checkpointed steps, retries, sleeps, event waits, and durable background execution;
-- **Temporal** for stronger crash-recoverable durable execution when workflows must survive long outages/process replacement;
-- **Mastra workflow/Temporal integration** as a reference or library candidate when it removes meaningful custom orchestration code.
+- **Temporal** for stronger crash-recoverable durable execution when workflows must survive long outages/process replacement.
+
+Mastra/Factory is an architecture reference; prefer the underlying durable primitive directly instead of embedding a second full agent/workflow framework.
 
 These do not replace DSH as host. If adopted, an AgentOS/Cordis adapter plugin wraps them and exposes only the capability the Workflow plugin needs.
 
@@ -193,7 +211,7 @@ The A2A adapter may be packaged separately or folded into Agent Team if no indep
 
 ### 6. ACP provider
 
-**Role:** interchangeable Agent execution/control.
+**Role:** preferred execution/control protocol for ACP-compatible Worker providers.
 
 This is **not initially an AgentOS plugin** because DSH already provides it:
 
@@ -293,12 +311,12 @@ provider selection
 | Host/plugin lifecycle | Cordis/DSH | none | composition only |
 | Team roster/tasks/mailbox | DSH `ctx.agentTeams` | future Team provider only if proven necessary | phase/capability policy |
 | Delegated agent registry | DSH `ctx.subagents` | provider plugins | capability selection |
-| Coding/compatible agent execution | DSH `subagent-acp` | native provider when stronger | conformance only |
+| ACP-compatible agent execution | DSH `subagent-acp` | native provider when stronger | conformance only |
 | Website Agent execution | DSH ACP provider + Website ACP bridge for one-shot work | continuable ACP provider / A2A / host connector | provider mapping + continuation only if needed |
 | Remote agent collaboration | A2A + official JS SDK | none unless another standard supersedes it | capability mapping + acceptance |
 | Agent tools/data | DSH capabilities + MCP | provider-native tools | policy/scoping only |
 | Durable storage | DSH `ctx.storageDomain` | external store behind plugin | AgentOS record semantics |
-| Durable workflow mechanics | DSH primitives first | Inngest / Temporal / Mastra-backed adapter | Workflow policy/result semantics |
+| Durable workflow mechanics | DSH primitives first | Inngest / Temporal adapter | Workflow policy/result semantics |
 | Human input/approval | DSH approval/questions | external UX behind plugin if needed | Pending decision semantics only when durable owner needs it |
 | Domain procedure | Skills/capability packs | external Skills/content | domain procedure |
 | Structured remote result | A2A Artifact / provider result | domain schema | acceptance validation |
