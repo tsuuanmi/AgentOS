@@ -1,69 +1,65 @@
 # AgentOS Schemas
 
-This directory contains AgentOS-owned machine-readable contracts.
+This directory contains only machine-readable structures that AgentOS itself owns.
 
 ## Ownership rule
 
-AgentOS should define a JSON Schema only when AgentOS owns the structure.
+Define an AgentOS JSON Schema only when all of the following are true:
 
-Prefer upstream schemas/types for upstream concepts:
+1. AgentOS, rather than DSH or an upstream protocol, owns the semantic structure.
+2. The structure crosses a serialization/persistence/configuration boundary where runtime validation is useful.
+3. A TypeScript type or upstream protocol type is not sufficient.
+
+Prefer upstream models for upstream concepts:
 
 ~~~text
 A2A Task / Message / Artifact / Part
 ACP protocol structures
 DSH service/provider structures
+MCP tool/resource structures
 ~~~
 
-Do not duplicate those models merely to normalize naming.
+## Current state
 
-## Canonical AgentOS schema targets
+The provisional Worker and MCP Worker schemas have been removed.
 
-Long-term schemas should focus on structures such as:
+They duplicated structures now owned by DSH, ACP, A2A, or provider-native results:
+
+- WorkerAssignment;
+- WorkerMessage;
+- WorkerArtifact;
+- WorkerState;
+- generic Worker capability envelopes;
+- MCP claim/send/receive/publish/inspect envelopes.
+
+No replacement schema is added merely for symmetry.
+
+## Expected future AgentOS schemas
+
+Add schemas only when implementation/conformance proves they are needed, likely for:
 
 - Workflow Definitions/Profiles;
-- domain/phase result contracts;
-- plugin configuration;
-- AgentOS-owned durable semantic records that conformance proves necessary.
+- domain/phase input and result contracts;
+- AgentOS plugin configuration;
+- durable AgentOS-owned Workflow records;
+- domain-specific evidence/effect receipts when a serialized contract is valuable.
 
-## Provisional legacy Worker schemas
+ExecutionBinding can remain an internal TypeScript type unless it crosses a persisted/interoperable boundary that benefits from schema validation.
 
-The current branch still contains:
+## Standard protocol extensions
 
-- worker-common.schema.json
-- worker-capabilities.schema.json
-- worker-assignment.schema.json
-- worker-message.schema.json
-- worker-artifact.schema.json
-- worker-state.schema.json
-- schemas/mcp/* Worker envelopes
-- related examples
+Do not create an A2A extension by default.
 
-These were created before the architecture converged on DSH ctx.subagents + ACP + A2A reuse.
+Keep AgentOS-local state such as exact-input digests, binding generations, recovery policy, and acceptance state local unless the remote agent itself must consume or attest to it.
 
-They are **not implementation targets**.
-
-Before behavioral implementation, the protocol conformance spike must classify each schema:
-
-~~~text
-upstream A2A/ACP/DSH already owns it
-  -> delete
-
-purely internal implementation type, no wire contract required
-  -> keep in TypeScript, not JSON Schema
-
-real AgentOS-owned serialized semantic record
-  -> retain/minimize schema
-~~~
-
-In particular, current custom Message/Artifact/WorkerState and MCP Worker envelope schemas are expected to be removed unless a conformance test demonstrates an irreducible gap.
+If a future A2A extension is required, use A2A's native extension/metadata mechanism and define only the smallest remote-facing structure.
 
 ## Design rules
 
-- Schema resource ids use urn:agentos:schema:... only for AgentOS-owned serialized structures.
-- Domain result schemas may use JSON Schema when runtime validation is valuable.
-- Provider/session/protocol ids remain provider handles rather than AgentOS semantic identities.
-- Standard protocol extension metadata should follow the protocol's own extension mechanism.
-- JSON Schema does not define authorization, current binding, recovery, or effect correctness.
+- Provider/session/task ids remain provider handles.
+- Domain result schemas are preferred over a universal Worker result envelope.
+- JSON Schema does not define authorization, lifecycle authority, recovery, or effect correctness.
+- New schema files require a concrete consumer and a concrete invariant.
 
 ## Related reference
 
