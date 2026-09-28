@@ -24,7 +24,7 @@ A2A = Website Agent <-> peer agent / Team Member
 
 ## Responsibilities
 
-The A2A plugin owns protocol adaptation only:
+The A2A plugin owns protocol integration only and uses the official A2A SDK/types directly:
 
 - AgentCard / AgentSkill exposure and discovery;
 - Task / TaskStatus mapping;
@@ -33,7 +33,7 @@ The A2A plugin owns protocol adaptation only:
 - contextId propagation;
 - cancellation/update handling;
 - authentication/transport integration;
-- mapping A2A peer context to AgentOS/Website semantic context.
+- passing native A2A context/task identities into the owning semantic boundary where their semantics already match.
 
 It does not own:
 
@@ -79,7 +79,7 @@ A2A already provides the primitives AgentOS needs for peer collaboration:
 - contextId for related Tasks/Messages;
 - cancellation and status updates.
 
-AgentOS should reuse those native objects instead of defining WorkerMessage or WorkerArtifact.
+AgentOS should pass those native objects directly instead of defining WorkerMessage, WorkerArtifact, AgentOSTask, or normalized status/result mirrors.
 
 ## Zero-extension default
 
@@ -111,3 +111,7 @@ Keeping these axes separate prevents runtime lifecycle and peer collaboration fr
 ## Canonical invariant
 
 > **A2A is the standard horizontal protocol between Website Agent and Agent Team Members/other agents.**
+
+## Direct-type invariant
+
+A2A Task, TaskStatus, Message, Artifact, Part, AgentCard, AgentSkill, taskId, and contextId remain the canonical peer-protocol model. AgentOS adapters may call Team/Website behavior from them, but must not replace them with structurally equivalent AgentOS types.
