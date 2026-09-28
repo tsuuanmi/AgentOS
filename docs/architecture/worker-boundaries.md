@@ -1,260 +1,165 @@
 # Worker boundary model
 
 - **Status:** canonical architecture
-- **Scope:** agnostic Worker semantics, structure, transport, guidance, and current-state enforcement
+- **Scope:** ownership across AgentOS semantics, DSH provider seams, A2A, ACP, MCP, Skills, and schemas
 
-Worker is provider-neutral and domain-neutral.
+Worker is provider-neutral and domain-neutral because AgentOS depends on capability semantics rather than a concrete agent implementation.
 
-The boundary separates five concerns:
+The boundary is intentionally small:
 
-> **Contract defines meaning; Schema defines shape; Transport exposes exchange; Skill teaches capability procedure; Exchange invariants enforce current truth.**
+> **AgentOS selects and accepts work; DSH/providers execute it; standard protocols keep their native data models.**
 
 ## Boundary topology
 
 ~~~mermaid
 flowchart LR
-    Team[Agent Team semantics]
-    Contract[Worker Contract]
-    Schema[JSON Schemas]
-    Exchange[Worker Exchange Service]
-    Adapter[Worker Provider Adapter]
-    Provider[Worker Provider]
-    Skill[Capability Skill]
-    ACP[ACP provider protocol]
-    A2A[A2A collaboration protocol]
-    MCP[MCP tool / Website bridge]
-    Website[Website Agent]
+    Team[Agent Team / Workflow]
+    Policy[Capability + acceptance policy]
+    Binding[ExecutionBinding if needed]
+    Sub[DSH ctx.subagents]
 
-    Team --> Contract
-    Contract --> Exchange
-    Schema --> Exchange
+    ACP[ACP agent]
+    Web[Website provider]
+    DSH[DSH provider]
+    A2A[A2A remote agent]
 
-    Exchange <--> Adapter
-    Adapter <--> Provider
-    Adapter <--> ACP
-    Adapter <--> A2A
-    Skill -. guidance .-> Provider
+    Skills[Domain Skills]
+    MCP[MCP / native tools]
 
-    Website <--> MCP
-    MCP <--> Exchange
+    Team --> Policy
+    Policy --> Binding
+    Policy --> Sub
+
+    Sub --> ACP
+    Sub --> Web
+    Sub --> DSH
+    Policy -. remote .-> A2A
+
+    Skills -. procedure .-> ACP
+    Skills -. procedure .-> Web
+    MCP -. tools .-> ACP
+    MCP -. tools .-> Web
 ~~~
-
-Worker Provider may be a DSH agent, an ACP-compatible coding agent, a remote A2A agent, a Website Agent, or another implementation. ACP and A2A are protocol roles, not Worker identities.
-
-## Agnostic capability model
-
-Worker capabilities are open semantic identifiers.
-
-Current initial examples:
-
-~~~text
-research
-brainstorm
-debate
-implement
-tdd
-review
-synthesize
-~~~
-
-They are not the definition of Worker.
-
-New capability packs can add domain capabilities without changing Worker identity or the Worker Contract.
-
-The current `software-development` Skill is therefore an **initial software capability procedure pack**, not the canonical definition of Worker itself.
 
 ## Responsibility classification
 
 | Concern | Owner |
 |---|---|
-| Assignment/Message/Artifact/WorkerState meaning | Worker Contract |
-| semantic capability guarantees | Worker Contract / capability definition |
-| AgentOS-only exact serializable shape | JSON Schema |
-| interchangeable coding-agent execution/control | ACP provider adapter |
-| independent agent-to-agent communication | A2A adapter/profile |
-| Website MCP-only callable mapping | MCP Worker compatibility transport |
-| DSH/native invocation mapping | corresponding Worker Provider adapter |
-| research/TDD/review/etc. working method | capability Skill |
-| current assignment/attempt/input authorization and fencing | Worker Exchange invariants |
-| Team collaboration policy | Agent Team requirements |
-| Workflow lifecycle/recovery | Workflow requirements |
+| semantic capability requirement | AgentOS Team/Workflow policy |
+| provider registry and delegated execution lifecycle | DSH ctx.subagents |
+| coding/compatible agent client protocol | ACP |
+| independent remote-agent Task/Message/Artifact | A2A |
+| agent tools/resources | MCP or native DSH capability |
+| Website Agent execution | Website ctx.subagents provider |
+| domain procedure | Skill/capability pack |
+| exact Workflow/phase input snapshot | owning Workflow/phase record |
+| provider execution handle | provider-native protocol/runtime |
+| semantic work -> provider handle mapping | ExecutionBinding, only when needed |
+| result/output schema | caller/domain contract |
+| result acceptance | AgentOS Team/Workflow policy |
+| real effect verification | effect/environment adapter |
+| generic retry/checkpoint/wait | selected runtime plugin |
+| DSH Host/plugin lifecycle | Cordis/DSH |
 
-## Contract
+## What Schema owns
 
-Contract owns provider-neutral semantics.
+AgentOS JSON Schema should describe only structures AgentOS genuinely owns, such as Workflow Definitions/Profiles, domain result contracts, and plugin configuration or durable AgentOS records when required.
 
-Examples:
+Do not recreate upstream protocol models in AgentOS schema.
 
-- WorkerAssignment is one exact unit of semantic work;
-- Message is communication, not completion;
-- Artifact is a durable work product;
-- completion Artifact proposes terminal Worker completion;
-- provider-native ids are not AgentOS Worker identity;
-- capabilities are caller-visible guarantees.
-
-Contract does not define provider session lifecycle or Team runtime mechanics.
-
-## Schema
-
-Schema validates machine-readable structure.
-
-It can prove:
+In particular, prefer:
 
 ~~~text
-required field exists
-type/discriminator is valid
-payload conforms to declared schema
-references are structurally valid
+A2A Message / Artifact / Task
+ACP protocol schemas
+DSH service types
 ~~~
 
-It cannot prove:
+over parallel AgentOS copies.
+
+## ACP boundary
+
+ACP is Client <-> Agent execution/control.
+
+DSH already provides the ACP client/provider seam.
+
+AgentOS should consume that seam and validate provider guarantees rather than define another local Worker API.
+
+## A2A boundary
+
+A2A is Agent <-> Agent interoperability.
+
+Use A2A Task/TaskStatus/Message/Artifact directly.
+
+If AgentOS must carry remote-specific metadata, first ask whether it can remain local in ExecutionBinding/WorkItem state.
+
+Only use an A2A extension when the remote agent itself must consume or attest to the extra semantic.
+
+## MCP boundary
+
+MCP is Agent <-> Tool/Capability/Data.
+
+Use it to equip an agent with tools.
+
+MCP is not the generic AgentOS Worker protocol.
+
+A Website integration may use MCP internally if the Website host requires it, but it should still appear upward as a normal provider.
+
+## Website Agent boundary
+
+The desired topology is:
 
 ~~~text
-caller is authorized
-assignment is current
-attempt is current
-input binding is current
-provider actually performed an effect
-completion should be accepted
+AgentOS policy
+  -> DSH ctx.subagents
+      -> Website Agent provider
+          -> ACP bridge / A2A / MCP-host connector / direct integration
 ~~~
 
-## Protocol/provider adapters
+The integration choice stays inside the provider.
 
-Protocol mechanics are not Worker semantics.
+This allows the same Website provider to satisfy software or scientific capabilities according to configuration/Skills/tools.
+
+## Execution binding and fencing
+
+Do not build a generic Worker Exchange service by default.
+
+Persist only the state required to answer:
 
 ~~~text
-ACP
-  = preferred Client <-> coding Agent execution/control boundary
-
-A2A
-  = preferred Agent <-> Agent Task/Message/Artifact boundary
-
-MCP
-  = Agent <-> Tool/Capability boundary
-    + Website compatibility bridge when MCP is the only host integration
-
-DSH native services
-  = optimized in-process Team/Subagent mechanics
+which semantic work is this?
+which provider execution is currently bound?
+can an older execution still race with this one?
 ~~~
 
-All map into the same semantic Worker Contract while retaining their native lifecycle. See [Protocol stack](protocol-stack.md).
+If no race/recovery requirement exists, an extra binding generation is unnecessary.
 
-AgentOS should not maintain parallel A2A-like Message/Artifact/Task wire structures unless conformance proves an irreducible semantic gap.
+If a race exists, keep the generation/fence local and reject/ignore stale provider results/effects.
 
-## Skill
+## Acceptance
 
-A Skill teaches procedural behavior for one or more capabilities.
-
-The initial software capability pack may teach:
-
-- research;
-- brainstorming;
-- debate;
-- implementation;
-- TDD;
-- review;
-- synthesis.
-
-Future capability packs can be added independently.
-
-A provider that cannot load Skills still must satisfy the semantic capability contract through some other implementation.
-
-## Worker Exchange Service
-
-Worker Exchange Service is a **logical state/authority service**, not an Agent.
-
-It is needed only for AgentOS-owned exchange semantics not already guaranteed by the selected runtime/provider.
-
-Potential responsibilities:
-
-- current WorkerAssignment;
-- assignment ownership;
-- current attempt;
-- exact input binding;
-- durable Worker Messages/Artifacts;
-- idempotency;
-- completion acceptance;
-- stale-attempt fencing.
-
-When DSH `ctx.agentTeams` or `ctx.subagents` already owns equivalent durable mechanics, AgentOS should reuse them rather than duplicate them.
-
-## Server implementation
-
-A Website-facing implementation may expose Worker Exchange as an MCP server.
-
-Therefore:
+A provider-native terminal event does not automatically satisfy the caller.
 
 ~~~text
-Worker Exchange Service
-  = architecture responsibility
-
-Worker MCP server
-  = one transport/deployment implementation
+provider terminal
+  -> current binding?
+  -> output contract valid?
+  -> required evidence present?
+  -> required effect observed?
+  -> accept typed phase/WorkItem result
 ~~~
 
-Local DSH/Codex/Claude providers may call the same semantic service in-process and need no network server.
-
-## Acceptance flow
-
-~~~mermaid
-flowchart TD
-    R[Incoming Artifact/Message]
-    S{Schema valid?}
-    A{Authorized binding?}
-    W{Current Worker/assignment?}
-    T{Current attempt?}
-    I{Exact input binding?}
-    L{Lifecycle/idempotency valid?}
-    C[Durably accept]
-    X[Reject]
-
-    R --> S
-    S -->|no| X
-    S -->|yes| A
-    A -->|no| X
-    A -->|yes| W
-    W -->|no| X
-    W -->|yes| T
-    T -->|no| X
-    T -->|yes| I
-    I -->|no| X
-    I -->|yes| L
-    L -->|no| X
-    L -->|yes| C
-~~~
-
-## Provider neutrality
-
-~~~mermaid
-flowchart TB
-    Worker[Worker semantic role]
-    Binding[Worker Binding]
-    Exchange[Worker Exchange delta]
-
-    Worker --> Binding
-    Binding --> DSH[DSH native]
-    Binding --> ACP[ACP coding agent]
-    Binding --> A2A[A2A remote agent]
-    Binding --> Web[Website / MCP compatibility]
-    Binding -.-> Future[other provider]
-
-    DSH <--> Exchange
-    ACP <--> Exchange
-    A2A <--> Exchange
-    Web <--> Exchange
-~~~
-
-Provider capability truth must be projected into Worker selection.
+This is the core Worker-related semantic delta AgentOS owns.
 
 ## Change rules
 
-1. Put provider-neutral meaning in Contract.
-2. Put exact structural shape in Schema.
-3. Reuse ACP/A2A/MCP wire models and lifecycle in their protocol adapters; do not duplicate them in AgentOS.
-4. Put procedural working method in capability Skills.
-5. Put current-state correctness only in Exchange/runtime invariants.
-6. Reuse DSH-owned durable state before creating AgentOS state.
-7. Do not encode software-only assumptions into Worker identity.
-8. New capabilities extend the open capability set; they do not require a new Worker type.
-9. ACP is the preferred interchangeable coding-Worker execution boundary; A2A is the preferred independent agent-to-agent communication boundary.
-10. Keep ACP sessions, A2A Tasks/contexts, and MCP Tasks as provider/transport handles rather than AgentOS semantic identity.
+1. Reuse DSH service seams before adding AgentOS services.
+2. Reuse A2A/ACP/MCP data models instead of copying them.
+3. Add a provider plugin when a new execution implementation is needed.
+4. Add a protocol adapter only when DSH does not already expose the protocol.
+5. Add internal binding/fence state only for a demonstrated race/recovery invariant.
+6. Put domain procedure in Skills/profiles.
+7. Put output structure in domain/caller schemas.
+8. Put effect correctness at the environment/effect boundary.
+9. Do not create a plugin merely for a noun/type.
+10. See [Minimal semantic delta](minimal-semantic-delta.md) and [Plugin inventory](plugins/inventory.md).
