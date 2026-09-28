@@ -57,7 +57,6 @@ flowchart LR
     Native[DSH providers]
     ACP[DSH ACP provider]
     Website[Website Agent bridge]
-    A2A[A2A provider]
     Future[future provider]
 
     Caller --> Worker
@@ -65,7 +64,6 @@ flowchart LR
 
     Registry --> Native
     Registry --> ACP
-    Registry --> A2A
     ACP --> Website
     Registry -.-> Future
 ~~~
