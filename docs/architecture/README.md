@@ -15,7 +15,8 @@ The design is informed by the current and vNext architecture of `tsuuanmi/intern
 - contract-first replaceable components;
 - semantic identities that do not leak implementation handles;
 - conformance-tested substitution;
-- explicit authority and correctness boundaries.
+- explicit authority and correctness boundaries;
+- transport/projection state separated from product/domain state.
 
 See [Internet architecture review](../research/internet-architecture-review.md) for the detailed derivation.
 
@@ -24,16 +25,24 @@ See [Internet architecture review](../research/internet-architecture-review.md) 
 ```text
 +--------------------------------------------------+
 | DSH / Cordis host kernel                         |
-| boot · lifecycle · DI · config · composition     |
+| boot · lifecycle · DI · config · plugin runtime  |
 +--------------------------+-----------------------+
                            |
+                           | hosts
+                           v
++--------------------------------------------------+
+| AgentOS root plugin / profile                    |
+| selects Skills, capabilities, policies, providers|
++--------------------------+-----------------------+
+                           |
+                           | depends on semantics
                            v
 +--------------------------------------------------+
 | AgentOS semantic surface                         |
-| minimal AgentOS-owned contracts + invariants     |
+| only contracts/invariants AgentOS must own       |
 +--------------------------+-----------------------+
                            |
-              semantic capability boundary
+                    capability resolution
                            |
           +----------------+----------------+
           |                |                |
@@ -44,11 +53,21 @@ See [Internet architecture review](../research/internet-architecture-review.md) 
            +---------------+----------------+
                            |
                            v
-+--------------------------------------------------+
-| AgentOS profiles / bundles                       |
-| select and compose capabilities                  |
-+--------------------------------------------------+
+                   external/local effects
 ```
+
+Optional host/portable projections sit at the edge rather than inside the semantic core:
+
+```text
+Chat / Work / CLI / another host
+            |
+     MCP / Tasks / host tool API
+            |
+            v
+     AgentOS capability surface
+```
+
+A transport handle may reference an AgentOS operation, but it does not become the semantic identity of that operation.
 
 The semantic surface may initially be extremely small. It grows only when a concrete feature requires an AgentOS-owned invariant that DSH or an existing public capability does not already own.
 
@@ -150,15 +169,77 @@ Consequential authority must come from explicit user/host/policy state and valid
 
 ### 6. Profiles compose capabilities
 
-A profile/bundle selects capabilities and implementations. It does not become a hidden semantic kernel.
+A profile/bundle selects semantic capabilities, Skills, policies, and implementations. It does not become a hidden semantic kernel.
 
 ```text
 profile
-  -> semantic capabilities / policy
-  -> selected DSH/public/AgentOS implementations
+  -> semantic capability requirements
+  -> DSH/public/AgentOS implementations
 ```
 
 Profiles may differ without forcing capability contracts to change.
+
+### 7. Transport projection is not semantic state
+
+A long-running operation may be projected through a host lifecycle primitive such as:
+
+- DSH jobs;
+- a future MCP Tasks adapter;
+- a CLI handle;
+- another host-specific task/session handle.
+
+That projection is transport/client lifecycle, not automatically AgentOS domain truth.
+
+Conceptually:
+
+```text
+transport task T1
+      |
+      | projects / references
+      v
+AgentOS semantic operation A1
+```
+
+not:
+
+```text
+T1 == A1
+```
+
+Transport state can be coarser than AgentOS semantic state and may have a different retention lifetime.
+
+If AgentOS has no separate domain state for a capability, it should simply use the DSH/public semantic owner rather than inventing one only to satisfy this rule.
+
+### 8. Edge adapters preserve provenance and authority
+
+A host adapter may translate:
+
+- user interaction;
+- task lifecycle;
+- status projection;
+- cancellation;
+- input-required flows;
+- external tool calls.
+
+It may not manufacture AgentOS authority.
+
+For example, a trusted UI interaction may establish explicit user provenance, while an LLM-provided string claiming `user_explicit` does not.
+
+### 9. Execution adapter is not semantic identity
+
+If the same semantic capability can be executed by multiple workers, the capability contract stays above worker identity.
+
+```text
+semantic capability
+      |
+      +-> DSH execution
+      +-> Codex/external execution
+      +-> another provider
+```
+
+Worker-native task/session/execution IDs remain adapter-local unless the external identity itself is explicitly part of the semantic contract.
+
+Do not create a generic Worker abstraction until at least one real AgentOS capability needs that substitution.
 
 ## Replaceable component rule
 
@@ -198,6 +279,7 @@ Where relevant, a contract should define:
 - idempotency/reconciliation behavior;
 - cancellation/deadline semantics;
 - stable AgentOS-owned identities;
+- projection semantics when exposed through another host/transport;
 - conformance tests.
 
 Implementation-native handles may be retained for diagnostics or reconciliation, but must not become canonical AgentOS semantic IDs.
@@ -207,7 +289,8 @@ Examples of forbidden leakage in principle:
 ```text
 provider conversation id as AgentOS work identity
 DSH internal execution id as AgentOS semantic identity
-external task id as AgentOS capability identity
+MCP Task id as AgentOS domain identity
+external worker task id as AgentOS capability identity
 framework checkpoint id as AgentOS state identity
 ```
 
@@ -291,10 +374,13 @@ Do **not** introduce by default:
 - PR/head/CI/merge semantics;
 - handoff stores;
 - execution leases/fencing;
-- website reconciliation state.
+- website reconciliation state;
+- MCP Tasks as an AgentOS kernel dependency.
+
+MCP Tasks may later be a first-class transport for portable long-running AgentOS capabilities if a concrete cross-host surface requires it, but it remains a projection/adapter rather than AgentOS semantic authority.
 
 An analogous AgentOS concept should appear only when a concrete AgentOS requirement proves that semantic ownership is necessary.
 
 ## Under active proposal
 
-The first concrete AgentOS semantic contracts, profiles, and component boundaries remain under discussion in [the plugin-first architecture proposal](../proposals/plugin-first-architecture.md).
+The first concrete AgentOS semantic contracts, profiles, projections, and component boundaries remain under discussion in [the plugin-first architecture proposal](../proposals/plugin-first-architecture.md).
