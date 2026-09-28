@@ -160,21 +160,28 @@ research -> implementation -> review
 
 without making those capabilities the Worker abstraction itself.
 
-## 6. Durable Workflow semantic layer
+## 6. Workflow Definition + durable Core semantic layer
 
-After Agent Team works end to end, implement the durable gap above existing DSH primitives.
+After Agent Team works end to end, implement the Workflow layer as a fixed domain-agnostic Core plus validated declarative Definitions/Profiles.
+
+The first software-development flow must be expressed as configuration rather than hard-coded phase branches in Core.
 
 Minimal first composition:
 
 ~~~text
 Workflow semantic service
+  + Definition loader/validator/binding
   + ctx.storageDomain
-  + deterministic reconciler
+  + deterministic domain-agnostic reconciler
   + Agent Team adapter
   + local validation/effect adapter
 ~~~
 
 Required semantic behavior:
+
+- validate a Workflow Definition before any effects begin;
+- bind each WorkflowRun to the exact Definition snapshot/digest and exact input;
+- resolve declared adapter kinds/capabilities before admission;
 
 - WorkflowRun/WorkItem durable identity;
 - exact-input attempt admission;
@@ -198,8 +205,10 @@ Behavioral work follows strict **Red -> Green -> Refactor**.
 4. **Website MCP Worker** — failing transport-equivalence and continuation tests.
 5. **Agent Team research phase** — failing capability selection, independence, peer exchange, Artifact and typed-result tests over DSH Team.
 6. **Implementation/review profile** — extend the same agnostic Worker path.
-7. **Workflow durability** — failing restart/reconciliation/PendingAction tests around the working Team adapter.
-8. **Optional adapters** — only when requirements require them.
+7. **Workflow Definitions** — failing validation/binding tests proving software-development is config and unknown adapters/capabilities fail before execution.
+8. **Workflow durability** — failing restart/reconciliation/PendingAction tests around the working Team adapter and exact Definition binding.
+9. **Profile extensibility** — add a second non-software example/profile test (for example scientific research) without changing Workflow Core.
+10. **Optional adapters** — only when requirements require them.
 
 ## Deferred
 
@@ -224,4 +233,5 @@ Behavioral implementation can begin when:
 1. canonical docs use one composition model;
 2. Worker remains agnostic and capability-driven;
 3. DSH capability ownership is explicit;
-4. the first Red tests can distinguish reused DSH guarantees from AgentOS-owned semantic gaps.
+4. the first Red tests can distinguish reused DSH guarantees from AgentOS-owned semantic gaps;
+5. the software-development workflow can be represented as a Definition/Profile without encoding software phases in Workflow Core.
