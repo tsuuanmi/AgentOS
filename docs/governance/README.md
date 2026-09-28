@@ -7,7 +7,7 @@ AgentOS-specific application:
 - README files route; they do not become parallel specifications.
 - Canonical machine-readable structures live at repository-root `/schemas`.
 - Executable Agent Skills live at repository-root `.agents/skills/`; do not create a `docs/skills/` shadow router.
-- Requirements, architecture, and reference own current product truth within their scopes.
+- Architecture and reference own current product truth within their scopes. Plugin architecture documents include the behavioral invariants for the capabilities they define.
 - Proposals contain unresolved changes only.
 - Research is temporary evidence. Once accepted conclusions are fully promoted, delete the redundant research document and rely on Git history for archaeology.
 - Implementation documentation belongs with implementation rather than in a hand-maintained `docs/src/` shadow tree.
