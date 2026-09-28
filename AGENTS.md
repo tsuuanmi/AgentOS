@@ -10,8 +10,9 @@ For non-trivial work:
 2. Read `docs/README.md`.
 3. Read current architecture.
 4. Read the relevant canonical contract.
-5. Read proposals/research only for unresolved change context or evidence.
-6. When implementation exists, read nearest source README/source/tests.
+5. Read relevant Skill guidance only when agent operating behavior is part of the change.
+6. Read proposals/research only for unresolved change context or evidence.
+7. When implementation exists, read nearest source README/source/tests.
 
 ## Core invariants
 
@@ -29,6 +30,9 @@ For non-trivial work:
 - Canonical machine-readable JSON Schemas live only under repository-root `/schemas`; do not create schema copies under `docs/`.
 - Transport-neutral callable operations belong in `docs/api/`.
 - MCP-specific mapping belongs in `docs/mcp/`; MCP is not the semantic contract and must reuse the canonical root schemas.
+- Agent operating guidance belongs in `docs/skills/`; Skills teach when/how to compose capabilities but are never a correctness, authorization, lifecycle, or security boundary.
+- Do not duplicate MCP tool signatures or canonical schema field definitions in Skills.
+- JSON Schema validates structural contracts; server/domain logic remains authoritative for current identity, authorization, lifecycle, fencing, idempotency, durability, and completion.
 - A semantic DSH Team member is primarily a coordination proxy for one isolated Website Agent/conversation when website-backed work is used.
 - Do not silently share one Website Agent conversation between semantic teammates.
 - Research/review peers may debate directly through DSH `send_message`; Lead does not proxy ordinary peer debate.
