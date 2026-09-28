@@ -146,20 +146,19 @@ Agent Team capability
     +-> provider-native capabilities
 ~~~
 
-Possible implementations may include:
+V1 uses **DSH Agent Teams as the runtime/substrate** and adapts the useful Internet Team reasoning behavior on top.
 
-- the current Internet-backed team behavior;
-- a DSH Agent Teams-based implementation;
-- a future provider-native or hybrid implementation;
-- another plugin that satisfies the same semantic contract.
+Future implementations may add alternate providers or runtimes behind the same Agent Team semantic contract, but AgentOS does not carry the Internet Team runtime forward in parallel.
 
 ### Terminology
 
 **Agent Team** = AgentOS semantic capability.
 
-**DSH Agent Teams** = a specific DSH substrate/runtime that may implement some Agent Team semantics.
+**DSH Agent Teams** = the default v1 Team runtime/substrate.
 
-**Internet-backed Agent Team** = a provider/implementation using the `internet` plugin and website-native agents/capabilities.
+**Internet Team** = the current source of research/review collaboration policy to adapt.
+
+**Internet-backed teammate provider** = a future bridge that allows DSH Agent Teams to spawn website-native teammates without creating a second Team runtime.
 
 Do not treat those names as interchangeable.
 
@@ -443,8 +442,8 @@ Its existence should not change the v1 authority model:
 4. Durable Workflow execution must not depend on the originating Local Agent remaining connected when durability is part of the provider contract.
 5. A new Local client may reattach to the same durable Workflow where the provider contract supports it.
 6. Agent Team is the AgentOS semantic name for collaborative/external reasoning capability.
-7. DSH Agent Teams is a possible implementation substrate, not the Agent Team semantic definition.
-8. An Internet-backed team is one implementation/provider, not the architecture.
+7. DSH Agent Teams is the default v1 runtime/substrate, but not the Agent Team semantic definition.
+8. Internet Team behavior is adapted as policy; its runtime is not carried forward as a parallel Team engine.
 9. Local and Workflow may both call Agent Team.
 10. Agent Team remains independently usable; Workflow invokes it through its semantic capability rather than controlling its internals.
 11. Agent Team returns typed results and does not directly mutate WorkflowRun/WorkItem state.
