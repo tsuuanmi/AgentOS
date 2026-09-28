@@ -298,6 +298,26 @@ Worker-native task/session/execution IDs remain adapter-local unless the externa
 
 Do not create a generic Worker abstraction until at least one real AgentOS capability needs that substitution.
 
+### 10. Unknown execution outcome is explicit
+
+A durable Workflow must not guess what happened to an execution after Host/process loss.
+
+Every admitted WorkItem carries a stable recovery policy for an unknown outcome:
+
+```text
+SAFE_RETRY
+RECONCILE_BEFORE_RETRY
+BLOCK_ON_UNKNOWN
+```
+
+A missing Job, subagent, live Workflow handle, provider handle, or adapterRef does not prove that execution never happened.
+
+For side-effecting work, observe/reconcile actual state before retry. Superseded execution results are fenced from committing.
+
+Authority and effect completion are distinct: resolving a PendingAction may authorize a consequential operation, but the operation itself executes as a WorkItem with its own execution identity, reconciliation policy, and ReceiptRef.
+
+See [Workflow restart and reconciliation v0](../research/workflow-restart-reconciliation-v0.md).
+
 ## Replaceable component rule
 
 A separate AgentOS component/port is justified when one or more of these differ materially:
