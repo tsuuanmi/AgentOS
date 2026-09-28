@@ -81,7 +81,7 @@ Prove:
 - the same semantic work can move between ACP providers without changing the Worker caller contract;
 - cwd/tool isolation;
 - cancellation;
-- stop-reason mapping;
+- direct handling of native ACP stop reasons;
 - permission behavior;
 - cost/usage visibility when available;
 - provider limitations are surfaced rather than silently degraded.
@@ -119,7 +119,7 @@ Worker
 
 ### Refactor
 
-Keep ACP/A2A/Website/local provider branching below Worker.
+Keep ACP/Website/local provider branching below Worker. A2A remains the Agent Team/Website peer boundary.
 
 Do not add Worker Assignment/Message/Artifact/State protocols.
 
@@ -177,8 +177,8 @@ Worker
 
 Tests cover:
 
-- ACP initialize/new/prompt/cancel mapping;
-- ACP session -> core conversation mapping;
+- implement native ACP initialize/new/prompt/cancel SDK interfaces directly;
+- pass ACP sessionId directly as the core conversation key when semantics match;
 - core logical-request reconciliation independent of ephemeral JSON-RPC ids;
 - Website/core ids hidden above Worker;
 - one-shot research through current DSH ACP provider;
@@ -201,10 +201,10 @@ Use the official A2A SDK.
 
 Tests cover:
 
-- thin `AgentExecutor` -> core mapping;
+- implement the native A2A AgentExecutor/server interface directly;
 - AgentCard/AgentSkill capability discovery;
-- `contextId` -> continued core conversation context;
-- task/request mapping for reconciliation;
+- pass `contextId` directly as the core conversation key when present;
+- pass `taskId` directly as the core logical request key when semantics match;
 - native Artifact/Part result projection;
 - cancellation -> core AbortSignal;
 - zero AgentOS protocol extensions;
@@ -331,4 +331,5 @@ Implementation can begin when:
 3. Worker is the only semantic provider-selection boundary consumed by Agent Team/Workflow;
 4. ACP/A2A/MCP roles are unambiguous;
 5. legacy Worker/MCP wire schemas are absent;
-6. each first Red test distinguishes upstream mechanics from a real AgentOS semantic invariant.
+6. ACP/A2A/DSH SDK/runtime types are consumed directly rather than mirrored in AgentOS types;
+7. each first Red test distinguishes upstream mechanics from a real AgentOS semantic invariant.
