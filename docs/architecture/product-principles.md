@@ -101,7 +101,7 @@ Before introducing AgentOS-owned runtime behavior:
 
 This rule applies to Team mechanics, workflow execution, persistence, transport, agent communication, tools, observability, and provider integration.
 
-See [DSH capability reuse](dsh-reuse.md) and the active [ecosystem reuse evaluation](../research/ecosystem-reuse-evaluation.md).
+See [DSH plugins and capabilities](plugins/dsh/README.md) and the active [ecosystem reuse evaluation](../research/ecosystem-reuse-evaluation.md).
 
 ## 5. Solve real workflows first
 
@@ -172,7 +172,7 @@ AgentOS should keep these concerns distinct:
 | Concern | Role |
 |---|---|
 | model / agent | supplies intelligence and reasoning |
-| Worker | performs capability-driven semantic work |
+| Worker plugin | selects and executes capability-driven semantic work through replaceable providers |
 | Skill / capability pack | teaches domain procedure |
 | Workflow | determines durable sequencing and recovery |
 | Agent Team | determines collaboration and responsibility |
