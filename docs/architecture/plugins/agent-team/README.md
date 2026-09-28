@@ -49,7 +49,17 @@ Worker owns:
 - ExecutionBinding when required;
 - provider-neutral result acceptance.
 
-Agent Team must not branch directly on ACP/A2A/Website/local provider types.
+Agent Team must not branch directly on runtime/provider types. Participant execution goes through Worker; peer communication with Website Agent may use A2A.
+
+## A2A peer collaboration
+
+When a Website Agent participates in a collaboration, Agent Team uses the A2A plugin as the standard peer protocol:
+
+~~~text
+Agent Team Member <-> A2A <-> Website Agent
+~~~
+
+ACP remains responsible for how a runtime starts/controls the Website Agent. Agent Team does not use ACP as its peer collaboration protocol.
 
 ## Composition
 
@@ -116,7 +126,7 @@ Provider ids/session ids do not appear in phase results unless the domain contra
 Agent Team does not own:
 
 - provider registry;
-- ACP/A2A/MCP protocol mechanics;
+- ACP runtime mechanics or A2A protocol implementation details;
 - Website bridge;
 - generic Worker lifecycle;
 - Workflow sequencing;
