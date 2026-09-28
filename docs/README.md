@@ -38,3 +38,4 @@ When a lower-authority document overlaps canonical architecture/contracts, the c
 
 - [Workflow](contracts/workflow.md)
 - [Agent Team](contracts/agent-team.md)
+- [Worker Protocol](contracts/worker-protocol.md)
