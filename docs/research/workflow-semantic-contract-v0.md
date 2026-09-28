@@ -171,9 +171,9 @@ WorkItem
   lifecycle
   dependency ids
   input binding/hash
+  recoveryMode
   current execution ref?
   result ref?
-  attempt/recovery metadata?
 ~~~
 
 ### Why WorkItem exists
@@ -247,6 +247,7 @@ PendingAction
   kind
   prompt/description
   required provenance/authority
+  bound subject/input
   createdAt
   status
   resolution?
@@ -279,6 +280,17 @@ Workflow PendingAction
 must survive disconnect/restart.
 
 A later Local interaction may resolve the PendingAction through `respond()`. The implementation may invoke DSH approval for a live local action as part of resolution, but the durable pending state remains Workflow-owned.
+
+Candidate v0 status is:
+
+~~~text
+OPEN
+RESOLVED
+INVALIDATED
+CANCELLED
+~~~
+
+A response must not authorize a changed subject. If the bound correctness/authority subject is stale, the action is invalidated or the run is revalidated according to profile policy.
 
 ## 6. Result / Artifact / Receipt
 
@@ -349,12 +361,15 @@ workflow terminal failure
 Important v0 rules:
 
 1. classify before retry;
-2. do not blindly resubmit uncertain side effects;
-3. recover the smallest affected WorkItem;
-4. completed unrelated work remains completed;
-5. stale execution results cannot commit;
-6. Local disconnect is not Workflow failure;
-7. adapter/provider replacement does not change semantic identity.
+2. every admitted WorkItem snapshots its unknown-outcome recovery mode;
+3. do not blindly resubmit uncertain side effects;
+4. recover the smallest affected WorkItem;
+5. completed unrelated work remains completed;
+6. stale execution results cannot commit;
+7. absence of adapterRef never proves dispatch did not occur;
+8. Local disconnect is not Workflow failure;
+9. adapter/provider replacement does not change semantic identity;
+10. user authority resolution is distinct from execution of the consequential side effect.
 
 ## 9. Mapping to DSH primitives
 
@@ -439,6 +454,12 @@ WorkflowService
 
 Reattachment may be satisfied by `inspect(runId)` plus authorization/context resolution.
 
+### Authority response is not the side effect
+
+For a consequential operation, `respond()` records/validates durable authority. The actual merge/publish/mutation should execute as a WorkItem with its own ExecutionRef, exact input binding, recoveryMode, reconciliation, and ReceiptRef.
+
+This keeps a crash between user approval and side-effect completion recoverable.
+
 Internal orchestration does not need to be exposed through this Local-facing service.
 
 ## 11. What is deliberately absent from v0
@@ -507,6 +528,17 @@ attempt E2 becomes current
 late E1 result arrives
 E1 result cannot commit
 ~~~
+
+### Unknown outcome recovery
+
+~~~text
+E1 was durably admitted
+Host restarts before semantic completion
+  -> inspect/reconcile adapter if possible
+  -> otherwise apply WorkItem.recoveryMode
+~~~
+
+A missing live Job/subagent/workflow/provider handle never erases the durable WorkItem or authorizes blind retry.
 
 ### Adapter identity isolation
 
