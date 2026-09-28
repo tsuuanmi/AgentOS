@@ -124,7 +124,7 @@ DSH ctx.subagents
 
 ~~~text
 DSH ACP provider
-  -> Website ACP bridge
+  -> Website ACP Agent adapter over the shared Website core
 ~~~
 
 for one-shot work, then add/upstream continuation only if needed.
@@ -156,7 +156,7 @@ The AgentOS hypothesis worth proving is:
 
 ## Open research
 
-1. Can the existing DSH ACP provider + Website ACP bridge cover enough research/scientific work without continuation?
+1. Can the existing DSH ACP provider + Website ACP Agent adapter over the shared Website core cover enough research/scientific work without continuation?
 2. What real workflow first requires continuable ACP, if any?
 3. Can the first A2A path remain extension-free?
 4. Which Workflow durability requirement, if any, exceeds DSH primitives enough to justify Temporal/Inngest?
