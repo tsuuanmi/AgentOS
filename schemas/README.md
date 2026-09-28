@@ -4,13 +4,17 @@ This directory contains canonical machine-readable JSON Schemas.
 
 Schemas are repository-level contracts and intentionally live outside `docs/`.
 
-## Worker Protocol v1
+## Worker Protocol
 
-- [worker-request.schema.json](worker-request.schema.json)
-- [worker-result.schema.json](worker-result.schema.json)
-- [worker-message.schema.json](worker-message.schema.json)
+- [worker-common.schema.json](worker-common.schema.json)
+- [worker-capabilities.schema.json](worker-capabilities.schema.json)
+- [worker-assignment.schema.json](worker-assignment.schema.json)
+- [worker-input.schema.json](worker-input.schema.json)
+- [worker-submission.schema.json](worker-submission.schema.json)
 
-All v1 Worker Protocol schemas use JSON Schema Draft 2020-12.
+All Worker Protocol schemas declare JSON Schema Draft 2020-12 through `$schema`.
+
+That declaration identifies the JSON Schema dialect; it is not AgentOS product versioning.
 
 Human-readable semantics:
 
@@ -18,9 +22,13 @@ Human-readable semantics:
 - [Worker API](../docs/api/worker-api.md)
 - [MCP Worker transport](../docs/mcp/worker-transport.md)
 
-## Rules
+## Design rules
 
 - Machine validation uses files in this directory as the source of truth.
 - Documentation must link here rather than embed divergent schema copies.
-- Breaking schema changes require an explicit protocol/schema version change.
-- Transport adapters must preserve these schema semantics.
+- Core schemas use explicit opaque application handles rather than transport/session identity.
+- Core capability and message/input kinds are open semantic names unless AgentOS correctness requires a closed discriminator.
+- Assignment objectives/context may vary while the control schema remains stable.
+- Plugin-specific optional data belongs under `extensions`; correctness-bearing shared semantics should graduate to first-class fields.
+- Transport adapters must preserve these schemas and semantics.
+- MCP adapters should advertise self-contained/bundled tool schemas when a host cannot resolve external `$ref` resources.
