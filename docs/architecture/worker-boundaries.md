@@ -14,13 +14,15 @@ The boundary separates five concerns:
 ~~~mermaid
 flowchart LR
     Team[Agent Team semantics]
-    Contract[Worker Protocol]
+    Contract[Worker Contract]
     Schema[JSON Schemas]
     Exchange[Worker Exchange Service]
     Adapter[Worker Provider Adapter]
     Provider[Worker Provider]
     Skill[Capability Skill]
-    MCP[MCP transport]
+    ACP[ACP provider protocol]
+    A2A[A2A collaboration protocol]
+    MCP[MCP tool / Website bridge]
     Website[Website Agent]
 
     Team --> Contract
@@ -29,13 +31,15 @@ flowchart LR
 
     Exchange <--> Adapter
     Adapter <--> Provider
+    Adapter <--> ACP
+    Adapter <--> A2A
     Skill -. guidance .-> Provider
 
     Website <--> MCP
     MCP <--> Exchange
 ~~~
 
-Worker Provider may be DSH, Codex, Claude Code, Website Agent, ACP, A2A, or another implementation.
+Worker Provider may be a DSH agent, an ACP-compatible coding agent, a remote A2A agent, a Website Agent, or another implementation. ACP and A2A are protocol roles, not Worker identities.
 
 ## Agnostic capability model
 
@@ -55,7 +59,7 @@ synthesize
 
 They are not the definition of Worker.
 
-New capability packs can add domain capabilities without changing Worker Protocol identity.
+New capability packs can add domain capabilities without changing Worker identity or the Worker Contract.
 
 The current `software-development` Skill is therefore an **initial software capability procedure pack**, not the canonical definition of Worker itself.
 
@@ -65,9 +69,11 @@ The current `software-development` Skill is therefore an **initial software capa
 |---|---|
 | Assignment/Message/Artifact/WorkerState meaning | Worker Contract |
 | semantic capability guarantees | Worker Contract / capability definition |
-| exact serializable shape | JSON Schema |
-| Website callable mapping | MCP Worker transport |
-| DSH/Codex/Claude invocation mapping | corresponding Worker Provider adapter |
+| AgentOS-only exact serializable shape | JSON Schema |
+| interchangeable coding-agent execution/control | ACP provider adapter |
+| independent agent-to-agent communication | A2A adapter/profile |
+| Website MCP-only callable mapping | MCP Worker compatibility transport |
+| DSH/native invocation mapping | corresponding Worker Provider adapter |
 | research/TDD/review/etc. working method | capability Skill |
 | current assignment/attempt/input authorization and fencing | Worker Exchange invariants |
 | Team collaboration policy | Agent Team requirements |
@@ -112,24 +118,28 @@ provider actually performed an effect
 completion should be accepted
 ~~~
 
-## Transport/provider adapter
+## Protocol/provider adapters
 
-Transport is not Worker semantics.
-
-Examples:
+Protocol mechanics are not Worker semantics.
 
 ~~~text
-Website Agent
-  -> MCP Worker transport
+ACP
+  = preferred Client <-> coding Agent execution/control boundary
 
-DSH/Codex/Claude/ACP
-  -> ctx.subagents provider adapter
+A2A
+  = preferred Agent <-> Agent Task/Message/Artifact boundary
 
-future A2A
-  -> A2A provider adapter
+MCP
+  = Agent <-> Tool/Capability boundary
+    + Website compatibility bridge when MCP is the only host integration
+
+DSH native services
+  = optimized in-process Team/Subagent mechanics
 ~~~
 
-All can map into the same semantic Worker contract while retaining their native lifecycle.
+All map into the same semantic Worker Contract while retaining their native lifecycle. See [Protocol stack](protocol-stack.md).
+
+AgentOS should not maintain parallel A2A-like Message/Artifact/Task wire structures unless conformance proves an irreducible semantic gap.
 
 ## Skill
 
@@ -222,15 +232,15 @@ flowchart TB
     Exchange[Worker Exchange delta]
 
     Worker --> Binding
-    Binding --> DSH[DSH subagent]
-    Binding --> Codex[Codex]
-    Binding --> Claude[Claude]
-    Binding --> Web[Website / MCP]
-    Binding -.-> Future[ACP / A2A / future]
+    Binding --> DSH[DSH native]
+    Binding --> ACP[ACP coding agent]
+    Binding --> A2A[A2A remote agent]
+    Binding --> Web[Website / MCP compatibility]
+    Binding -.-> Future[other provider]
 
     DSH <--> Exchange
-    Codex <--> Exchange
-    Claude <--> Exchange
+    ACP <--> Exchange
+    A2A <--> Exchange
     Web <--> Exchange
 ~~~
 
@@ -240,9 +250,11 @@ Provider capability truth must be projected into Worker selection.
 
 1. Put provider-neutral meaning in Contract.
 2. Put exact structural shape in Schema.
-3. Put provider/wire lifecycle in the provider adapter or transport reference.
+3. Reuse ACP/A2A/MCP wire models and lifecycle in their protocol adapters; do not duplicate them in AgentOS.
 4. Put procedural working method in capability Skills.
 5. Put current-state correctness only in Exchange/runtime invariants.
 6. Reuse DSH-owned durable state before creating AgentOS state.
 7. Do not encode software-only assumptions into Worker identity.
 8. New capabilities extend the open capability set; they do not require a new Worker type.
+9. ACP is the preferred interchangeable coding-Worker execution boundary; A2A is the preferred independent agent-to-agent communication boundary.
+10. Keep ACP sessions, A2A Tasks/contexts, and MCP Tasks as provider/transport handles rather than AgentOS semantic identity.
