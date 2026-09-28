@@ -187,7 +187,8 @@ They do not require new Worker/Agent Team/Workflow engines.
 10. Provider completion is evidence; AgentOS plugins own semantic acceptance.
 11. Effects require observed state or trustworthy receipts.
 12. External runtimes can replace mechanics behind a plugin boundary but do not replace the Host.
-13. New abstractions require a concrete semantic, lifecycle, authority, or replacement boundary.
+13. Use ACP/A2A/DSH native models directly; do not introduce structurally equivalent AgentOS mirror types.
+14. New abstractions require a concrete semantic, lifecycle, authority, or replacement boundary.
 
 ## Canonical neighbors
 
@@ -197,4 +198,3 @@ They do not require new Worker/Agent Team/Workflow engines.
 - [Worker communication](plugins/worker/communication.md)
 - [Interaction model](interaction-model.md)
 - [AgentOS semantic delta](plugins/agentos/semantic-delta.md)
-- [Reference](../reference/README.md)
