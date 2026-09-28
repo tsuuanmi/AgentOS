@@ -1,628 +1,299 @@
 # Architecture
 
-Architecture owns the current AgentOS structural boundaries, dependency direction, semantic ownership rules, and cross-cutting invariants.
+Architecture owns the current AgentOS structural boundaries and cross-cutting invariants.
 
-AgentOS is intentionally small. It is **not** a standalone harness and it is **not** another general-purpose agent platform.
+AgentOS is intentionally small. It is a DSH-native semantic composition layer, not another harness/runtime.
 
 ## North star
 
-> **AgentOS is a thin semantic composition plugin for DSH: it owns only the contracts that define AgentOS behavior, uses DSH/public capabilities for mechanics, and keeps independently owned implementations replaceable behind explicit boundaries.**
+> **Own AgentOS product semantics. Reuse DSH machinery. Keep provider details behind explicit boundaries.**
 
-The design is informed by the current and vNext architecture of `tsuuanmi/internet`, especially its shift toward:
+## Current v1 shape
 
-- host-owned lifecycle;
-- capability-first routing;
-- contract-first replaceable components;
-- semantic identities that do not leak implementation handles;
-- conformance-tested substitution;
-- explicit authority and correctness boundaries;
-- transport/projection state separated from product/domain state.
+~~~text
+                         User
+                          |
+                          v
+                     Local Agent
+                    /           \
+                   v             v
+             Agent Team       Workflow
+                  ^              |
+                  |              |
+                  +--------------+
+                         |
+                  tools / effects
+                         |
+                    Validation
+~~~
 
-See [Internet architecture review](../research/internet-architecture-review.md) for the detailed derivation.
+Roles:
 
-## Layer model
+- **Local Agent** — current user-facing and environment-native interaction surface.
+- **Agent Team** — collaborative work: research, debate, implementation, review, synthesis.
+- **Workflow** — durable lifecycle: sequencing, recovery, waiting, authority, reattachment, terminal convergence.
+- **DSH / Cordis** — runtime kernel and mechanics.
+- **Controller** — future optional interaction surface, not a v1 dependency.
 
-```text
-+--------------------------------------------------+
-| DSH / Cordis host kernel                         |
-| boot · lifecycle · DI · config · plugin runtime  |
-+--------------------------+-----------------------+
-                           |
-                           | hosts
-                           v
-+--------------------------------------------------+
-| AgentOS root plugin / profile                    |
-| selects Skills, capabilities, policies, providers|
-+--------------------------+-----------------------+
-                           |
-                           | depends on semantics
-                           v
-+--------------------------------------------------+
-| AgentOS semantic surface                         |
-| only contracts/invariants AgentOS must own       |
-+--------------------------+-----------------------+
-                           |
-                    capability resolution
-                           |
-          +----------------+----------------+
-          |                |                |
-          v                v                v
-   DSH services      public tools      AgentOS adapters /
-   and plugins       / plugins         implementations
-          \                |                /
-           +---------------+----------------+
-                           |
-                           v
-                   external/local effects
-```
+See [interaction-model.md](interaction-model.md).
 
-Optional host/portable projections sit at the edge rather than inside the semantic core:
+## DSH is the runtime kernel
 
-```text
-Chat / Work / CLI / another host
-            |
-     MCP / Tasks / host tool API
-            |
-            v
-     AgentOS capability surface
-```
+AgentOS does not replace DSH ownership of:
 
-A transport handle may reference an AgentOS operation, but it does not become the semantic identity of that operation.
-
-The semantic surface may initially be extremely small. It grows only when a concrete feature requires an AgentOS-owned invariant that DSH or an existing public capability does not already own.
-
-## Interaction model
-
-AgentOS v1 focuses on **Local Agent + Workflow + Agent Team**.
-
-- **Local Agent** is the current user-facing and environment-native execution surface.
-- **Workflow** is the durable coordination boundary for long-running, multi-step, recoverable work.
-- **Agent Team** is the replaceable collaborative/external-reasoning capability for research, critique, review, and synthesis.
-- **Controller** remains a future/optional interaction surface and is not a v1 prerequisite.
-
-```text
-User
-  <-> Local Agent
-        |
-        +-> direct tools/capabilities
-        +-> Agent Team
-        +-> Workflow
-              |
-              +-> Agent Team
-              +-> Local/external workers
-              +-> Validation / Review
-```
-
-A durable Workflow must not depend on the originating Local Agent remaining connected when the workflow provider claims durable execution. A new Local client may later reattach through durable state.
-
-Terminology is intentional:
-
-- **Agent Team** = AgentOS semantic capability.
-- **DSH Agent Teams** = the default v1 Team runtime/substrate.
-- **Internet Team** = the source of reasoning policies/behavior to adapt, not a second v1 Team runtime.
-- **Internet-backed teammate provider** = a future provider bridge for website-native teammates behind DSH Agent Teams.
-
-See [Local Agent, Workflow, and Agent Team interaction model](interaction-model.md) for the complete rationale and flow.
-
-## DSH Agent Teams is the v1 Team runtime
-
-AgentOS v1 should treat `ctx.agentTeams` as the **core Team runtime** instead of carrying forward Internet's custom Team runtime.
-
-```text
-AgentOS research/review semantics
-        |
-        +-> policy / Skills
-        +-> typed completion boundary
-        |
-        v
-DSH Agent Teams core
-  Team identity
-  roster
-  durable mailbox
-  Team task DAG
-  teammate authority
-  continuable teammate lifecycle
-  cold resume / recovery
-```
-
-AgentOS should be materially smaller than DSH Agent Teams. It does not wrap or mirror those mechanics; it adds only product collaboration semantics and the minimal bridge needed to return typed phase results to Local or Workflow.
-
-Adapt from Internet Team:
-
-- independent member analysis;
-- peer analysis treated as evidence rather than instruction;
-- research-specific and review-specific policies;
-- strongest-supported synthesis;
-- provider identity below semantic roles;
-- typed final research/review results.
-
-### Debate is preserved as policy
-
-AgentOS keeps the valuable Internet Team behavior:
-
-```text
-independent brainstorm
-  -> peer exchange / debate
-  -> strongest-supported synthesis
-```
-
-Research and review should normally use this bounded interaction pattern. The implementation uses DSH TeamTasks/mailbox/continuable teammates; AgentOS does not introduce a second TeamPlan/TeamTurn/round runtime.
-
-For the software flow, the same dedicated DSH Team may continue from research into implementation and then review. Workflow owns outer phase checkpoints; Team internals remain DSH-owned.
-
-Do not port Internet Team's TeamPlan persistence, mailbox/session runtime, account scheduler, or per-member Workflow graph model.
-
-DSH Agent Teams remains an implementation substrate behind the AgentOS semantic contract because it is currently experimental and its public types may evolve.
-
-### Current v1 teammate transports
-
-DSH Agent Teams requires the continuable subagent creation seam. Current DSH evidence shows only the in-process `spawn` and `fork` providers implement that seam today.
-
-One-shot Codex, Claude Code, ACP, or other product subagent providers must not be documented as directly rosterable Team members unless they gain continuable support.
-
-A future website/native external teammate therefore remains a transport/provider research item rather than a v1 assumption.
-
-See:
-
-- [DSH Agent Teams first adaptation](../research/agent-team-dsh-first-adaptation.md)
-- [DSH Agent Teams core deep dive](../research/agent-team-dsh-core-deep-dive.md).
-
-### AgentOS must not duplicate DSH Team state
-
-AgentOS must not introduce its own:
-
-```text
-TeamId
-roster/member store
-mailbox
-Team task DAG
-member availability state
-teammate resume manager
-Team event journal
-Team projection
-Team persistence
-```
-
-AgentOS semantic roles such as researcher/reviewer/synthesizer are initially policy/prompt concepts layered on DSH teammate name/description/task/prompt rather than new durable roster fields.
-
-Workflow WorkItem identity remains distinct from DSH TeamTask identity.
-
-## Workflow and Agent Team are peers
-
-Workflow and Agent Team are independent AgentOS capabilities.
-
-```text
-Local Agent
-  +-> Agent Team
-  +-> Workflow
-        +-> Agent Team
-```
-
-The second path means **Workflow invokes Agent Team as a capability**. It does not mean Workflow owns or controls Agent Team internals.
-
-Ownership is:
-
-- **Workflow** owns durable coordination semantics for a WorkflowRun: sequencing, dependencies, waiting, authority, recovery, result binding, and convergence.
-- **Agent Team** owns collaborative work semantics inside its provider: research/brainstorm/debate methodology, implementation collaboration, review/debate strategy, synthesis, and provider-native execution details.
-- **Local Agent** may call Agent Team directly without creating a Workflow.
-- A Workflow may call Agent Team when one WorkItem requires collaborative reasoning.
-- Agent Team returns a typed semantic result; only the Workflow owner/reconciler commits that result into Workflow state.
-- Workflow must not mutate Team roster/mailbox/member lifecycle directly.
-- Agent Team must not mutate WorkflowRun/WorkItem state directly.
-
-A durable Agent Team implementation may have its own independent lifecycle. When used by Workflow, it is observed through an execution/capability adapter just like any other replaceable provider.
-
-V1 does not require Agent Team to start or control Workflows. If that direction is added later, it must use the same public Workflow contract rather than privileged internal mutation.
-
-## Ownership
-
-### DSH / Cordis owns the host kernel
-
-AgentOS does not create a competing implementation of:
-
-- plugin discovery/loading/disposal;
-- dependency injection/context;
-- configuration layering;
-- HMR;
-- process/application boot;
-- agent/session lifecycle;
-- generic subagent lifecycle;
-- generic Agent Teams substrate;
-- generic workflow engine/runtime;
-- goals, todos, jobs, scheduling;
-- tool registration/execution;
-- LLM transport/adapters;
-- filesystem, shell, terminal, sandbox, LSP;
-- generic persistence;
-- compaction;
-- host UI extension mechanisms.
+- plugin lifecycle, DI, configuration, boot and disposal;
+- Agent/Session lifecycle;
+- subagents;
+- Agent Teams runtime;
+- live workflow orchestration;
+- jobs/goals/schedule;
+- tools, shell, filesystem, sandbox, LSP;
+- generic storage/persistence;
+- host UI/projection mechanics.
 
 When DSH semantics fit, AgentOS consumes them directly.
 
-### Public tools/plugins own bounded external capabilities
+## Agent Team: DSH core, AgentOS semantics
 
-Browser, research, repository, external service, or other bounded actions should use an existing public tool/plugin when its contract already expresses the required behavior.
+DSH Agent Teams is the **working v1 Team core**.
 
-AgentOS does not wrap a public capability merely to rename it.
+DSH owns:
 
-### AgentOS owns only AgentOS semantics
+~~~text
+Team/root identity
+roster/member lifecycle
+durable mailbox
+Team task DAG
+Lead/member authority
+continuable teammate lifecycle
+cold resume/recovery
+Team projection
+~~~
 
-AgentOS may own a contract when the behavior:
+AgentOS must not duplicate those mechanisms.
 
-- defines observable AgentOS product semantics;
-- carries an AgentOS-specific correctness or authority invariant;
-- must remain stable while the implementation changes;
-- cannot be expressed cleanly by directly consuming an existing DSH/public contract.
+AgentOS adds only product collaboration semantics:
 
-Implementation is not automatically ownership.
+~~~text
+research methodology
+brainstorm/debate policy
+implementation/TDD policy
+review/debate policy
+typed phase completion
+Website Agent binding policy
+Local/Workflow invocation bridge
+~~~
 
-## Workflow contract, durable model, and provider are different layers
+Canonical semantics: [Agent Team contract](../contracts/agent-team.md).
 
-Workflow has three distinct layers that must not drift into one another.
+### Website Agent topology
 
-### Public semantic contract
+A dedicated DSH Team member is primarily a **coordination proxy for one isolated Website Agent/conversation**.
 
-What Local or a future Controller depends on:
+~~~text
+dedicated DSH Team Lead
+  <-> Website Agent S / synthesis
 
-```text
-start
-inspect
-respond
-cancel
-reattach semantics
-WorkflowRun identity/lifecycle
-pending actions
-results / authority / terminal outcome
-```
+DSH researcher A
+  <-> Website Agent A
 
-The exact public API remains under proposal, but callers should not depend on DSH Jobs, storage rows, subagent ids, or provider handles.
+DSH researcher B
+  <-> Website Agent B
 
-### Internal durable correctness model
+DSH implementer
+  <-> Website Agent I
 
-A Workflow provider may need internal durable concepts such as:
+DSH reviewer A
+  <-> Website Agent RA
 
-```text
-WorkItem
-ExecutionRef
-PendingAction
-ResultRef
-ReceiptRef
-unknown-outcome recovery policy
-```
+DSH reviewer B
+  <-> Website Agent RB
+~~~
 
-These concepts exist to preserve correctness. They are not automatically public API types.
+Not every member is active in every phase.
 
-### Provider implementation
+The Website Agent performs the substantive provider-native reasoning/work. The DSH member participates in Team tasks/mailbox/lifecycle and bridges Team evidence to/from its Website Agent.
 
-The first DSH-backed provider may use:
+### Peer debate
 
-```text
-ctx.storageDomain
-single-Host ownership
-one aggregate record per run
-derived in-memory scheduling
-DSH execution adapters
-```
+Research and review peers communicate directly through DSH Team messaging.
 
-These are v1 implementation decisions. A replacement provider may implement the same semantic contract using a different durable runtime or storage topology.
+~~~text
+independent Website Agent work
+        |
+        v
+barrier
+        |
+A <---- send_message ----> B
+|                          |
+v                          v
+Website Agent A        Website Agent B
+challenge/revise       challenge/revise
+        \              /
+         final positions
+               |
+               v
+        Lead synthesis
+               |
+               v
+        typed phase result
+~~~
 
-Architecture should promote a provider detail only when cross-provider/product evidence proves callers rely on it.
+The Lead does not proxy normal debate messages.
 
-## Workflow and DSH reuse
+Local receives compact typed synthesis by default, not the full internal discussion.
 
-The Workflow capability should own **durable coordination semantics**, not generic execution mechanics.
+## Workflow: durable control, not another engine
 
-Prefer existing DSH plugins for:
+Workflow owns durable product semantics that DSH's live/session mechanics do not fully own:
 
-- durable host-side state: `ctx.storageDomain` with JSON/SQLite backends;
-- cold Session/Agent resume: `ctx.agents.resume`;
-- bounded orchestration: `ctx.workflowEngine`;
-- background Local work and output: `ctx.jobs`;
-- durable Local objective: `ctx.goals`;
-- worker delegation: `ctx.subagents`;
-- local Team substrate: `ctx.agentTeams`;
-- immediate in-turn approval: `ctx.approval`;
-- reminders: Schedule;
-- Local projections: Session events/projections.
+- stable WorkflowRun identity/lifecycle;
+- semantic WorkItem dependencies;
+- durable PendingAction;
+- exact-input result binding;
+- unknown-outcome recovery/fencing;
+- authority/effect separation;
+- restart-safe reconciliation;
+- reattachment.
 
-None of these ids or state machines should automatically become WorkflowRun/WorkItem identity.
+Canonical semantics: [Workflow contract](../contracts/workflow.md).
 
-Current DSH Workflow is a live, holder-owned orchestration primitive; shipped Jobs are process-local; Goal is state rather than scheduling; Schedule is reminder delivery; Approval is in-turn only. However, DSH Storage Domain already solves the durable persistence substrate and DSH can cold-resume persisted Sessions.
+Workflow may invoke Agent Team phases but does not own Team internals.
 
-AgentOS therefore does **not** need a custom storage backend or second Session runtime for the first provider.
+~~~text
+Workflow
+  -> research phase      -> Agent Team
+  -> implementation     -> same Agent Team
+  -> validation         -> deterministic/local authority
+  -> review             -> same Agent Team
+  -> remediation?       -> Team + validation
+  -> PendingAction?     -> user/host authority
+~~~
 
-**Provider v1 decision, not permanent architecture:** the initial Workflow implementation may be a thin single-Host durable coordination layer over DSH Storage Domain, rebuilding derived scheduler/live handles after Host restart and reconciling before resubmitting uncertain work. Another provider may use a different durable runtime/storage topology while preserving the same Workflow semantics.
+## Workflow and Agent Team are peers
 
-See [Workflow DSH reuse](../research/workflow-dsh-reuse.md) and [Durable long-running Workflow over DSH](../research/workflow-long-running-dsh-runtime.md).
+Workflow controls **when** durable semantic phases happen.
+
+Agent Team controls **how** collaborative work inside a Team phase happens.
+
+Neither owns the other's internal state.
+
+~~~text
+Workflow WorkItem
+   |
+   | exact input / lifecycle
+   v
+Agent Team phase
+   |
+   | DSH Team collaboration
+   v
+typed result
+   |
+   v
+Workflow validates + commits
+~~~
+
+Local can call Agent Team directly without a Workflow.
+
+## Validation remains outside model consensus
+
+Model/Website Agent output is data/evidence, not correctness authority.
+
+For implementation effects, authoritative evidence comes from the real environment:
+
+~~~text
+filesystem / repository
+tests
+formatter/linter/typecheck/build
+CI/external state
+explicit receipts
+~~~
+
+An ImplementationReport does not prove that a mutation succeeded.
+
+## Typed completion is the semantic bridge
+
+DSH owns Team mechanics; AgentOS needs typed semantic completion at phase boundaries:
+
+~~~text
+ResearchResult
+ImplementationReport
+ReviewResult
+~~~
+
+A phase becomes semantically complete only when the result is durable and bound to the exact phase input.
+
+Brainstorm/debate messages, TeamTasks, member Session ids, Website Agent conversation ids, and provider transcripts remain internal/provider state.
+
+## Identity boundaries
+
+Implementation handles never silently become AgentOS semantic identity.
+
+~~~text
+WorkflowRunId != DSH JobId
+WorkflowRunId != DSH TeamId
+WorkItemId    != DSH TeamTaskId
+WorkItemId    != Website conversation id
+~~~
+
+Opaque provider references may be stored for reconciliation/diagnostics.
+
+## Authority boundaries
+
+Reasoning is not authority.
+
+~~~text
+model recommendation
+  != user authorization
+
+authorization
+  != side-effect completion
+~~~
+
+A durable PendingAction can capture authority. A consequential effect executes separately and requires its own reconciliation/evidence.
+
+## Provider-v1 decisions vs architecture
+
+The following are useful **v1 provider choices**, not permanent architecture invariants:
+
+Workflow provider:
+
+- DSH Storage Domain;
+- single Host owner;
+- one aggregate record per WorkflowRun;
+- derived in-memory scheduler.
+
+Agent Team provider:
+
+- DSH Agent Teams core;
+- dedicated DSH root Team per software collaboration;
+- DSH members as proxies for isolated Website Agent conversations;
+- one Team reused across research -> implementation -> review.
+
+A future implementation may replace these while preserving the contracts.
+
+DSH Agent Teams is experimental today, so DSH-specific public types should stay behind the implementation boundary.
 
 ## Core invariants
 
-### 1. Own semantics; compose implementations
-
-The preferred dependency direction is:
-
-```text
-AgentOS semantic contract
-  -> DSH service / public capability / AgentOS adapter
-  -> selected implementation
-  -> typed result / receipt / binding when needed
-```
-
-AgentOS should not absorb an infrastructure subsystem merely because an AgentOS feature uses it.
-
-### 2. Capability-first, provider-agnostic
-
-Where AgentOS owns a semantic dependency, product logic should request the semantic capability rather than a provider/model/tool implementation.
-
-```text
-semantic capability
-  -> resolution/composition
-  -> concrete provider/plugin/tool
-```
-
-Provider/model/tool identity remains below the semantic layer unless that identity is explicitly part of the requested behavior.
-
-### 3. DSH authority is not mirrored
-
-When DSH already owns durable state or lifecycle semantics, AgentOS should not maintain an equivalent shadow state machine.
-
-Examples:
-
-- DSH Agent Teams owns roster/mailbox/task-board mechanics.
-- DSH subagents own child lifecycle.
-- DSH workflow owns its workflow execution semantics.
-- DSH jobs/goals/schedule own their respective state.
-
-AgentOS may add higher-level semantics above them but should not duplicate their authoritative state.
-
-### 4. Working context is not correctness authority
-
-Model conversations, prompt context, hidden reasoning, tool transcripts, and provider sessions may be useful working state.
-
-They are not AgentOS correctness authority unless AgentOS explicitly defines and persists a typed semantic fact from them.
-
-If AgentOS later owns durable state, it must be reconstructable without hidden chain-of-thought or opaque provider memory.
-
-### 5. Model output is data, not authority
-
-A model, tool, or plugin may propose decisions or actions.
-
-Consequential authority must come from explicit user/host/policy state and validated contracts, not from prose emitted by a model.
-
-### 6. Profiles compose capabilities
-
-A profile/bundle selects semantic capabilities, Skills, policies, and implementations. It does not become a hidden semantic kernel.
-
-```text
-profile
-  -> semantic capability requirements
-  -> DSH/public/AgentOS implementations
-```
-
-Profiles may differ without forcing capability contracts to change.
-
-### 7. Transport projection is not semantic state
-
-A long-running operation may be projected through a host lifecycle primitive such as:
-
-- DSH jobs;
-- a future MCP Tasks adapter;
-- a CLI handle;
-- another host-specific task/session handle.
-
-That projection is transport/client lifecycle, not automatically AgentOS domain truth.
-
-Conceptually:
-
-```text
-transport task T1
-      |
-      | projects / references
-      v
-AgentOS semantic operation A1
-```
-
-not:
-
-```text
-T1 == A1
-```
-
-Transport state can be coarser than AgentOS semantic state and may have a different retention lifetime.
-
-If AgentOS has no separate domain state for a capability, it should simply use the DSH/public semantic owner rather than inventing one only to satisfy this rule.
-
-### 8. Edge adapters preserve provenance and authority
-
-A host adapter may translate:
-
-- user interaction;
-- task lifecycle;
-- status projection;
-- cancellation;
-- input-required flows;
-- external tool calls.
-
-It may not manufacture AgentOS authority.
-
-For example, a trusted UI interaction may establish explicit user provenance, while an LLM-provided string claiming `user_explicit` does not.
-
-### 9. Execution adapter is not semantic identity
-
-If the same semantic capability can be executed by multiple workers, the capability contract stays above worker identity.
-
-```text
-semantic capability
-      |
-      +-> DSH execution
-      +-> Codex/external execution
-      +-> another provider
-```
-
-Worker-native task/session/execution IDs remain adapter-local unless the external identity itself is explicitly part of the semantic contract.
-
-Do not create a generic Worker abstraction until at least one real AgentOS capability needs that substitution.
-
-### 10. Unknown execution outcome is explicit
-
-A durable Workflow must not guess what happened to an execution after Host/process loss.
-
-Every admitted WorkItem carries a stable recovery policy for an unknown outcome:
-
-```text
-SAFE_RETRY
-RECONCILE_BEFORE_RETRY
-BLOCK_ON_UNKNOWN
-```
-
-A missing Job, subagent, live Workflow handle, provider handle, or adapterRef does not prove that execution never happened.
-
-For side-effecting work, observe/reconcile actual state before retry. Superseded execution results are fenced from committing.
-
-Authority and effect completion are distinct: resolving a PendingAction may authorize a consequential operation, but the operation itself executes as a WorkItem with its own execution identity, reconciliation policy, and ReceiptRef.
-
-See [Workflow restart and reconciliation v0](../research/workflow-restart-reconciliation-v0.md).
-
-## Replaceable component rule
-
-A separate AgentOS component/port is justified when one or more of these differ materially:
-
-- lifecycle;
-- authority requirements;
-- failure isolation;
-- persistence/retention;
-- scaling;
-- caller population;
-- implementation candidates;
-- replacement cadence.
-
-Avoid both extremes:
-
-```text
-too coarse:
-one AgentOS service owns everything
-
-too fine:
-every helper/method becomes a plugin
-```
-
-Closely related functions may remain one component when they are normally implemented and configured together.
-
-## Contract-first rule
-
-When AgentOS defines a replaceable boundary, the stable object is the **AgentOS-owned contract**, not the first implementation.
-
-Where relevant, a contract should define:
-
-- stable contract identifier and version;
-- input/output/error schema;
-- side-effect classification;
-- authority/provenance requirements;
-- idempotency/reconciliation behavior;
-- cancellation/deadline semantics;
-- stable AgentOS-owned identities;
-- projection semantics when exposed through another host/transport;
-- conformance tests.
-
-Implementation-native handles may be retained for diagnostics or reconciliation, but must not become canonical AgentOS semantic IDs.
-
-Examples of forbidden leakage in principle:
-
-```text
-provider conversation id as AgentOS work identity
-DSH internal execution id as AgentOS semantic identity
-MCP Task id as AgentOS domain identity
-external worker task id as AgentOS capability identity
-framework checkpoint id as AgentOS state identity
-```
-
-unless the external identity itself is explicitly the semantic object being represented.
-
-## Replaceability is proven, not declared
-
-An interface alone does not prove that a component is replaceable.
-
-A real replacement boundary should support:
-
-```text
-contract
-  + implementation A
-  + implementation B or credible independent owner
-  + shared black-box conformance tests
-```
-
-For migrations:
-
-```text
-characterize
-  -> define contract
-  -> adapt current implementation
-  -> add replacement
-  -> run shared conformance suite
-  -> cut over
-  -> delete superseded mechanism
-```
-
-Behavioral migrations use TDD: Red -> Green -> Refactor.
-
-## Skill vs plugin vs local code
-
-Use the smallest mechanism that owns the behavior correctly.
-
-```text
-static guidance / methodology / role instructions
-  -> Skill
-
-existing bounded external action
-  -> DSH/public tool or plugin
-
-dynamic AgentOS behavior with independent semantics
-  -> AgentOS plugin/component
-
-implementation detail used by one component
-  -> local library code
-```
-
-Do not promote static prompting or repository conventions into runtime plugins without a real lifecycle/semantic reason.
-
-## Dependency direction
-
-AgentOS contracts must not depend on their concrete implementations.
-
-Preferred direction:
-
-```text
-AgentOS semantic contract
-        ^
-        |
-consumer / profile
-        |
-        +------ implementation adapter
-                    |
-                    +------ DSH/public/external dependency
-```
-
-Where DSH already supplies the correct stable contract, use that contract directly instead of adding an AgentOS alias layer.
-
-## Deliberate non-adoption from Internet
-
-AgentOS follows Internet's ownership principles, not its product-specific object model.
-
-Do **not** introduce by default:
-
-- Internet's browser/account/session model;
-- its coding workflow graph as a mandatory generic model;
-- its full Workstream/Need/InputBundle/Artifact/Assessment object model;
-- PR/head/CI/merge semantics as generic Workflow concepts;
-- handoff stores;
-- execution leases/fencing;
-- website reconciliation state;
-- MCP Tasks as an AgentOS kernel dependency.
-
-MCP Tasks may later be a first-class transport for portable long-running AgentOS capabilities if a concrete cross-host surface requires it, but it remains a projection/adapter rather than AgentOS semantic authority.
-
-AgentOS may still adopt a concept independently when AgentOS use cases prove it necessary. Current research has already provided strong evidence for WorkflowRun, WorkItem, PendingAction, durable result/evidence, and execution-recovery semantics; that does not imply adopting Internet's full object model.
-
-## Under active proposal
-
-The first concrete AgentOS semantic contracts, profiles, projections, and component boundaries remain under discussion in [the plugin-first architecture proposal](../proposals/plugin-first-architecture.md).
+1. AgentOS owns semantics, not infrastructure already owned by DSH.
+2. Local remains directly usable.
+3. Workflow and Agent Team are peer capabilities.
+4. DSH Agent Teams is the practical v1 Team core; no second Team runtime is built.
+5. Team members may debate peer-to-peer; Lead is synthesis/coordination authority, not a message proxy.
+6. Each semantic DSH Team member has an isolated Website Agent binding when website-backed work is used.
+7. Local receives synthesis/results by default rather than internal Team transcript.
+8. Workflow owns durable lifecycle; Agent Team owns collaborative work inside phases.
+9. Validation/effects are established from the real environment, not model claims.
+10. Provider/transport identities stay below semantic identities.
+11. Unknown execution outcomes reconcile according to an admitted policy; missing handles never authorize blind retry.
+12. Authority and effect completion are distinct.
+13. Provider-v1 choices do not become permanent contract requirements without evidence.
+14. New abstractions require a real semantic/lifecycle/authority/replacement boundary.
+
+## Documentation authority
+
+- [Contracts](../contracts/README.md) — canonical caller-visible semantics.
+- [Proposal](../proposals/plugin-first-architecture.md) — remaining intended change/open decisions.
+- [Research](../research/README.md) — evidence, provider investigation, alternatives.
+- source + tests — executable reality once implementation exists.
