@@ -1,148 +1,164 @@
 # Worker API
 
-- **Status:** canonical v1 API
+- **Status:** canonical
 - **Semantic contract:** [Worker Protocol](../contracts/worker-protocol.md)
 - **Schemas:** [repository schemas](../../schemas/README.md)
 
 ## Purpose
 
-The Worker API provides one transport-neutral interface between Agent Team orchestration and a Website Agent Worker adapter.
+The Worker API is the **local application interface** used by Agent Team orchestration and Worker bridge plugins.
 
-The API does not define DSH Team mechanics and does not expose Workflow semantics.
+It is not the Website Agent MCP surface.
 
-## Operations
+Website Agents usually act as MCP clients, so the local API and the MCP tool direction are intentionally different.
 
-~~~text
-capabilities() -> WorkerCapabilities
-
-start(WorkerRequest) -> WorkerResult
-
-continue(WorkerContinueRequest) -> WorkerResult
-
-inspect(assignmentId) -> WorkerResult
-
-cancel(assignmentId, reason?) -> WorkerResult
-~~~
-
-Implementations may be direct in-process calls, MCP tools, JSON-RPC/HTTP, or provider-native adapters.
-
-All implementations must preserve the same Worker Protocol semantics and canonical schemas.
-
-## capabilities
-
-Returns the capabilities supported by the Worker/provider binding.
+## Local API
 
 Conceptually:
 
-~~~json
-{
-  "protocolVersion": "1",
-  "capabilities": [
-    "research",
-    "brainstorm",
-    "debate"
-  ]
-}
+~~~text
+capabilities(binding?) -> WorkerCapabilities
+
+enqueueAssignment(workerId, WorkerAssignment) -> AssignmentState
+
+appendInput(workerId, assignmentId, WorkerInput) -> AssignmentState
+
+inspectAssignment(workerId, assignmentId) -> AssignmentState
+
+cancelAssignment(workerId, assignmentId, reason?) -> AssignmentState
+
+readSubmissions(workerId, assignmentId, cursor?) -> WorkerSubmission[]
 ~~~
 
-Agent Team selects Workers by required capabilities.
+The exact programming-language shape may vary by plugin/runtime.
 
-Provider/model identity is not a capability.
+The semantics and canonical JSON data contracts do not.
 
-## start
+## capabilities
 
-Starts a new Worker assignment.
+Returns the capabilities available through a Worker binding/provider.
+
+Capabilities are semantic behavior guarantees such as:
+
+~~~text
+research
+brainstorm
+debate
+implement
+tdd
+review
+synthesize
+~~~
+
+Provider/model names are not capabilities.
+
+## enqueueAssignment
+
+Creates durable work for one Worker.
 
 Input validates against:
 
 ~~~text
-/schemas/worker-request.schema.json
+/schemas/worker-assignment.schema.json
 ~~~
 
-The request includes:
+The assignment contains:
 
-- assignment identity;
+- explicit assignment id;
 - exact input binding;
 - required capabilities;
-- objective;
-- context/constraints;
+- run-specific objective;
+- context references;
+- constraints;
 - expected output schema.
 
-A successful call does not imply assignment completion.
+Enqueueing work does not imply a Website Agent is currently active.
 
-The returned WorkerResult reports current lifecycle state.
+## appendInput
 
-## continue
+Adds structured input to an existing assignment.
 
-Continues the same logical assignment/conversation with additional structured input such as:
+Examples:
 
 - peer evidence;
-- actual local tool result;
-- requested clarification/input;
-- remediation context.
+- local tool result;
+- clarification;
+- remediation context;
+- cancellation/control signal.
 
-`continue` must preserve assignment identity and exact input binding.
+Input validates against:
 
-Debate uses `continue` against the existing Website Agent conversation rather than creating a new assignment.
+~~~text
+/schemas/worker-input.schema.json
+~~~
 
-## inspect
+Appending input must not silently create a new Website conversation or assignment.
 
-Returns current durable assignment state/result without creating new work.
+## inspectAssignment
 
-The adapter must not silently start a new Website conversation during inspect/recovery.
+Returns current provider-owned assignment state without starting new work.
 
-## cancel
+Inspect is the primary reconciliation operation after restart.
 
-Requests bounded cancellation of the current assignment.
+## cancelAssignment
 
-Cancellation is idempotent at the AgentOS API boundary.
+Fences/cancels the current assignment.
 
-A result arriving after the assignment has been cancelled/fenced cannot commit as current completion.
+Late Website submissions after cancellation or supersession cannot commit as current.
+
+## readSubmissions
+
+Reads durable Website Worker submissions.
+
+Submissions may be intermediate or terminal.
+
+Examples:
+
+~~~text
+contribution
+completion
+input_required
+failure
+cancelled
+~~~
+
+This distinction is required because an independent brainstorm contribution may complete one TeamTask/barrier without terminating the Website assignment before debate.
+
+## Website-facing MCP
+
+The corresponding Website-facing MCP profile is documented separately:
+
+[MCP Worker transport](../mcp/worker-transport.md)
+
+Its tool direction is:
+
+~~~text
+Website Agent -> local MCP server
+
+claim
+receive
+submit
+inspect
+~~~
+
+Do not expose the internal Local API mechanically as MCP tools.
 
 ## Completion
 
-Worker lifecycle:
+Local AgentOS considers a Website Worker assignment terminal only after a current terminal WorkerSubmission has been durably validated.
 
-~~~text
-pending
-running
-input_required
-completed
-failed
-cancelled
-~~~
+DSH member inactivity, MCP transport state, tunnel health, or a returned prose message are not assignment completion.
 
-A Worker is completed only when:
+## Plugin usage
 
-1. the current assignment/input binding is valid;
-2. output validates against its expected schema;
-3. the completion is durably recorded.
+Other AgentOS/DSH plugins may consume this API directly.
 
-Transport activity, Website UI idle state, DSH member inactivity, or message delivery are not completion.
+A plugin does not need to know:
 
-## Errors
+- Website vendor;
+- tunnel implementation;
+- browser profile;
+- MCP session id;
+- DSH Team internals.
 
-Provider-specific errors map to stable API-level categories before crossing the Worker API boundary.
-
-Candidate categories:
-
-~~~text
-invalid_request
-capability_unavailable
-provider_unavailable
-authentication_required
-input_required
-timeout
-cancelled
-provider_error
-protocol_error
-stale_assignment
-~~~
-
-The exact error schema should be finalized alongside implementation tests rather than inferred from provider exception strings.
-
-## Versioning
-
-The API is versioned through the Worker Protocol/schema version.
-
-A transport adapter must reject incompatible protocol versions rather than silently reinterpret them.
+It depends only on Worker capabilities, explicit handles, and canonical schemas.
