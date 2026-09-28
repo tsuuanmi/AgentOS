@@ -51,7 +51,11 @@ Research/review peers debate directly through DSH Team messaging. Local receives
 
 Worker capabilities and the protocol shape are stable across runs; objectives/context values change.
 
-AgentOS uses a versioned JSON-Schema [Worker Protocol](docs/contracts/worker-protocol.md). MCP is the preferred cross-boundary transport profile when supported, while direct typed API calls may use the same schemas in-process.
+AgentOS uses a versioned JSON-Schema [Worker Protocol](docs/contracts/worker-protocol.md).
+
+Canonical machine-readable schemas live at repository root under [`/schemas`](schemas/README.md).
+
+Callable operations are documented separately in the [Worker API](docs/api/worker-api.md), while MCP-specific mapping lives in [MCP Worker transport](docs/mcp/worker-transport.md).
 
 Website Agent completion is explicit: the Agent Team provider records an assignment result durably, then the DSH TeamTask may complete, then Lead commits the typed phase result. Workflow advances only from that final typed phase completion; it never infers completion from teammate inactivity or message delivery.
 
@@ -88,6 +92,9 @@ Canonical:
 - [Workflow contract](docs/contracts/workflow.md)
 - [Agent Team contract](docs/contracts/agent-team.md)
 - [Worker Protocol](docs/contracts/worker-protocol.md)
+- [Worker API](docs/api/worker-api.md)
+- [MCP Worker transport](docs/mcp/worker-transport.md)
+- [JSON Schemas](schemas/README.md)
 
 Proposal/research documents are lower-authority change context and evidence.
 
