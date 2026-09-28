@@ -2,6 +2,8 @@
 
 A WorkflowRun has stable semantic identity independent of provider/runtime handles.
 
+Each WorkflowRun is also bound to the exact Workflow Definition used at admission. Restart must continue from that exact Definition rather than re-read mutable deployment config as new semantics.
+
 ## Lifecycle
 
 ~~~text
@@ -18,6 +20,8 @@ The exact internal state representation may evolve, but transitions must preserv
 ## WorkItems
 
 Workflow may use durable WorkItems to represent current/dependent work.
+
+A runtime WorkItem is instantiated from one WorkItemDefinition.
 
 A WorkItem has:
 
