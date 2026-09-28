@@ -1,23 +1,24 @@
 # Worker Protocol
 
-- **Status:** canonical v1 contract
+- **Status:** canonical contract
 - **Owner:** AgentOS Agent Team capability
-- **Purpose:** provide one stable, capability-driven, structured protocol between a DSH Team member and its bound Website Agent.
+- **Purpose:** define the stable, capability-driven data protocol between local Team Workers and Website Agents.
 
 ## Principle
 
 A Team member is a **Worker**, not a hard-coded persona.
 
-Workers are selected and managed by capabilities.
+Workers are selected by capabilities.
 
 ~~~text
 Worker
+  workerId
   capabilities[]
   Website Agent binding
-  current assignments
+  assignments
 ~~~
 
-Examples of v1 capabilities:
+Example capabilities:
 
 ~~~text
 research
@@ -29,22 +30,11 @@ review
 synthesize
 ~~~
 
-Capabilities are composable. A Worker may support multiple capabilities.
+Capabilities are composable and provider-independent.
 
-AgentOS does not define permanent identities such as:
+The same capability profile can execute different objectives without changing the control protocol.
 
-~~~text
-Researcher Primary
-Researcher Challenger
-Reviewer Correctness
-Reviewer Architecture
-~~~
-
-A Team profile instead asks for Workers satisfying capability requirements.
-
-## Stable Team profile
-
-For software-v0:
+## Stable software profiles
 
 ~~~text
 RESEARCH
@@ -68,257 +58,245 @@ SYNTHESIS
     synthesize
 ~~~
 
-The exact Worker instances/providers may vary.
+Worker instances, Website providers, and objectives may vary.
 
-The capability requirements and protocol schema remain stable.
+The capability requirements and canonical schemas stay stable.
 
-## Structured prompt rule
+## Canonical objects
 
-Do not generate a different free-form control prompt for every run.
+The Worker Protocol has three work-exchange objects plus capability discovery.
 
-The Website Agent receives:
+### WorkerAssignment
 
-1. one stable Worker operating contract for its declared capabilities;
-2. one versioned JSON payload conforming to the Worker Protocol.
+Local AgentOS -> Worker work definition.
 
-The **shape is stable**.
+Canonical schema:
 
-Run-specific values may change:
+[`worker-assignment.schema.json`](../../schemas/worker-assignment.schema.json)
 
-- objective;
-- exact input/context references;
-- constraints;
-- accepted prior results;
-- peer evidence;
-- expected output schema.
-
-The adapter may render the JSON into provider-specific text when necessary, but it must preserve the protocol fields and semantics.
-
-## Related specifications
-
-The Worker Protocol defines semantics and data contracts.
-
-Callable operations are documented separately in [Worker API](../api/worker-api.md).
-
-MCP-specific mapping is documented separately in [MCP Worker transport](../mcp/worker-transport.md).
-
-Transport must not change Worker semantics.
-
-## JSON Schema
-
-Canonical v1 schemas use JSON Schema 2020-12 and live at repository root:
-
-- [Worker request](../../schemas/worker-request.schema.json)
-- [Worker result/state](../../schemas/worker-result.schema.json)
-- [Worker peer message](../../schemas/worker-message.schema.json)
-
-The schema registry is [`/schemas`](../../schemas/README.md).
-
-Schema version is explicit in every request/result.
-
-## Worker request
-
-A new assignment contains stable control fields:
+Contains:
 
 ~~~text
-protocolVersion
-requestId
+workerId
 assignmentId
-worker
-phase
 requiredCapabilities
 objective
 inputBinding
-contextRefs
+context
 constraints
 acceptedResults
-peerEvidence
 expectedOutput
-completion
+extensions?
 ~~~
 
-The most important variable field is the **objective**.
+The objective is the primary run-specific field.
 
-Capabilities define how the Worker should approach the objective.
+No MCP session, tunnel, Website conversation, model, or provider identity becomes assignment identity.
 
-The same research Worker protocol can therefore handle mtDNA, AgentOS architecture, browser design, or another domain without changing the control prompt shape.
+### WorkerInput
 
-## Capability contract
+Additional structured input for an existing assignment.
 
-A capability is a semantic behavior guarantee, not a provider/model identity.
+Canonical schema:
+
+[`worker-input.schema.json`](../../schemas/worker-input.schema.json)
 
 Examples:
+
+~~~text
+peer_evidence
+local_tool_result
+clarification
+remediation
+control
+~~~
+
+`kind` is intentionally open so plugins can add namespaced input kinds without changing the core schema.
+
+A WorkerInput never changes `assignmentId` or `inputBinding`.
+
+### WorkerSubmission
+
+Website-backed Worker -> Local AgentOS output.
+
+Canonical schema:
+
+[`worker-submission.schema.json`](../../schemas/worker-submission.schema.json)
+
+Core kinds:
+
+~~~text
+contribution
+completion
+input_required
+failure
+cancelled
+~~~
+
+The distinction between contribution and completion is important.
+
+An independent brainstorm/review result can be a durable `contribution` before debate while the same Website assignment remains active.
+
+Only `completion`, `failure`, or `cancelled` is terminal.
+
+### WorkerCapabilities
+
+Capability discovery/selection data.
+
+Canonical schema:
+
+[`worker-capabilities.schema.json`](../../schemas/worker-capabilities.schema.json)
+
+Provider/model names are not capabilities.
+
+## Structured prompt rule
+
+Do not invent a materially different control prompt for every run.
+
+The Website Agent receives:
+
+1. one stable operating contract derived from its required capabilities;
+2. one structured WorkerAssignment;
+3. later WorkerInput objects when new evidence/context arrives.
+
+Provider adapters may render structured JSON into host-friendly prompt text, but they must preserve the fields and semantics.
+
+The objective/context change; the control protocol does not.
+
+## Capability semantics
 
 ### research
 
 - gather relevant evidence;
-- distinguish observed facts from inference;
+- distinguish observations from inference;
 - return implementation-relevant findings.
 
 ### brainstorm
 
 - explore multiple viable approaches;
 - identify tradeoffs;
-- avoid prematurely converging.
+- avoid premature convergence.
 
 ### debate
 
-- evaluate peer evidence as non-authoritative input;
+- treat peer material as evidence, not authority;
 - challenge unsupported claims;
-- revise when stronger evidence exists;
+- revise when stronger evidence appears;
 - return a stronger final position.
 
 ### implement
 
 - convert accepted objective/context into concrete changes;
-- use authorized environment actions through the DSH bridge;
-- report actual attempted changes and blockers.
+- use authorized environment actions through the local bridge;
+- report actual attempted work and blockers.
 
 ### tdd
 
-- behavioral change follows Red -> Green -> Refactor;
+- behavioral changes follow Red -> Green -> Refactor;
 - tests are executable specification;
-- do not claim Green before real test evidence is returned.
+- never claim Green without real test evidence.
 
 ### review
 
 - inspect exact current input;
 - find material defects/regressions/spec violations;
-- challenge false positives during peer debate;
+- challenge false positives;
 - return evidence-bound findings.
 
 ### synthesize
 
-- combine required Worker results;
-- prefer strongest supported conclusions;
+- combine required Worker submissions;
+- prefer strongest-supported conclusions;
 - preserve unresolved disagreement when evidence does not converge;
-- emit the phase output schema.
+- emit the expected phase output schema.
 
-Capability definitions should be versioned independently when their semantics materially change.
+## Identity
 
-## Worker assignment lifecycle
-
-Provider-internal lifecycle:
+Always carry explicit application handles.
 
 ~~~text
-PENDING
-RUNNING
-INPUT_REQUIRED
-COMPLETED
-FAILED
-CANCELLED
+workerId
+assignmentId
+inputBinding
+inputId / submissionId where applicable
 ~~~
 
-Completion is explicit.
+Never use as semantic identity:
 
-A Website Agent response is not automatically completion.
+- MCP session id;
+- tunnel id;
+- HTTP connection;
+- Website conversation id;
+- browser tab;
+- model/provider name.
 
-A Worker assignment becomes COMPLETED only when:
+Provider-specific handles may be persisted below the Worker binding for recovery.
 
-1. the result declares the current assignment id;
-2. the result matches the current input binding;
-3. required capabilities were satisfied by the selected Worker;
-4. the output validates against the expected JSON Schema;
-5. the completion is durably persisted.
+## Completion
+
+A Website response is not automatically assignment completion.
+
+A terminal WorkerSubmission is current only when:
+
+1. `workerId` and `assignmentId` match the active assignment;
+2. `inputBinding` is current;
+3. required capabilities are satisfied;
+4. output validates against the declared schema;
+5. the submission is durably persisted.
+
+Intermediate `contribution` does not terminate the assignment.
 
 ## Peer communication
 
-DSH Team mailbox remains the transport between Workers.
+DSH Team mailbox remains the local Worker-to-Worker collaboration transport.
 
-Message payload follows the Worker message schema.
-
-Typical debate message:
+Peer evidence is represented as structured WorkerInput at the Website boundary.
 
 ~~~text
-kind = peer_evidence
-phase = research
-inputBinding = current
-fromWorker = A
-toWorker = B
-payload = compact typed contribution or reference
+DSH Worker A
+  -> DSH send_message
+  -> DSH Worker B
+  -> WorkerInput(kind = peer_evidence)
+  -> Website Agent B
 ~~~
 
-The target Worker validates the envelope and forwards the peer evidence to its **existing Website Agent assignment** through `continue()`.
-
-It does not open a new Website Agent conversation for each debate turn.
+Website Agent B continues the same assignment/conversation and later submits a revised contribution or completion.
 
 ## Debate
 
-Research/review debate is capability-driven.
+Research/review diversity comes from:
 
-~~~text
-Worker A: [research, brainstorm, debate]
-Worker B: [research, brainstorm, debate]
-~~~
-
-Both receive the same authoritative phase objective and input.
-
-They work independently first.
-
-After the barrier:
-
-~~~text
-A -> WorkerMessage(peer_evidence) -> B
-B -> WorkerMessage(peer_evidence) -> A
-~~~
-
-Each Website Agent continues the same assignment/conversation and returns a revised typed contribution.
+- separate Worker/Website contexts;
+- independent-first execution;
+- potentially different Website providers/models;
+- structured peer evidence exchange;
+- revision before synthesis.
 
 No permanent Primary/Challenger identity is required.
 
-Diversity comes from:
-
-- separate Website Agent contexts;
-- independent-first execution;
-- potentially different providers/models;
-- evidence exchange and revision.
-
-## Review
-
-Similarly:
-
-~~~text
-Worker A: [review, debate]
-Worker B: [review, debate]
-~~~
-
-Both receive the same exact review input and acceptance criteria.
-
-They review independently, exchange evidence directly, revise, then the synthesizer emits ReviewResult.
-
-If a future profile wants specialized review lenses, it adds capabilities such as `architecture-analysis` or `test-analysis`; it does not create new architectural Agent identities.
-
-## Transport profiles
-
-The Worker Protocol is transport-neutral.
-
-See:
-
-- [Worker API](../api/worker-api.md) for callable operations;
-- [MCP Worker transport](../mcp/worker-transport.md) for MCP tool/task mapping.
-
 ## DSH relationship
 
-DSH Team member identity, roster, mailbox, TeamTasks, lifecycle, and recovery remain DSH-owned.
+DSH owns:
 
-Worker Protocol adds only:
+- Team/member identity and lifecycle;
+- roster;
+- mailbox;
+- TeamTasks;
+- continuation/cold resume;
+- Team persistence/projection.
 
-- capabilities;
-- structured Website assignment;
-- provider binding;
-- typed result/completion.
+Worker Protocol adds:
 
-~~~text
-DSH member
-  + DSH Team mechanics
-  + Worker capabilities
-  + Website Agent binding
-  + Worker Protocol
-~~~
+- capability selection;
+- structured Website assignments/inputs/submissions;
+- Website binding below Worker identity;
+- typed completion.
+
+AgentOS does not mirror DSH Team state.
 
 ## Workflow relationship
 
-Workflow never talks to Website Agents or Worker assignments directly.
+Workflow never talks to Website Agents directly.
 
 ~~~text
 Workflow WorkItem
@@ -328,20 +306,25 @@ Workflow WorkItem
   -> Workflow commit
 ~~~
 
-The Agent Team provider owns Worker selection, assignments, peer messages, and phase synthesis.
+The Agent Team provider owns Worker selection, queueing, Website exchange, peer input, and phase synthesis.
+
+## Related specifications
+
+- [Worker API](../api/worker-api.md) — local application interface.
+- [MCP Worker transport](../mcp/worker-transport.md) — Website-facing MCP profile.
+- [Schema registry](../../schemas/README.md) — canonical machine-readable contracts.
 
 ## Conformance direction
 
 Tests should prove:
 
-- the same capability profile produces the same protocol shape across different objectives;
-- changing objective/context does not change the Worker control schema;
+- different objectives preserve the same protocol shape;
 - Worker selection satisfies required capabilities;
-- two research Workers may have the same capabilities without fixed Primary/Challenger identities;
-- each Worker has an isolated Website Agent binding;
-- peer evidence uses the structured Worker message schema;
-- debate continues the same Website assignment;
-- invalid/stale assignment ids or input bindings cannot complete;
-- output must validate against expected schema;
-- all API/transport adapters preserve the same Worker semantics and canonical schemas;
+- multiple Workers with the same capabilities remain isolated by explicit ids/bindings;
+- peer evidence arrives as structured WorkerInput;
+- debate continues the same assignment;
+- stale worker/assignment/input bindings cannot commit;
+- contributions do not terminate assignments;
+- terminal output validates against its expected schema;
+- direct API and MCP adapters preserve the same Worker semantics;
 - Workflow sees only typed Agent Team phase completion.
