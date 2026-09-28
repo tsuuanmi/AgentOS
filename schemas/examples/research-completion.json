@@ -1,0 +1,12 @@
+{
+  "submissionId": "submission-completion-1",
+  "workerId": "worker-research-a",
+  "assignmentId": "assignment-research-a",
+  "inputBinding": "sha256:example-input-binding",
+  "kind": "completion",
+  "outputSchemaRef": "urn:example:schema:research-final",
+  "output": {
+    "recommendation": "Use reconciliation-before-retry for uncertain external effects.",
+    "unresolvedVerification": []
+  }
+}
