@@ -1,16 +1,25 @@
-# Worker Protocol
+# Worker Contract
 
 - **Status:** canonical / living reference
 - **Owner:** AgentOS
-- **Purpose:** define provider-neutral Worker semantics shared by local APIs and provider adapters.
+- **Purpose:** define provider-neutral Worker semantics shared by local APIs and protocol/provider adapters.
+- **File name:** retained temporarily until the A2A/ACP conformance spike proves which existing wire schemas can be deleted or mapped.
 
 ## Scope
 
-Worker Protocol defines **meaning and minimum semantic guarantees**.
+Worker Contract defines **meaning and minimum semantic guarantees**. It is not a competing wire protocol.
 
-It does not define JSON property lists, MCP tool mechanics, detailed agent working procedures, or storage/authorization algorithms.
+Wire interoperability should reuse the canonical [protocol stack](../architecture/protocol-stack.md):
 
-Website MCP, ACP, future A2A, and direct providers must preserve this contract.
+~~~text
+ACP = interchangeable coding-Worker execution/control
+A2A = independent agent-to-agent Task/Message/Artifact communication
+MCP = agent-to-tool/capability integration and Website compatibility
+~~~
+
+It does not define ACP session mechanics, A2A wire objects/bindings, MCP tool mechanics, detailed agent working procedures, or storage/authorization algorithms.
+
+All provider/protocol adapters must preserve this semantic contract.
 
 ## Canonical vocabulary
 
@@ -116,7 +125,7 @@ inputBinding
   = exact correctness-bearing assignment input
 ~~~
 
-Provider-local handles such as Website conversation identifiers, ACP session ids, A2A task/context ids, MCP Task ids, tunnel ids, HTTP connections, or model ids never become AgentOS semantic identity.
+Provider/protocol handles such as ACP session ids, A2A Task/context ids, Website conversation identifiers, MCP Task ids, tunnel ids, HTTP connections, or model ids never become AgentOS semantic identity.
 
 A new provider execution may rotate `attemptId` while preserving the same `assignmentId` and `inputBinding`.
 
@@ -137,10 +146,16 @@ Contract
   = this semantic meaning + minimum guarantees
 
 Schema
-  = exact machine-readable structure in /schemas
+  = only AgentOS-owned machine-readable structures that remain necessary
+
+ACP
+  = coding-Worker provider protocol
+
+A2A
+  = agent-to-agent Task / Message / Artifact protocol
 
 MCP
-  = Website-facing transport mapping
+  = tool/capability protocol + Website compatibility mapping
 
 Skill
   = procedural agent working method
@@ -149,14 +164,17 @@ Exchange invariant
   = correctness over current durable state
 ~~~
 
-The same WorkerAssignment, Message, Artifact, WorkerState, and WorkerCapabilities semantics must survive provider replacement.
+The same Assignment, capability, exact-input, attempt, completion, and effect semantics must survive provider replacement.
+
+Where A2A already supplies Task/Message/Artifact structures, AgentOS should map or extend those structures instead of maintaining parallel wire objects unless conformance proves an irreducible gap.
 
 ## Agent Team relationship
 
-Worker selection, capability profiles, independent-first barriers, Team peer routing, and typed phase completion belong to [Agent Team requirements](../requirements/agent-team/README.md), not Worker Protocol.
+Worker selection, capability profiles, independent-first barriers, Team peer routing, and typed phase completion belong to [Agent Team requirements](../requirements/agent-team/README.md), not Worker Contract.
 
 ## Related reference
 
+- [Protocol stack](../architecture/protocol-stack.md)
 - [Worker boundary model](../architecture/worker-boundaries.md)
 - [Worker API](worker-api.md)
 - [MCP Worker transport](mcp-worker-transport.md)
