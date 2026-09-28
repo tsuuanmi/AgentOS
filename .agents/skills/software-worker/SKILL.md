@@ -70,6 +70,6 @@ This Skill is one capability-specific procedure pack, not the definition of Work
 
 - Message/Artifact field definitions belong to repository schemas, not this skill.
 - MCP/ACP/A2A tool or session behavior belongs to provider transport documentation, not this skill.
-- Authorization, fencing, idempotency, durable persistence, and state transitions belong to server invariants, not this skill.
+- Authorization, fencing, idempotency, durable persistence, and state transitions belong to Worker Exchange/runtime invariants, not this skill.
 - Team topology, Worker selection, barriers, and peer routing belong to the Agent Team contract/policy, not this skill.
 - Capabilities not covered here may use other Skills/procedure packs without changing Worker identity.
