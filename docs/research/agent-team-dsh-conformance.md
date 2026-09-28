@@ -97,7 +97,7 @@ Worker-specific recovery/binding remains Worker-owned.
 4. independent-first barrier works across multiple Worker invocations;
 5. peer evidence/revision works without provider-specific branches;
 6. typed phase result cannot commit before collaboration contract is satisfied;
-7. adding Website/A2A execution requires Worker/provider configuration, not Agent Team code;
+7. adding Website Agent execution requires Worker/ACP configuration, while Website Agent <-> Team Member collaboration requires only the A2A peer adapter/policy;
 8. host restart recovers phase semantics without provider registry duplication.
 
 When executable tests answer these questions, prune this research and promote only residual implementation facts.
