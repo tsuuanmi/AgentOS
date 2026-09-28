@@ -1,0 +1,20 @@
+{
+  "submissionId": "submission-contribution-1",
+  "workerId": "worker-research-a",
+  "assignmentId": "assignment-research-a",
+  "inputBinding": "sha256:example-input-binding",
+  "kind": "contribution",
+  "outputSchemaRef": "urn:example:schema:research-contribution",
+  "output": {
+    "recommendation": "Reconcile external state before retry.",
+    "risks": [
+      "Blind retry can duplicate side effects."
+    ]
+  },
+  "evidence": [
+    {
+      "uri": "urn:example:source:architecture-note",
+      "label": "Architecture evidence"
+    }
+  ]
+}
