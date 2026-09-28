@@ -66,7 +66,8 @@ See [DSH ACP](../dsh/acp.md).
 Worker
   -> ctx.subagents
       -> DSH ACP provider
-          -> Website ACP bridge
+          -> Website ACP Agent adapter
+              -> shared Website core
               -> Website Agent
 ~~~
 
