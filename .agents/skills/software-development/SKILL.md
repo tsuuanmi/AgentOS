@@ -81,7 +81,7 @@ For behavioral changes follow strict **Red -> Green -> Refactor**.
 - Workflow semantics are domain-agnostic; the software Workflow Profile selects this pack through configuration.
 - A2A owns remote Task/Message/Artifact structures.
 - ACP/DSH/Website providers own their execution/session lifecycle.
-- Agent Team owns capability selection, collaboration policy, and typed result acceptance.
+- Worker owns capability selection/provider execution acceptance; Agent Team owns collaboration policy and typed phase acceptance.
 - Exact durable input belongs to the owning WorkItem/phase record.
 - Effect correctness belongs to actual environment/tool observation.
 - Other domains should use their own capability packs without changing Worker or Workflow core semantics.
