@@ -122,6 +122,18 @@ See [Agent Team composition](plugins/agent-team/README.md).
 
 Workflow likewise composes DSH capabilities rather than replacing them.
 
+Its **Core is domain-agnostic and fixed**. Domain/product flow belongs to a validated Workflow Definition/Profile:
+
+~~~text
+Workflow Core
+  = lifecycle / dependency / recovery / fencing / PendingAction semantics
+
+Workflow Definition/Profile
+  = graph / transitions / adapter selection / capabilities / schemas / domain policy
+~~~
+
+Software development is only the first profile. Scientific research or another domain should reuse the same Core and change configuration when existing capabilities/adapters suffice.
+
 ~~~text
 ctx.storageDomain
   + Agent Team
@@ -145,7 +157,7 @@ AgentOS adds only the durable semantics missing from those primitives:
 - reattachment;
 - terminal convergence.
 
-See [Workflow composition](plugins/workflow/README.md).
+See [Workflow composition](plugins/workflow/README.md) and [Workflow definitions/profiles](plugins/workflow/definitions.md).
 
 ## Agnostic Worker model
 
@@ -241,7 +253,7 @@ A one-shot provider cannot silently advertise continuation-dependent behavior su
 | AgentOS composition | product composition and dependency wiring | Cordis bundles/profiles | duplicate runtime mechanics |
 | Local Agent | user interaction, direct simple work | host tools/capabilities | durable Workflow or Team internals |
 | Agent Team capability | phase policy, Worker capability selection/binding, typed phase result | `ctx.agentTeams`, `ctx.subagents`, Session/runtime plugins | duplicate Team roster/mailbox/task engine |
-| Workflow capability | durable run/work lifecycle, reconciliation, PendingAction, receipts | `ctx.storageDomain`, Team, Jobs/workflow/subagents/interaction adapters | generic workflow/job/subagent engine |
+| Workflow capability | domain-agnostic Core + validated Definition binding + durable run/work lifecycle, reconciliation, PendingAction, receipts | `ctx.storageDomain`, Team, Jobs/workflow/subagents/interaction adapters | domain-specific phase logic or generic workflow/job/subagent engine |
 | Worker | semantic capability-driven execution role | selected provider/tools | provider/session identity as semantic identity |
 | Worker Exchange | missing provider-neutral exchange/fencing semantics | DSH durable state where suitable | reasoning/model execution |
 | DSH/Cordis | runtime and reusable capability seams | configured providers | AgentOS product semantics |
@@ -416,7 +428,7 @@ The smallest implementation should start from what DSH already provides:
 2. prove their contract against AgentOS Agent Team requirements;
 3. implement only missing Worker/phase semantics;
 4. add Website MCP Worker provider;
-5. build Workflow durable state/reconciliation over `ctx.storageDomain`;
+5. build Workflow Definition validation/binding plus domain-agnostic durable state/reconciliation over `ctx.storageDomain`;
 6. add optional Jobs/workflow/subagent/interaction adapters only when concrete WorkItems need them.
 
 ## Cross-cutting invariants
@@ -435,6 +447,7 @@ The smallest implementation should start from what DSH already provides:
 12. Restart reconciles durable truth rather than blindly replaying.
 13. Experimental DSH dependencies remain behind adapters/conformance tests.
 14. New AgentOS state requires a demonstrated semantic gap.
+15. New workflow domains extend Definition/Profile config first; Core changes require a genuinely new generic invariant/primitive.
 
 ## Canonical neighbors
 
