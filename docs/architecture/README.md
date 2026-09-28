@@ -55,9 +55,9 @@ flowchart TB
     Worker --> Sub
     Worker --> Runtime
 
-    Worker --> Website[Website Agent via MCP]
-    Worker --> Codex[Codex provider]
-    Worker --> Claude[Claude provider]
+    Worker --> ACP[ACP-compatible coding Worker]
+    Worker --> A2A[A2A remote Agent]
+    Worker --> Website[Website Agent via MCP compatibility]
     Worker --> DSHWorker[DSH Agent provider]
 ~~~
 
@@ -237,11 +237,11 @@ flowchart TB
 
     Requirement --> Selector
 
-    Selector --> DSH[DSH subagent]
-    Selector --> Codex[Codex]
-    Selector --> Claude[Claude Code]
-    Selector --> Website[Website Agent / MCP]
-    Selector -.-> Future[ACP / A2A / future provider]
+    Selector --> DSH[DSH native]
+    Selector --> ACP[ACP-compatible coding Agent]
+    Selector --> A2A[A2A remote Agent]
+    Selector --> Website[Website Agent / MCP compatibility]
+    Selector -.-> Future[other provider]
 ~~~
 
 Provider capabilities must reflect real lifecycle/tool guarantees.
@@ -259,25 +259,33 @@ A one-shot provider cannot silently advertise continuation-dependent behavior su
 | Worker | semantic capability-driven execution role | selected provider/tools | provider/session identity as semantic identity |
 | Worker Exchange | missing provider-neutral exchange/fencing semantics | DSH durable state where suitable | reasoning/model execution |
 | DSH/Cordis | runtime and reusable capability seams | configured providers | AgentOS product semantics |
-| Worker provider | concrete execution lifecycle | DSH provider seams or MCP | Team/Workflow authority |
+| Worker provider | concrete execution lifecycle | DSH provider seams, ACP, A2A, or MCP compatibility | Team/Workflow authority |
 | Validation | actual observed state/receipts | environment/tools | model prose as effect authority |
 
-## Agent communication
+## Protocol stack and agent communication
 
-Protocols follow boundaries rather than using one universal A2A protocol.
+AgentOS reuses standard protocols by boundary:
+
+~~~text
+ACP = Client <-> Agent = interchangeable coding-Worker execution/control
+A2A = Agent <-> Agent = Task / Message / Artifact collaboration
+MCP = Agent <-> Tool/Capability = tools and Website compatibility
+~~~
 
 | Interaction | Protocol / interface |
 |---|---|
 | Local Agent -> Agent Team | AgentOS Agent Team semantic service |
 | Local Agent -> Workflow | AgentOS Workflow semantic service |
 | Workflow <-> Agent Team | typed AgentOS phase interface |
-| Agent Team <-> DSH Team domain | `ctx.agentTeams` programmatic service |
-| Team member <-> Team member | DSH Team durable mailbox when DSH Team is selected |
-| Agent Team -> local Worker providers | Worker/provider adapter, commonly `ctx.subagents` |
-| Website Agent -> AgentOS Worker boundary | MCP Worker transport |
-| Worker data semantics | Worker Protocol: Assignment / Message / Artifact / State |
+| DSH Team member <-> DSH Team member | native `ctx.agentTeams` mailbox |
+| AgentOS/DSH -> interchangeable coding Worker | ACP, commonly through `ctx.subagents` |
+| independent Agent <-> independent Agent | A2A |
+| Agent -> tool/data/capability | MCP or native DSH capability |
+| Website Agent with MCP-only integration -> AgentOS | MCP Worker compatibility bridge |
 
-See [Agent communication architecture](agent-communication.md).
+AgentOS owns semantic assignment/capability/completion/effect invariants above those protocols; ACP sessions, A2A Tasks/contexts, and MCP Tasks remain provider/transport handles.
+
+See [Protocol stack](protocol-stack.md) and [Agent communication architecture](agent-communication.md).
 
 ## Dependency direction
 
@@ -363,8 +371,8 @@ flowchart LR
 
     subgraph Providers["Worker providers"]
         DA[DSH Agent]
-        CX[Codex]
-        CL[Claude]
+        ACPW[ACP coding Worker]
+        RA[A2A remote Agent]
         WA[Website Agent]
     end
 
@@ -379,9 +387,9 @@ flowchart LR
     WF --> Store
 
     Sub --> DA
-    Sub --> CX
-    Sub --> CL
-    Exchange <-->|MCP| WA
+    Sub --> ACPW
+    Team <-->|A2A adapter| RA
+    Exchange <-->|MCP compatibility| WA
 ~~~
 
 Provider and package layout may evolve; semantic ownership must not.
@@ -397,8 +405,8 @@ WorkItemId
 
 workerId / assignmentId / attemptId
   != DSH subagent id
-  != Codex thread/process
-  != Claude query/session
+  != ACP session id
+  != A2A Task/context id
   != Website conversation
   != MCP Task id
 ~~~
@@ -428,10 +436,11 @@ The smallest implementation should start from what DSH already provides:
 
 1. compose DSH experimental Agent Team and Subagent capabilities;
 2. prove their contract against AgentOS Agent Team requirements;
-3. implement only missing Worker/phase semantics;
-4. add Website MCP Worker provider;
-5. build Workflow Definition validation/binding plus domain-agnostic durable state/reconciliation over `ctx.storageDomain`;
-6. add optional Jobs/workflow/subagent/interaction adapters only when concrete WorkItems need them.
+3. prove ACP as the default interchangeable coding-Worker provider seam and A2A as the remote agent communication seam;
+4. implement only residual Worker/phase semantics that those standards and DSH do not guarantee;
+5. keep Website MCP as a compatibility provider when A2A is unavailable;
+6. build Workflow Definition validation/binding plus domain-agnostic durable state/reconciliation over `ctx.storageDomain`;
+7. add optional Jobs/workflow/subagent/interaction adapters only when concrete WorkItems need them.
 
 ## Cross-cutting invariants
 
@@ -450,6 +459,7 @@ The smallest implementation should start from what DSH already provides:
 13. Experimental DSH dependencies remain behind adapters/conformance tests.
 14. New AgentOS state requires a demonstrated semantic gap.
 15. New workflow domains extend Definition/Profile config first; Core changes require a genuinely new generic invariant/primitive.
+16. A2A is the preferred independent agent-to-agent protocol; ACP is the preferred interchangeable coding-Worker provider protocol; MCP remains the tool/capability protocol and compatibility bridge.
 
 ## Canonical neighbors
 
@@ -459,6 +469,7 @@ The smallest implementation should start from what DSH already provides:
 - [Agent Team composition](plugins/agent-team/README.md)
 - [Workflow composition](plugins/workflow/README.md)
 - [Worker model](worker-model.md)
+- [Protocol stack](protocol-stack.md)
 - [Agent communication](agent-communication.md)
 - [Worker boundary model](worker-boundaries.md)
 - [DSH capability reuse](dsh-reuse.md)
