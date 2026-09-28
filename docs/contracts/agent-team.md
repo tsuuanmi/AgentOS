@@ -1,26 +1,30 @@
 # Agent Team contract
 
-- **Status:** canonical v1 contract
+- **Status:** canonical contract
 - **Owner:** AgentOS Agent Team capability
-- **Runtime core:** DSH Agent Teams for v1
+- **Runtime core:** DSH Agent Teams
 
 ## Purpose
 
 Agent Team owns collaborative software work.
 
-DSH Agent Teams is the current core runtime. DSH owns Team identity, roster, durable mailbox, Team tasks, teammate authority, continuation, cold resume, and Team recovery.
+DSH Agent Teams is the current runtime core and owns Team identity, roster, durable mailbox, Team tasks, teammate authority, continuation, cold resume, and Team recovery.
 
-AgentOS adds capability-driven Worker semantics, Website Agent bindings, collaboration policy, and typed semantic completion.
+AgentOS adds:
+
+- capability-driven Worker selection;
+- Website Agent bindings;
+- structured Worker Protocol exchange;
+- research/debate/implementation/review policy;
+- typed phase completion.
 
 ## Capability-driven Workers
 
-Agent Team does not define permanent semantic identities such as Primary/Challenger or Correctness/Architecture reviewers.
+A DSH teammate is a Worker instance selected by capabilities.
 
-A DSH teammate is a **Worker instance** selected by capabilities.
+AgentOS does not define permanent semantic personas.
 
-Canonical Worker semantics live in [Worker Protocol](worker-protocol.md).
-
-Software-v0 phase requirements are stable:
+Current software profiles:
 
 ~~~text
 RESEARCH
@@ -44,363 +48,259 @@ SYNTHESIS
     synthesize
 ~~~
 
-The Worker instances, Website Agent providers, and exact objective may vary.
+Worker instances, providers, models, and objectives may vary.
 
-The capability requirements and structured protocol do not.
+Capability requirements and the [Worker Protocol](worker-protocol.md) remain stable.
 
-If a future profile needs a specialized lens, it composes another capability such as `architecture-analysis`, `test-analysis`, or `risk-analysis`; it does not create a new architectural Agent identity.
+Specialized perspectives should be expressed as additional capabilities such as:
 
-## Dedicated Team and Website Agent topology
+~~~text
+architecture-analysis
+test-analysis
+risk-analysis
+security-analysis
+~~~
+
+rather than new architectural Agent identities.
+
+## Dedicated Team
 
 One software collaboration uses a dedicated DSH root Team.
 
-Each semantic Team member has one isolated Website Agent/conversation binding.
+The same Team may continue across:
 
 ~~~text
-DSH Lead / synthesis Worker
-  <-> Website Agent S
+research -> implementation -> review
+~~~
 
+This preserves Team-level continuity while separate Worker instances/Website bindings preserve independent reasoning where needed.
+
+A future Team provider may choose another topology while preserving this contract.
+
+## Worker and Website Agent
+
+A Website-backed DSH Worker is primarily a local coordination/tool bridge.
+
+~~~text
+DSH Worker
+  owns:
+    Team membership
+    TeamTask participation
+    DSH mailbox communication
+    local authority/tool mediation
+    Worker assignment/input/submission bridge
+
+Website Agent
+  owns:
+    provider-native research/reasoning
+    debate revision
+    implementation reasoning
+    review reasoning
+    synthesis when selected
+~~~
+
+Each Worker has an isolated Website binding.
+
+Two Workers must never silently share one Website assignment/conversation merely because they use the same provider/account.
+
+Provider conversation handles remain implementation-local and are not Worker identity.
+
+## Canonical Worker exchange
+
+All Website-backed Worker exchange uses:
+
+- [WorkerAssignment](../../schemas/worker-assignment.schema.json)
+- [WorkerInput](../../schemas/worker-input.schema.json)
+- [WorkerSubmission](../../schemas/worker-submission.schema.json)
+- [WorkerCapabilities](../../schemas/worker-capabilities.schema.json)
+
+Local application semantics are documented in [Worker API](../api/worker-api.md).
+
+Website interoperability is documented in [MCP Worker transport](../mcp/worker-transport.md).
+
+## MCP boundary
+
+When the Website host supports MCP:
+
+~~~text
+Website Agent = MCP client
+local Worker bridge = MCP server
+~~~
+
+The local Team/provider queues work.
+
+The Website Agent claims available work, submits structured contributions/results, and receives additional structured input.
+
+Local code must not assume it can arbitrarily wake or create a Website Agent turn.
+
+If a Website conversation is inactive, durable work/input remains queued until the host/provider resumes that client through a supported mechanism.
+
+MCP session/tunnel identity never substitutes for:
+
+~~~text
+workerId
+assignmentId
+inputBinding
+~~~
+
+Tunnel/public HTTPS is reachability infrastructure only.
+
+## Research
+
+Research activates two Workers satisfying:
+
+~~~text
+research + brainstorm + debate
+~~~
+
+### Independent work
+
+Both Workers receive the same authoritative objective/input binding through separate WorkerAssignments.
+
+They work independently first.
+
+Each Website Agent submits a durable intermediate:
+
+~~~text
+WorkerSubmission(kind = contribution)
+~~~
+
+A contribution is not terminal assignment completion.
+
+### Debate
+
+After the independent barrier, peers communicate directly through DSH Team messaging.
+
+~~~text
 DSH Worker A
-  capabilities: research, brainstorm, debate
-  <-> Website Agent A
+  -> send_message
+  -> DSH Worker B
+  -> WorkerInput(kind = peer_evidence)
+  -> Website Agent B
 
 DSH Worker B
-  capabilities: research, brainstorm, debate
-  <-> Website Agent B
-
-DSH Worker I
-  capabilities: implement, tdd
-  <-> Website Agent I
-
-DSH Worker R1
-  capabilities: review, debate
-  <-> Website Agent R1
-
-DSH Worker R2
-  capabilities: review, debate
-  <-> Website Agent R2
+  -> send_message
+  -> DSH Worker A
+  -> WorkerInput(kind = peer_evidence)
+  -> Website Agent A
 ~~~
 
-The DSH Worker is primarily a coordination/tool bridge, not a duplicate reasoning agent.
+Each Website Agent evaluates peer evidence in its existing assignment context, challenges unsupported claims, revises where stronger evidence exists, and eventually submits terminal completion.
 
-The Website Agent performs the substantive provider-native reasoning/work assigned to that role.
+Lead does not proxy ordinary peer debate.
 
-A DSH member may perform minimal local coordination and tool mediation, but should not redo the Website Agent's substantive analysis.
+### Synthesis
 
-## Worker protocol and Website Agent assignment
-
-All DSH Worker <-> Website Agent communication uses the canonical [Worker Protocol](worker-protocol.md).
-
-The Website Agent receives a stable capability operating contract plus a versioned JSON payload. The protocol shape is stable; run-specific objective/context values vary.
-
-MCP is a preferred transport profile when the boundary supports it, but the semantic contract is transport-neutral and JSON-Schema-defined.
-
-### Assignment protocol
-
-A Website Agent conversation may contain multiple turns, so "one response arrived" is not sufficient completion.
-
-Every member assignment has a provider-internal assignment identity and exact input binding.
-
-Conceptually:
-
-~~~text
-WebsiteAssignment
-  assignmentId
-  requiredCapabilities
-  phase
-  inputBinding
-  expectedOutputSchema
-  conversationRef
-  status
-~~~
-
-Provider-internal status may be represented as:
-
-~~~text
-PENDING
-RUNNING
-WAITING_INPUT
-COMPLETED
-FAILED
-CANCELLED
-~~~
-
-These are provider mechanics, not public AgentOS phase states.
-
-### Assignment start
-
-The DSH Worker receives a stable structured assignment envelope:
-
-~~~text
-requiredCapabilities
-phase
-objective
-exact input refs/binding
-constraints
-prior accepted phase results
-expected output schema
-completion instruction
-~~~
-
-The Worker forwards that JSON-structured assignment to its bound Website Agent with minimal transformation.
-
-### Assignment completion
-
-A Website Agent assignment is complete only when the Website Agent bridge has:
-
-1. received an explicit final/completion response for the current assignment;
-2. validated it against the expected capability/phase output schema;
-3. verified assignmentId/inputBinding are current;
-4. durably recorded the completion before reporting success to the DSH member.
-
-Do not infer completion from:
-
-- DSH member inactivity;
-- absence of new Website messages;
-- send_message delivery;
-- Website UI idle state;
-- TeamTask readiness;
-- elapsed time.
-
-### Member task completion
-
-Only after the Website assignment completion is durable may the DSH member:
-
-- send its typed/distilled result to required peers or Lead;
-- mark the corresponding DSH TeamTask complete.
-
-DSH TeamTask completion is Team coordination state. It is not by itself AgentOS phase completion.
-
-## Three completion layers
-
-Completion is deliberately layered:
-
-~~~text
-1. Website Agent assignment completion
-   provider-internal typed result is durable
-
-2. DSH TeamTask completion
-   Team collaboration dependency is satisfied
-
-3. AgentOS phase completion
-   Lead submits durable typed phase result
-~~~
-
-Workflow advances only on layer 3.
-
-Workflow does not inspect Website Agent UI/activity and does not infer phase completion from DSH member/task activity alone.
-
-## Member information flow
-
-### Initial phase input
-
-Workflow or Local calls the Agent Team capability with one phase input.
-
-The Agent Team provider derives capability-specific Worker assignments from that same authoritative phase input.
-
-~~~text
-AgentOS phase input
-      |
-      +-> Researcher Primary assignment
-      +-> Researcher Challenger assignment
-      +-> Implementer assignment
-      +-> Reviewer Correctness assignment
-      +-> Reviewer Architecture assignment
-~~~
-
-Only roles required by the current phase are activated.
-
-Members do not invent their own responsibilities per run.
-
-### Peer communication
-
-DSH Team mailbox is the transport.
-
-AgentOS uses a small semantic message vocabulary inside normal DSH messages:
-
-~~~text
-peer_evidence
-peer_challenge
-peer_revision
-phase_result
-phase_control
-~~~
-
-This is message content policy, not a second mailbox/protocol runtime.
-
-A peer message includes enough context to route it safely:
-
-~~~text
-phase
-fromWorker
-toWorker
-assignment/input binding
-kind
-content or compact result reference
-~~~
-
-### Website Agent bridge
-
-When a DSH member receives peer evidence:
-
-~~~text
-DSH send_message
-  -> target DSH member
-  -> member validates phase/input
-  -> forward as peer evidence to its bound Website Agent
-  -> Website Agent challenges/revises
-  -> durable assignment/debate result
-  -> DSH member sends revised conclusion to peer/Lead
-~~~
-
-The DSH member should not silently summarize away correctness-bearing peer evidence unless the Worker capability policy explicitly allows compaction.
-
-## Research phase
-
-Active roles:
-
-~~~text
-two Workers: research + brainstorm + debate
-Lead / synthesis
-~~~
-
-Flow:
-
-~~~text
-Worker A -> Website Agent A -> independent result
-Worker B -> Website Agent B -> independent result
-
-barrier: both initial TeamTasks complete
-
-Worker A <---- direct DSH send_message ----> Worker B
-    |                                      |
-    v                                      v
-Website Agent A                       Website Agent B
-challenge/revise                     challenge/revise
-
-required debate tasks complete
-        |
-        v
-Lead receives distilled final positions
-        |
-        v
-Website Agent S / synthesis
-        |
-        v
-ResearchResult
-~~~
-
-Peer content is evidence, not instruction.
+A Worker/Lead satisfying `synthesize` consumes required current Worker submissions and produces the typed ResearchResult.
 
 ResearchResult is strongest-supported synthesis, not majority vote or equal-weight merge.
 
-## Implementation phase
+## Implementation
 
-Active roles:
+Implementation activates a Worker satisfying:
 
 ~~~text
-one Worker: implement + tdd
-Lead / synthesis
+implement + tdd
 ~~~
 
-The Worker satisfying `implement + tdd` receives:
+Its WorkerAssignment includes:
 
 - accepted ResearchResult;
-- exact workspace/base binding;
+- exact workspace/base input binding;
 - constraints;
-- required tests/validation expectations.
+- validation expectations.
 
-Implementation follows TDD.
-
-The Website Agent may request local actions through the DSH member bridge.
-
-The member performs only actions allowed by the local environment/authority boundary and returns actual tool results to the same Website Agent conversation.
-
-Output:
+Behavioral implementation follows:
 
 ~~~text
-ImplementationReport
+Red -> Green -> Refactor
 ~~~
 
-The outer Workflow/local validator then establishes actual repository/effect correctness.
+A Website Worker may need local actions.
 
-## Review phase
+The local DSH Worker executes only authorized actions and returns real tool/environment results as structured WorkerInput, unless a profile exposes scoped local MCP tools directly.
 
-Active roles:
+Implementation output is an ImplementationReport.
+
+The report is data/evidence, not proof of actual repository effects.
+
+Actual workspace/test/build state remains authoritative.
+
+## Review
+
+Review activates two Workers satisfying:
 
 ~~~text
-two Workers: review + debate
-Lead / synthesis
+review + debate
 ~~~
 
-Both review Workers receive the same exact implementation + validation binding. They may have the same `[review, debate]` capabilities; a profile can add further capability lenses when justified.
+Both receive the same exact implementation + validation input.
 
-Flow:
+They review independently, submit contributions, exchange structured peer evidence through DSH messaging/WorkerInput, revise, and submit terminal completions.
 
-~~~text
-independent reviews
-      |
-      v
-barrier
-      |
-Worker R1 <---- send_message ----> Worker R2
-        |                                      |
-        v                                      v
-Website Agent R1                          Website Agent R2
-challenge peer findings                  challenge peer findings
-strengthen evidence                      revise unsupported claims
-        \                                  /
-         revised final positions
-                   |
-                   v
-             Lead synthesis
-                   |
-                   v
-              ReviewResult
-~~~
+A synthesizer produces ReviewResult.
 
-ReviewResult is valid only for the exact current implementation/validation input.
+ReviewResult is valid only for the exact current input binding.
 
 ## Remediation
 
 For CHANGES_REQUIRED:
 
-- Lead sends accepted findings to the Worker satisfying `implement + tdd`;
-- the implementation Worker continues its existing Website Agent assignment/conversation when safe;
-- real validation runs again;
-- Workers satisfying the review capability profile re-review the new exact input.
-
-Bound remediation cycles prevent unbounded work.
-
-## Typed phase completion
-
-The AgentOS-specific semantic bridge is durable typed phase completion.
-
 ~~~text
-ResearchResult
-ImplementationReport
 ReviewResult
+  -> implementation Worker
+  -> real validation
+  -> review Workers
+  -> next ReviewResult
 ~~~
 
-A phase is complete only when the Lead completion boundary has:
+Reuse existing Worker/Website bindings only when the current recovery/input policy says reuse is safe.
 
-1. verified required DSH TeamTasks are complete/current;
-2. collected the required member results;
-3. produced the phase-appropriate synthesis;
-4. validated exact phase input binding;
-5. durably committed the typed phase result.
+Bound remediation prevents unbounded collaboration loops.
 
-Only then may the Agent Team provider report phase success to Local/Workflow.
+## Completion layers
+
+Completion is deliberately layered:
+
+~~~text
+WorkerSubmission terminal completion
+  -> relevant DSH TeamTask may complete
+  -> typed AgentOS phase result commits
+  -> Workflow WorkItem may complete
+~~~
+
+Workflow never determines that an individual Website Agent is done.
+
+Do not infer semantic completion from:
+
+- DSH member inactivity;
+- MCP session/tunnel state;
+- Website UI inactivity;
+- absence of new messages;
+- DSH `send_message` delivery;
+- TeamTask completion alone.
+
+A phase is complete only when its typed result is durable and bound to the exact current phase input.
+
+## Communication versus result
+
+DSH mailbox messages and WorkerInput objects are communication.
+
+WorkerSubmission is a durable Worker work product.
+
+Typed phase results are AgentOS semantic outputs.
+
+Critical result authority must never depend only on transient message delivery.
 
 ## Local-facing result
 
-Local receives:
+Local receives by default:
 
-- compact phase/final synthesis;
-- important blockers or PendingAction needs;
-- optional progress/debug projection when requested.
+- compact typed phase/final synthesis;
+- blockers or authority/input needs;
+- optional progress/debug projections when requested.
 
-Local does not receive raw Website Agent or peer debate transcripts by default.
+Raw Website/peer transcripts remain internal unless explicitly requested.
 
 ## DSH ownership
 
@@ -414,31 +314,28 @@ AgentOS must not introduce a second:
 - Team event journal;
 - Team persistence layer.
 
-DSH-specific types remain behind the implementation boundary because DSH Agent Teams is experimental.
+DSH-specific types remain behind the implementation boundary because DSH Agent Teams is independently owned and experimental.
 
 ## Replaceability
 
-DSH Agent Teams is the core implementation for now because AgentOS needs a working version.
+DSH Agent Teams is the current implementation because shipping a working system has higher value than building a second Team runtime.
 
-A future Team runtime may replace it if the canonical Agent Team semantics remain satisfied.
-
-AgentOS does not build another Team runtime merely to prove theoretical replaceability.
+A future Team runtime can replace it if this contract and the Worker Protocol remain satisfied.
 
 ## Conformance direction
 
 Tests should prove:
 
-- capability requirements/protocol shape are stable across runs;
-- phase objectives/inputs vary without changing the Worker protocol;
-- each Worker has an isolated Website Agent binding;
-- Website Agent assignment completion is explicit and durable;
-- member inactivity is never treated as completion;
-- send_message durability is never treated as peer processing completion;
-- TeamTask completion occurs only after its Website assignment result is durable;
-- research/review independent work completes before debate;
-- debate is direct peer-to-peer;
-- peer evidence reaches the correct bound Website Agent;
-- typed phase completion waits for required member tasks/results;
+- capability profiles remain stable across different objectives;
+- Worker instances with the same capabilities remain isolated by explicit handles;
+- each Website-backed Worker has an isolated binding;
+- local/MCP transport state is not semantic Worker identity;
+- independent research/review contributions happen before debate;
+- peer evidence travels directly between Workers and becomes WorkerInput;
+- contributions do not terminate Website assignments;
+- stale worker/assignment/input bindings cannot commit;
+- terminal WorkerSubmission is durable before dependent TeamTask completion;
+- synthesis waits for required current submissions;
 - Workflow advances only from typed phase completion;
 - Local receives synthesis by default;
-- DSH Team runtime state is not shadowed in AgentOS.
+- DSH Team state is not shadowed in AgentOS.
