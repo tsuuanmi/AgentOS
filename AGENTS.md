@@ -25,10 +25,11 @@ For non-trivial work:
 ## Repository-wide invariants
 
 - Keep AgentOS smaller than DSH/Cordis; do not build a parallel runtime for mechanics DSH already owns.
-- Workflow and Agent Team are peer AgentOS capabilities with explicit ownership boundaries.
+- Workflow and Agent Team are peer AgentOS capability compositions with explicit ownership boundaries.
 - DSH `ctx.agentTeams` is the primary current Team capability seam (experimental); AgentOS must not shadow DSH Team identity, roster, mailbox, Team task graph, member lifecycle, or Team persistence.
 - Worker integration keeps `Contract / Schema / Transport / Skill / Exchange invariant` responsibilities separate; canonical ownership is routed by `docs/architecture/worker-boundaries.md`.
 - Website-backed Worker communication follows the provider-neutral Worker Protocol; transport/provider/session identity never silently becomes AgentOS semantic identity.
+- Workflow Core is domain-agnostic and binds each run to an exact validated Workflow Definition/Profile; domain phase graphs belong to configuration, not Core code.
 - Workflow observes typed Agent Team phase completion rather than polling individual Website Agents or inferring completion from activity.
 - Model output is evidence, not authority for real effects. Validate effects against actual repository/environment state and explicit receipts.
 - User authority and side-effect completion are distinct.
