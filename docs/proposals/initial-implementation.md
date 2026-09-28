@@ -7,114 +7,199 @@ created: 2026-09-28
 
 # Initial implementation
 
-This proposal contains only the unresolved work needed to move from the current canonical documentation into behavioral implementation.
+This proposal contains only the unresolved work needed to move from canonical architecture into behavioral implementation.
 
 Accepted semantics already live in:
 
 - [Architecture](../architecture/README.md)
-- [Workflow requirements](../requirements/workflow.md)
-- [Agent Team requirements](../requirements/agent-team.md)
+- [AgentOS composition](../architecture/plugins/agentos/README.md)
+- [Agent Team architecture](../architecture/plugins/agent-team/README.md)
+- [Workflow architecture](../architecture/plugins/workflow/README.md)
+- [Agent Team requirements](../requirements/agent-team/README.md)
+- [Workflow requirements](../requirements/workflow/README.md)
 - [Worker Protocol](../reference/worker-protocol.md)
 - [Worker API](../reference/worker-api.md)
-- [Worker server invariants](../reference/worker-server-invariants.md)
+- [Worker Exchange invariants](../reference/worker-exchange-invariants.md)
 - [MCP Worker transport](../reference/mcp-worker-transport.md)
 - [JSON Schemas](../../schemas/README.md)
 
 Do not restate those contracts here.
 
-## Implementation gaps
+## Implementation principle
 
-### 1. Worker schema conformance
+> **Prove existing DSH capabilities first; implement only the semantic gap.**
 
-Build the executable schema boundary before runtime behavior expands.
+Agent Team and Workflow are capability compositions, not greenfield engines.
 
-Required coverage:
-
-- Draft 2020-12 meta-validation;
-- canonical valid and invalid fixtures;
-- registry and shared-`$ref` resolution;
-- dynamic Message/Artifact payload schema resolution;
-- MCP bundled/dereferenced schema equivalence;
-- plugin-defined semantic capability and Message kinds;
-- contribution versus completion Artifact validation.
-
-### 2. Local Worker server and API
-
-Implement the authoritative durable Worker state behind [Worker API](../reference/worker-api.md).
-
-The first slice must prove:
-
-- assignment enqueue and atomic claim;
-- isolated Worker/provider bindings;
-- durable Message append/read with replay-safe identity;
-- durable Artifact publish/read with idempotency;
-- current-attempt and exact-input fencing;
-- authorization independent from opaque ids;
-- completion acceptance and durable-before-ack;
-- cancellation/supersession;
-- restart-safe inspection and recovery.
-
-Only AgentOS-owned Worker/provider state is stored here. DSH Team roster, mailbox, TeamTask, member lifecycle, and Team persistence remain DSH-owned.
-
-### 3. Website MCP provider
-
-Implement the first provider profile from [MCP Worker transport](../reference/mcp-worker-transport.md).
-
-Prove one real end-to-end continuation:
+The first Red tests should distinguish:
 
 ~~~text
-claim assignment
+already guaranteed by DSH
+  -> reuse through an adapter
+
+required by AgentOS but missing upstream
+  -> implement the smallest semantic delta
+
+optional runtime capability
+  -> defer until a concrete WorkItem/capability needs it
+~~~
+
+## 1. DSH composition/conformance proof
+
+Before implementing new Team/runtime mechanics, verify the current DSH services AgentOS plans to consume.
+
+### Agent Team
+
+Prove the programmatic `ctx.agentTeams` boundary for the behaviors AgentOS relies on:
+
+- durable Team identity/roster;
+- peer mailbox durability/deduplication;
+- task DAG/readiness/revision semantics;
+- teammate continuation/recovery;
+- wait/interruption;
+- restart/replay behavior;
+- programmatic access without relying on model-facing tools.
+
+Do not create an AgentOS roster/mailbox/task engine unless a failing conformance test demonstrates a real semantic gap.
+
+### Subagents/providers
+
+Characterize `ctx.subagents` providers:
+
+- DSH spawn/fork continuation;
+- Codex lifecycle/capabilities;
+- Claude Code lifecycle/capabilities;
+- ACP/DSH SDK provider behavior.
+
+Capability projection must be evidence-based.
+
+### Workflow primitives
+
+Characterize:
+
+- `ctx.storageDomain` durability/write semantics;
+- `ctx.jobs` lifecycle limitations;
+- `ctx.workflowEngine` bounded/live behavior and lack of restart resume;
+- approval/questions presentation semantics;
+- Schedule/wake semantics where relevant.
+
+## 2. Agnostic Worker schema/contract conformance
+
+Worker is capability-driven and domain-agnostic.
+
+Build executable coverage for:
+
+- Draft 2020-12 schema validity;
+- canonical valid/invalid fixtures;
+- registry/shared-`$ref` resolution;
+- open capability identifiers;
+- dynamic Message/Artifact payload schema resolution;
+- contribution versus completion Artifact validation;
+- provider capability projection;
+- provider/session ids remaining non-semantic.
+
+Current software capabilities are only the first profile.
+
+## 3. Minimal Worker Exchange semantic delta
+
+Do **not** assume a standalone Worker server/store is required.
+
+Start from DSH Team/Subagent durability and identify only missing Worker Protocol authority.
+
+Likely candidates to prove:
+
+- provider-neutral `assignmentId`;
+- exact `inputBinding`;
+- provider attempt fencing;
+- remote Website claim/current-state authority;
+- Artifact idempotency/completion acceptance;
+- authorization of a provider binding;
+- durable-before-ack for Website exchange.
+
+The logical boundary is Worker Exchange Service. Local providers may call it in-process; Website Agent reaches it through MCP.
+
+## 4. Website Worker provider
+
+Implement the first remote provider profile from [MCP Worker transport](../reference/mcp-worker-transport.md).
+
+Prove a real multi-round path:
+
+~~~text
+claim exact assignment
  -> publish contribution Artifact
  -> receive later Message
  -> revise
  -> publish completion Artifact
 ~~~
 
-The provider must also prove that stale attempts cannot inspect a newer attempt, `workerId` is not authorization, and absence of MCP Tasks does not change core Worker correctness.
+Also prove:
 
-MCP Tasks remain an optional long-wait projection, not a semantic dependency.
+- stale attempts cannot act as current;
+- `workerId` alone is not authorization;
+- provider conversation/MCP Task ids never become Worker identity;
+- MCP Tasks are optional projection, not correctness authority.
 
-### 4. DSH Agent Team provider
+## 5. Agent Team semantic layer
 
-Define the narrow Local/Workflow-facing Team callable boundary without exposing Worker API or DSH Team internals.
+Build only the layer above DSH Team mechanics:
 
-The first provider should then prove:
+- capability-driven Worker selection;
+- Worker bindings that are not tied to DSH teammate identity;
+- independent-first barriers;
+- cross-provider peer evidence routing;
+- required current Artifact policy;
+- typed phase result;
+- exact phase input/result binding;
+- effect validation.
 
-- one dedicated DSH Team for one software collaboration;
-- capability-based Worker selection rather than permanent personas;
-- isolated provider bindings per Worker;
-- independent-first research/review barriers;
-- direct DSH peer messaging bridged into Worker Messages;
-- current completion Artifacts before relevant TeamTask completion;
-- one typed durable phase result returned to Local/Workflow.
+The initial software profile can then prove:
 
-The exact language-level API can remain small; callers should depend on semantic operations/results such as research, implementation, and review rather than member/task mechanics.
+~~~text
+research -> implementation -> review
+~~~
 
-### 5. Durable Workflow provider
+without making those capabilities the Worker abstraction itself.
 
-Implement the first Workflow provider only after the Team path works end to end.
+## 6. Durable Workflow semantic layer
 
-Current provider choices:
+After Agent Team works end to end, implement the durable gap above existing DSH primitives.
 
-- DSH Storage Domain;
-- one Host mutation owner;
-- one aggregate durable record per WorkflowRun;
-- deterministic restart reconciliation;
-- derived wake/scheduling;
-- semantic execution adapters, including Agent Team.
+Minimal first composition:
 
-These are provider choices, not public Workflow contract requirements.
+~~~text
+Workflow semantic service
+  + ctx.storageDomain
+  + deterministic reconciler
+  + Agent Team adapter
+  + local validation/effect adapter
+~~~
+
+Required semantic behavior:
+
+- WorkflowRun/WorkItem durable identity;
+- exact-input attempt admission;
+- fenced result commit;
+- SAFE_RETRY / RECONCILE_BEFORE_RETRY / BLOCK_ON_UNKNOWN;
+- restart reconciliation;
+- durable PendingAction;
+- effect receipt/evidence binding;
+- reattachment;
+- terminal convergence.
+
+Do not add Jobs, direct Subagent, bounded DSH Workflow, Schedule, or extra interaction adapters until a concrete WorkItem needs them.
 
 ## TDD order
 
 Behavioral work follows strict **Red -> Green -> Refactor**.
 
-1. **Schema conformance** — write failing validation/registry/bundling tests, then implement the validator/registry support.
-2. **Worker server/API** — write failing state, authorization, fencing, idempotency, and restart tests, then implement the smallest durable store/API.
-3. **Website MCP provider** — write failing transport-equivalence and continuation tests, then implement the adapter.
-4. **DSH research Team** — write failing independent-first, peer-message, completion, and synthesis tests, then implement the provider slice.
-5. **Implementation + review** — extend the same Team/provider path with TDD and exact-input review.
-6. **Workflow** — write restart/reconciliation tests around the working Team and then add the durable outer lifecycle.
+1. **DSH conformance** — failing characterization/conformance tests for the capability seams we intend to reuse.
+2. **Worker contracts/schemas** — failing structural and semantic-boundary tests.
+3. **Worker Exchange delta** — failing authorization/fencing/idempotency tests only for gaps not already guaranteed upstream.
+4. **Website MCP Worker** — failing transport-equivalence and continuation tests.
+5. **Agent Team research phase** — failing capability selection, independence, peer exchange, Artifact and typed-result tests over DSH Team.
+6. **Implementation/review profile** — extend the same agnostic Worker path.
+7. **Workflow durability** — failing restart/reconciliation/PendingAction tests around the working Team adapter.
+8. **Optional adapters** — only when requirements require them.
 
 ## Deferred
 
@@ -126,12 +211,17 @@ Not required for the first working system:
 - distributed/multi-Host Workflow ownership;
 - alternate Team runtime;
 - generic TeamRun/DebateRound/TeamTurn abstractions;
-- arbitrary DAG framework;
+- arbitrary DAG framework beyond reused DSH Team mechanics and minimal Workflow dependencies;
 - Workstream across terminal WorkflowRuns;
 - A2A Worker provider;
-- ACP Worker provider;
-- MCP Tasks as a correctness dependency.
+- extra ACP/A2A integration beyond provider seams already supplied by DSH;
+- MCP Tasks as correctness dependency.
 
 ## Ready-to-implement condition
 
-Behavioral implementation can begin when the canonical docs and schemas are internally consistent and the first Red tests can express the boundaries above without inventing additional architecture.
+Behavioral implementation can begin when:
+
+1. canonical docs use one composition model;
+2. Worker remains agnostic and capability-driven;
+3. DSH capability ownership is explicit;
+4. the first Red tests can distinguish reused DSH guarantees from AgentOS-owned semantic gaps.
