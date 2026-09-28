@@ -23,9 +23,13 @@ For non-trivial work:
 - Agent Team owns collaborative software work inside Team phases.
 - V1 uses DSH Agent Teams as the Team core.
 - Do not duplicate DSH Team identity, roster, mailbox, Team task DAG, member lifecycle, Team persistence, or cold-resume mechanics.
+- Use stable software Team roles across runs: Lead/Synthesizer, Researcher Primary, Researcher Challenger, Implementer, Reviewer Correctness, Reviewer Architecture. Inputs vary; role responsibilities do not.
 - A semantic DSH Team member is primarily a coordination proxy for one isolated Website Agent/conversation when website-backed work is used.
 - Do not silently share one Website Agent conversation between semantic teammates.
 - Research/review peers may debate directly through DSH `send_message`; Lead does not proxy ordinary peer debate.
+- Never infer Website Agent completion from DSH member inactivity, message delivery, or TeamTask completion alone.
+- Website assignment completion must be explicit, schema-validated, exact-input-bound, and durable before its DSH TeamTask completes.
+- Workflow advances only after the Lead/provider commits the typed phase result; Workflow never polls individual Website Agents directly.
 - Preserve independent-first analysis before peer debate.
 - Adapt Internet Team methodology (independent analysis, evidence-based debate, strongest-supported synthesis), not its parallel Team runtime.
 - The same dedicated Team may span research -> implementation -> review for one software collaboration.
