@@ -58,87 +58,16 @@ AgentOS should compose these rather than duplicate them.
 
 ## AgentOS semantic delta
 
-AgentOS Workflow owns only the semantics that these plugins do not collectively guarantee:
+Workflow owns only product semantics not supplied by the selected runtime:
 
-- stable WorkflowRun identity independent of sessions/jobs/providers;
-- durable WorkItem dependency/readiness state;
-- exact-input execution admission;
-- attempt fencing;
-- explicit unknown-outcome recovery policy;
-- restart reconciliation rather than replay;
-- durable PendingAction;
-- effect receipt/evidence binding;
-- reattachment;
-- terminal convergence.
+- Workflow Definition/Profile validation;
+- semantic WorkItem/dependency/transition meaning;
+- exact Definition/input snapshot or digest when durable correctness requires it;
+- mapping current WorkItem execution to a provider/runtime handle;
+- result acceptance and typed terminal outcome;
+- product recovery policy for unknown provider/effect outcome;
+- effect evidence/actual-state requirements;
+- reattachment semantics exposed to callers.
 
-~~~mermaid
-flowchart TB
-    API[AgentOS Workflow semantic service]
-    Def[Validated Workflow Definition]
-    State[Domain-agnostic Core / reconciler]
-    Store[ctx.storageDomain]
+Generic checkpointing, queueing, timers, retries, waits, and process-crash recovery are runtime mechanics. Reuse DSH primitives first; if a concrete requirement is better served by Inngest, Temporal, or another library/runtime, wrap it behind an optional Cordis plugin rather than reimplementing the engine.
 
-    AT[Agent Team capability]
-    Jobs[ctx.jobs]
-    DSHWF[ctx.workflowEngine]
-    Sub[ctx.subagents]
-    Tools[local tools/effects]
-    Human[ctx.approval / ctx.userQuestions]
-    Schedule[Schedule / derived wake]
-
-    API --> Def
-    Def --> State
-    State <--> Store
-
-    State --> AT
-    State -.-> Jobs
-    State -.-> DSHWF
-    State -.-> Sub
-    State -.-> Tools
-    State -. presentation .-> Human
-    State -. wake .-> Schedule
-~~~
-
-The adapters are execution mechanics. None become WorkflowRun identity or completion authority.
-
-## Why `ctx.workflowEngine` is reused but not promoted to WorkflowRun
-
-DSH workflow runs model-authored scripts with subagent fan-out and currently has no journaling/resume across process restart.
-
-That makes it a useful **bounded WorkItem execution adapter**, but not the durable outer lifecycle AgentOS needs.
-
-~~~text
-WorkflowRun
-  -> WorkItem
-      -> optional ctx.workflowEngine run
-~~~
-
-## Why Jobs/Subagents/Team are adapters
-
-~~~text
-WorkItemId != JobId
-WorkItemId != subagent id
-WorkItemId != Team task id
-~~~
-
-The Workflow reconciler remains authoritative if those runtime handles disappear.
-
-## Domain extension rule
-
-A new domain changes only Definition/Profile configuration when all referenced capabilities, schemas, and execution adapters already exist.
-
-If the domain needs a new methodology, add a capability/Skill pack.
-
-If the domain needs a genuinely new execution/effect mechanism, add an adapter plugin.
-
-Neither case should introduce domain-specific branches into Workflow Core.
-
-## DSH dependency set
-
-See [composition](composition.md) for the detailed package/capability map.
-
-## Requirements
-
-- [Workflow requirements](../../../requirements/workflow/README.md)
-- [Definition requirements](../../../requirements/workflow/definition.md)
-- [Recovery requirements](../../../requirements/workflow/recovery.md)
