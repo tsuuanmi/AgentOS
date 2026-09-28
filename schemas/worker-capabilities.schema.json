@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentos.dev/schemas/worker-capabilities.schema.json",
+  "$id": "urn:agentos:schema:worker-capabilities",
   "title": "AgentOS Worker Capabilities",
   "description": "Capabilities advertised by a Worker binding or provider.",
   "type": "object",
@@ -11,18 +11,18 @@
   ],
   "properties": {
     "workerId": {
-      "$ref": "worker-common.schema.json#/$defs/identifier"
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
     "capabilities": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
       "items": {
-        "$ref": "worker-common.schema.json#/$defs/capability"
+        "$ref": "urn:agentos:schema:worker-common#/$defs/capability"
       }
     },
     "extensions": {
-      "$ref": "worker-common.schema.json#/$defs/extensions"
+      "$ref": "urn:agentos:schema:worker-common#/$defs/extensions"
     }
   }
 }
