@@ -1,102 +1,137 @@
 # Protocol stack
 
 - **Status:** canonical cross-cutting architecture
+- **Purpose:** make protocol ownership obvious to implementation agents
 
-AgentOS assigns one primary responsibility to each protocol:
+AgentOS uses three standard protocol axes:
 
 ~~~text
 ACP
   = Runtime / Client <-> Agent
-  = standard connection used to run/control Website Agent from DSH or another ACP-compatible runtime
 
 A2A
   = Agent <-> Agent
-  = standard peer collaboration between Website Agent and Agent Team Members/other agents
 
 MCP
   = Agent <-> Tool / Capability / Data
 ~~~
 
-These protocols are complementary, not interchangeable.
+They are complementary.
 
-## Website Agent topology
+## System diagram
 
-~~~text
-DSH / other ACP runtime
-        |
-       ACP
-        |
-        v
-  Website Agent Core
-        ^
-        |
-       A2A
-        |
-        v
- Agent Team Member
+~~~mermaid
+flowchart LR
+    Runtime[DSH / ACP Runtime]
+    Website[Website Agent]
+    Member[Agent Team Member]
+    Tool[Tool / Data / Capability]
+
+    Runtime -->|ACP| Website
+    Website <-->|A2A| Member
+
+    Website -->|MCP when applicable| Tool
+    Member -->|MCP when applicable| Tool
 ~~~
-
-Website Agent Core itself owns account/provider/browser/conversation/reconciliation behavior and is protocol-neutral.
 
 ## ACP
 
-ACP standardizes how a client/runtime communicates with an Agent.
+Purpose:
 
-AgentOS uses ACP so Website Agent is not coupled to DSH:
+> make Website Agent consumable by DSH today and another ACP-compatible runtime later.
+
+Canonical lifecycle:
 
 ~~~text
-DSH ACP Client ----------\
-Other ACP Runtime -------- ACP -> Website ACP Agent adapter -> Website Core
-Future ACP Runtime ------/
+initialize
+  -> session/new or supported resume/load
+      -> optional session mode/config
+          -> session/prompt
+              -> session/update*
+              -> PromptResponse(stopReason)
+          -> session/cancel when needed
 ~~~
 
-DSH is the first implementation host, but the Website Agent ACP contract is runtime-agnostic.
+Use official ACP SDK/types directly.
 
-See [DSH ACP](plugins/dsh/acp.md) and [Website adapters](plugins/website-agent/adapters.md).
+Website `chat` / `research` should use standard ACP Session Modes where the client supports them.
+
+See [ACP integration](plugins/dsh/acp.md).
 
 ## A2A
 
-A2A standardizes horizontal communication and collaboration between independent agents.
+Purpose:
 
-Primary AgentOS use:
+> make Website Agent and Agent Team Members collaborate through a standard independent-agent protocol.
+
+Canonical objects:
 
 ~~~text
-Agent Team Member <-> A2A <-> Website Agent
+AgentCard / AgentSkill
+Message / Part
+Task / TaskStatus
+Artifact / Part
+contextId / taskId / messageId
 ~~~
 
-Use native AgentCard/AgentSkill, Task/TaskStatus, Message, Artifact/Part, contextId, cancellation, and update semantics.
+Important semantics:
 
-A2A does not replace ACP's runtime-control role.
+- new Task ids are server-generated;
+- contextId groups related Tasks/Messages;
+- messageId is created by the Message creator;
+- Task output belongs in Artifact/Part;
+- Message is communication, not a reliable substitute for a Task deliverable.
+
+Initial transport is JSON-RPC over HTTP using the official JS SDK.
 
 See [A2A plugin](plugins/a2a/README.md).
 
 ## MCP
 
-MCP remains the vertical capability layer for tools, resources, and data.
+Purpose:
 
-An ACP-controlled Website Agent or an A2A peer may itself use MCP tools internally, but MCP is not the agent collaboration protocol.
+> expose tools, resources, and data to an Agent.
 
-## Identity rule
+MCP does not become Worker transport or peer-agent collaboration.
+
+An ACP-controlled Website Agent or A2A peer may use MCP internally when configured.
+
+## Direct-model rule
 
 ~~~text
-ACP sessionId
-  = runtime-facing Website Agent session handle
+Protocol owns object
+  -> use protocol object directly
 
-A2A contextId/taskId
-  = peer collaboration handles
-
-Website Core conversation key
-  = private semantic/native Website conversation mapping
+AgentOS owns semantic
+  -> define AgentOS/domain object
 ~~~
 
-Do not collapse these identities into one universal AgentOS id.
+Do not normalize all protocols into one universal Task/Message/Artifact/State model.
 
-## Rules
+## Identity matrix
 
-1. ACP connects runtimes/clients to Agents.
-2. A2A connects Agents to peer Agents.
-3. MCP connects Agents to tools/data/capabilities.
-4. Website Core stays independent of all three protocol lifecycles.
-5. DSH may be replaced by another ACP-compatible runtime without changing Website Core.
-6. A2A peer collaboration should remain independent of which runtime executes either agent.
-7. Reuse upstream protocol objects instead of AgentOS copies.
+| Identity | Meaning | Do not reinterpret as |
+|---|---|---|
+| ACP sessionId | runtime<->agent conversation session | WorkflowRun / Website native conversation id |
+| A2A contextId | peer conversational context | ACP session |
+| A2A taskId | server-owned stateful peer Task | client-generated request id |
+| A2A messageId | one Message identity | Task identity |
+| DSH provider handle | delegated runtime execution handle | semantic WorkItem |
+| Website native conversation id | provider-specific Website thread | AgentOS global conversation id |
+
+## Extension rule
+
+ACP custom methods/`_meta` and A2A extensions are last-resort interoperability tools.
+
+Start with standard protocol capabilities only. Add an extension only when the remote party must consume a semantic that cannot be expressed by the standard protocol.
+
+## Implementation verification
+
+A protocol integration is correct only when:
+
+1. official SDK types cross the protocol boundary unchanged;
+2. lifecycle semantics follow upstream rules;
+3. cancellation propagates;
+4. auth/authority remains owned by the protocol/runtime boundary;
+5. AgentOS state is not duplicated onto the wire;
+6. conformance tests run against real client/server implementations.
