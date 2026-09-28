@@ -41,7 +41,7 @@ Before adapter implementation, define the smallest supported Internet API that a
 
 1. select an authenticated Website account/provider;
 2. select `chat` or `research`;
-3. provide owner/conversation/logical-request identities;
+3. accept native protocol identities directly where their semantics match the core owner/conversation/logical-request needs;
 4. execute with cancellation;
 5. receive retained result/artifact metadata;
 6. recover/reconcile duplicate or uncertain logical requests.
@@ -68,8 +68,8 @@ Use official `@a2a-js/sdk`.
 Test:
 
 1. Website core can be called from a thin `AgentExecutor`;
-2. `contextId` maps safely to continued Website conversation context;
-3. `taskId`/local mapping gives stable logical request reconciliation;
+2. `contextId` can be passed directly as Website Core conversation identity;
+3. `taskId` can be passed directly as the logical request identity for reconciliation;
 4. long Website results project into native A2A Artifact/Part;
 5. cancellation reaches the core;
 6. the first integration uses zero AgentOS A2A extensions;
@@ -85,7 +85,7 @@ The following behavior must have one implementation only:
 - retry/reconciliation;
 - result retention.
 
-ACP/A2A adapters may map protocol state into core identities but cannot duplicate those mechanisms.
+ACP/A2A adapters should pass protocol identities/objects directly into Core where semantics match and cannot introduce duplicate protocol models. Minimal local adapter state is allowed only when an upstream protocol lacks an identity required for correctness.
 
 ## TDD direction
 
