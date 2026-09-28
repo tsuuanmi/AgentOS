@@ -38,6 +38,7 @@ docs/
 ├── contracts/
 ├── api/
 ├── mcp/
+├── skills/
 ├── proposals/
 ├── research/
 └── governance/
@@ -53,11 +54,14 @@ Repository-level JSON Schemas live under `/schemas`, outside `docs/`.
 
 Human-readable contracts link to them. API and transport docs reuse them rather than maintaining copies.
 
-### API and transport documentation
+### API, transport, and Skill documentation
 
 - `docs/api/` defines transport-neutral callable interfaces.
 - `docs/mcp/` defines MCP-specific mappings only.
+- `docs/skills/` defines agent operating guidance: when and how an agent should compose available capabilities.
 - Contracts must not absorb transport-specific behavior unless it is truly semantic.
+- Skills must not duplicate tool signatures or schema definitions and are never a security/correctness boundary.
+- Runtime/server code remains authoritative for current identity, authorization, lifecycle, fencing, idempotency, durability, and completion.
 
 ## README files are routers
 
