@@ -321,14 +321,15 @@ V1 does not require Agent Team to start Workflows. If that direction is introduc
 
 Agent Team is a peer capability to Workflow and Local.
 
-Current research narrows v1 Agent Team semantics to the two operations already required by the software vertical slice:
+Current research now treats one DSH-backed Agent Team collaboration as spanning the software phases already required by the vertical slice:
 
 ~~~text
-research
-review
+research = independent brainstorm + debate + synthesis
+implementation = Team-coordinated TDD work
+review = independent review + debate + synthesis
 ~~~
 
-The caller requests typed reasoning output. Provider internals remain hidden.
+The caller/Workflow observes typed phase completion. Provider internals remain hidden.
 
 The current Internet Team is primarily a reasoning protocol:
 
@@ -388,6 +389,25 @@ Workflow sees one Agent Team WorkItem result; it does not persist Team member tu
 
 See [Agent Team semantic contract v0](../research/agent-team-semantic-contract-v0.md).
 
+### Debate policy
+
+Debate remains part of the v1 Agent Team behavior.
+
+Adapt from Internet Team:
+
+~~~text
+independent brainstorm
+  -> peer analysis exchange
+  -> challenge / revise
+  -> strongest-supported synthesis
+~~~
+
+Internet currently expresses this through explicit round/TeamPlan/TeamTurn machinery. AgentOS should preserve the behavioral semantics but run them over DSH TeamTasks + durable mailbox + Lead coordination.
+
+Do not create an AgentOS DebateRound/TeamTurn runtime merely to preserve the behavior.
+
+For software-v0, a good default is one independent brainstorm phase plus one peer-debate phase before synthesis. Review uses the same pattern for false-positive challenge and evidence strengthening.
+
 ### DSH core reuse boundary
 
 AgentOS v1 should treat DSH Agent Teams as the Team core and avoid introducing a parallel Team runtime.
@@ -420,11 +440,14 @@ The result bridge must not become a second Team state store.
 
 Current DSH Team spawning requires a continuable subagent provider. Today the proven in-process continuable providers are `spawn` and `fork`; one-shot Codex/Claude Code/ACP providers are not direct Team-member transports.
 
-See [DSH Agent Teams core deep dive](../research/agent-team-dsh-core-deep-dive.md).
+See:
+
+- [DSH Agent Teams core deep dive](../research/agent-team-dsh-core-deep-dive.md)
+- [Agent Team software flow v0](../research/agent-team-software-flow-v0.md)
 
 ### V1 Agent Team provider isolation
 
-The first DSH-backed Agent Team provider should prefer **one dedicated ordinary root Agent/Team per semantic research/review invocation**.
+The first DSH-backed Agent Team provider should prefer **one dedicated ordinary root Agent/Team per software collaboration run**, reused across research, implementation, and review.
 
 Reason:
 
@@ -447,16 +470,15 @@ The provider may bind the root Session to the relevant workspace cwd, compose on
 Conceptually:
 
 ~~~text
-Agent Team request
+software Team run
   -> dedicated DSH root Lead
-       -> DSH Agent Teams
-       -> fresh/fork continuable teammates
-       -> Lead synthesis
-       -> durable typed completion
-  -> ResearchResult / ReviewResult
+       -> research: brainstorm + debate + ResearchResult
+       -> implementation: TDD + ImplementationReport
+       -> review: independent review + debate + ReviewResult
+       -> durable typed phase completions
 ~~~
 
-This is a **provider-v1 implementation decision**, not part of the public Agent Team semantic contract. A future provider may use a different isolation/topology strategy while passing the same conformance tests.
+This is a **provider-v1 implementation decision**, not part of the public Agent Team semantic contract. Workflow phase identity remains independent of the provider Team root id. A future provider may use a different isolation/topology strategy while passing the same conformance tests.
 
 ## Workflow reuse rule
 
