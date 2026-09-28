@@ -1,313 +1,392 @@
 # Architecture
 
-Architecture owns AgentOS current system structure, responsibility boundaries, dependency direction, major data flow, and cross-cutting invariants.
+Architecture owns AgentOS current system structure, plugin boundaries, responsibility ownership, dependency direction, major data flow, and cross-cutting invariants.
 
-It does not restate exact Worker payloads, MCP tools, JSON property lists, or detailed collaboration policy. Those live in [requirements](../requirements/README.md), [reference](../reference/README.md), and [schemas](../../schemas/README.md).
+Exact Worker payloads, MCP tools, JSON property lists, and storage algorithms live in [reference](../reference/README.md) and [schemas](../../schemas/README.md).
 
 ## North star
 
-> **Own AgentOS product semantics. Reuse DSH machinery. Keep provider details behind explicit boundaries.**
+> **Own AgentOS product semantics. Reuse DSH capability seams. Keep Worker and runtime/provider choices replaceable.**
 
-AgentOS should stay small. It defines the semantics a user or caller depends on, while DSH/Cordis provides the runtime machinery and provider adapters hide execution-specific details.
+AgentOS is a small plugin layer on top of Cordis/DSH.
+
+The two current AgentOS product plugins are:
+
+- **Agent Team** — collaborative software work, Worker selection/binding, phase policy, typed phase completion.
+- **Workflow** — durable lifecycle, sequencing, waiting, recovery, authority, and reattachment.
+
+See [plugin architecture](plugins/README.md).
 
 ## System context
 
-The top-level architecture has three semantic entry paths: direct Local work, direct collaborative Agent Team work, and durable Workflow-coordinated work.
-
 ~~~mermaid
 flowchart TB
-    U[User] --> L[Local Agent]
+    U[User] <--> L[Local Agent]
 
-    L -->|simple work| E[Environment tools / effects]
-    L -->|collaborative work| T[Agent Team]
-    L -->|durable work| W[Workflow]
+    L -->|collaborative work| AT[Agent Team plugin]
+    L -->|durable work| WF[Workflow plugin]
+    L -->|simple work| ENV[Environment / tools]
 
-    W -->|semantic phase| T
-    T -->|typed phase result| W
+    WF -->|typed semantic phase| AT
+    AT -->|typed phase result| WF
 
-    T --> D[DSH Agent Teams runtime]
-    T --> WB[Worker boundary]
+    AT --> X[Worker Exchange Service]
+    AT --> R[Team Runtime Adapter]
+    AT --> P[Worker Provider Registry]
 
-    WB <-->|MCP Worker transport| WA[Website Agent]
-    WB -.->|future provider adapter| AP[ACP / A2A / direct agent]
+    P --> DSH[DSH subagent Worker]
+    P --> CODEX[Codex Worker]
+    P --> CLAUDE[Claude Code Worker]
+    P --> WEB[Website Agent Worker]
+    P -.-> FUTURE[ACP / A2A / future Worker]
 
-    E --> V[Validation / observed state]
-    T --> V
-    W --> V
+    X <--> DSH
+    X <--> CODEX
+    X <--> CLAUDE
+    X <-->|MCP transport| WEB
 
-    V --> L
+    R --> DSHRT[DSH Team runtime candidate]
+
+    ENV --> V[Validation / observed state]
+    AT --> V
+    WF --> V
 ~~~
 
-The important boundary is not "local versus remote". It is **AgentOS semantic state versus runtime/provider mechanics**.
+The key distinction is:
 
-- **Local Agent** is the user-facing/native execution entry.
-- **Workflow** owns durable outer lifecycle and recovery.
-- **Agent Team** owns collaborative phase semantics and typed phase completion.
-- **DSH/Cordis** owns reusable runtime machinery.
-- **Worker boundary** preserves provider-neutral work semantics.
-- **Website Agent** is the current first-class external Worker execution participant, connected to the local Worker boundary through MCP.
-- **Validation** grounds correctness-bearing effects in observed state or receipts.
+~~~text
+AgentOS plugin
+  = product semantics
 
-See [Interaction model](interaction-model.md) for the end-to-end flows and [Worker boundary model](worker-boundaries.md) for the Contract / Schema / MCP / Skill / Server invariant separation.
+Worker
+  = provider-neutral execution role
 
-## Architecture planes
+Worker Provider
+  = DSH / Codex / Claude / Website / future runtime
 
-A useful way to read the system is as four planes with explicit dependency direction.
+DSH capability
+  = reusable runtime mechanism
 
-| Plane | Primary responsibility | Examples | Must not become |
-|---|---|---|---|
-| Product semantics | user/caller-visible meaning and durable coordination | Workflow, Agent Team, typed phase results | a copy of DSH runtime internals |
-| Runtime | reusable execution, Team, storage, tool and session machinery | DSH/Cordis, DSH Agent Teams | source of AgentOS semantic identity |
-| Worker boundary | provider-neutral assignment/message/artifact exchange and local truth | Worker Protocol, Worker server, schemas | provider-specific session model |
-| Provider execution | concrete remote/local execution lifecycle | Website Agent over MCP, future ACP/A2A/direct | Workflow or Team authority |
+Worker Exchange Service
+  = AgentOS-owned current Assignment / Message / Artifact authority
+~~~
+
+## Worker is not DSH-specific
+
+A Worker is an AgentOS semantic participant selected by capabilities.
+
+~~~text
+Worker
+  != DSH subagent
+  != Codex process/thread
+  != Claude Code session/query
+  != Website conversation
+~~~
+
+Those are provider/runtime implementations behind a Worker Binding.
+
+The canonical model is [Worker model](worker-model.md).
+
+### Worker versus Worker Exchange Service
+
+The Worker performs work.
+
+The Worker Exchange Service stores and enforces current correctness-bearing coordination state:
+
+- WorkerAssignment;
+- Messages;
+- Artifacts;
+- current attempt;
+- exact input binding;
+- completion acceptance;
+- authorization/idempotency/fencing.
+
+They may be implemented in the same Cordis plugin/process. They remain separate **logical responsibilities** so replacing or losing a Worker provider cannot also replace the authority that decides what work is current.
+
+The earlier phrase **Worker server** refers to one implementation form of the Exchange Service when it is exposed over a callable transport such as MCP.
+
+## Plugin architecture
 
 ~~~mermaid
 flowchart LR
-    subgraph S["AgentOS product semantics"]
-        W[Workflow]
-        T[Agent Team]
+    Local[Local Agent]
+
+    subgraph AgentOS["AgentOS plugins"]
+        Team[Agent Team]
+        Workflow[Workflow]
     end
 
-    subgraph B["Worker boundary"]
-        C[Worker Protocol]
-        WS[Worker server]
+    subgraph Shared["Shared AgentOS worker capability"]
+        Exchange[Worker Exchange Service]
+        Providers[Worker Provider Registry]
+        Protocol[Worker Protocol + schemas]
     end
 
-    subgraph R["DSH / Cordis runtime"]
-        DT[DSH Agent Teams]
-        RT[tools / storage / sessions]
+    subgraph DSH["DSH / Cordis capability seams"]
+        Storage[storage-domain]
+        Subagents[subagent]
+        Jobs[jobs]
+        DSHWorkflow[workflowEngine]
+        Interaction[approval / userQuestions]
+        Runtime[session / tools / workspace]
     end
 
-    subgraph P["External agent execution"]
-        WA[Website Agent]
-        OTHER[ACP / A2A / direct agent]
-    end
+    Local --> Team
+    Local --> Workflow
+    Workflow --> Team
 
-    W -->|phase request| T
-    T -->|typed phase result| W
+    Team --> Exchange
+    Team --> Providers
+    Protocol --> Exchange
 
-    T --> DT
-    T --> C
-    C --> WS
+    Team --> Subagents
+    Team --> Storage
 
-    DT --> RT
-    WS -->|MCP Worker transport| WA
-    WS -.->|future provider adapter| OTHER
+    Workflow --> Storage
+    Workflow -.-> Jobs
+    Workflow -.-> DSHWorkflow
+    Workflow -.-> Subagents
+    Workflow -.-> Interaction
+
+    Providers --> Subagents
 ~~~
 
-The planes are conceptual ownership boundaries, not necessarily separate processes.
+Plugin boundaries are API/responsibility boundaries, not deployment boundaries. Both plugins may run in one DSH/Cordis process.
+
+Detailed plugin internals:
+
+- [Agent Team plugin](plugins/agent-team.md)
+- [Workflow plugin](plugins/workflow.md)
+- [DSH capability reuse](dsh-reuse.md)
 
 ## Component ownership
 
-| Component | Owns | Depends on / consumes | Does not own |
-|---|---|---|---|
-| Local Agent | user interaction, environment-native work, starting/inspecting capabilities | Workflow and Agent Team semantic interfaces, tools | durable Workflow internals, Team roster/tasks, provider lifecycle |
-| Workflow | WorkflowRun lifecycle, sequencing, waiting, recovery, authority gates, reattachment, exact phase input binding | typed Agent Team phase interface, validation/effect evidence | Team membership, peer debate, Website Agent conversations |
-| Agent Team | collaborative phase policy, capability-based Worker selection, provider-backed Worker bindings, typed phase completion | DSH Agent Teams, Worker Protocol/server, validation evidence | outer Workflow lifecycle, DSH runtime persistence mechanics |
-| DSH Agent Teams | Team identity, roster, mailbox, Team tasks, teammate lifecycle/continuation and Team persistence | Cordis/runtime primitives | AgentOS Workflow or phase-result semantics |
-| Worker server | current durable Worker assignment/message/artifact state, fencing, acceptance and authorization invariants | canonical schemas and Worker Protocol | Team semantics, Workflow semantics, provider UI/session semantics |
-| Website Agent | remote substantive Worker execution; claiming assignments; consuming Messages; publishing Messages/Artifacts through MCP | MCP Worker transport, Worker Protocol semantics, optional Skill guidance | DSH Team identity, Workflow lifecycle, local completion authority |
-| Provider adapter | provider-specific binding and transport/lifecycle mapping | Worker Protocol-compatible exchange | AgentOS semantic identity or completion authority |
-| Validation | observed repository/environment/effect state and explicit receipts | actual tools/environment | model consensus as correctness authority |
+| Component | Owns | Does not own |
+|---|---|---|
+| Local Agent | user interaction, simple environment-native work, invoking AgentOS plugins | durable Workflow state, Team internals, Worker provider lifecycle |
+| Agent Team plugin | phase policy, Worker capability selection, Worker bindings, peer-collaboration semantics, typed phase result | WorkflowRun lifecycle, concrete provider identity |
+| Workflow plugin | WorkflowRun/WorkItem lifecycle, dependencies, waiting, recovery, PendingAction, receipts, reattachment | Worker provider lifecycle, Team peer coordination |
+| Worker | semantic unit of agent execution | current authoritative assignment state outside its accepted binding |
+| Worker Exchange Service | current Assignment/Message/Artifact state, attempt/input fencing, completion acceptance | reasoning/model execution, Team policy, Workflow policy |
+| Worker Provider | concrete runtime execution and provider-native continuation | Worker identity, phase identity, Workflow identity |
+| Team Runtime Provider | roster/task/mailbox/member mechanics used by Agent Team | AgentOS typed phase semantics |
+| DSH/Cordis | plugin runtime and reusable capability seams | AgentOS product semantics |
+| Validation | observed repository/environment/effect evidence | model consensus as correctness authority |
 
-Canonical normative behavior stays in [Workflow requirements](../requirements/workflow.md) and [Agent Team requirements](../requirements/agent-team.md).
+## Agent communication
 
-## Agent communication and protocols
-
-Agents do not all communicate through the same protocol. Protocol choice follows the ownership boundary:
+Different boundaries use different protocols/interfaces.
 
 | Interaction | Protocol / interface |
 |---|---|
-| Local Agent -> Agent Team | AgentOS Agent Team semantic interface |
-| Local Agent -> Workflow | AgentOS Workflow semantic interface |
+| Local Agent -> Agent Team | AgentOS Agent Team semantic service |
+| Local Agent -> Workflow | AgentOS Workflow semantic service |
 | Workflow <-> Agent Team | typed AgentOS phase interface |
-| DSH Worker <-> DSH Worker | DSH Agent Teams TeamTask + mailbox / `send_message` |
-| DSH Worker <-> Worker server | Worker API carrying Worker Protocol objects |
-| Website Agent <-> Worker server | MCP Worker transport carrying Worker Protocol semantics |
-| Website Agent <-> Website Agent | no direct protocol; communication composes MCP + Worker Protocol + DSH Team messaging |
+| Agent Team -> Worker Exchange | Worker API / in-process service using Worker Protocol objects |
+| Worker Provider -> Worker Exchange | provider adapter; local API or transport |
+| Website Agent -> Worker Exchange | MCP Worker transport |
+| DSH Team runtime members | DSH Team task/mailbox/send_message when that runtime is used |
+| Website Worker A -> Website Worker B | no direct protocol; Agent Team routes peer Message through authoritative Worker/Team boundaries |
 
-The full routing model, including Website-to-Website peer communication, lives in [Agent communication architecture](agent-communication.md).
-
-A critical distinction is:
-
-~~~text
-DSH Team messaging
-  = local teammate collaboration
-
-Worker Protocol
-  = provider-neutral Assignment / Message / Artifact semantics
-
-MCP
-  = current Website-facing transport
-
-AgentOS phase interface
-  = typed collaboration result exposed to Local / Workflow
-~~~
+See [Agent communication architecture](agent-communication.md).
 
 ## Dependency direction
-
-Dependencies point inward toward stable AgentOS semantics and outward only through explicit provider/runtime adapters.
 
 ~~~mermaid
 flowchart TD
     Local[Local Agent]
-    Workflow[Workflow]
-    Team[Agent Team]
-    Worker[Worker semantic boundary]
-    DSH[DSH Agent Teams / Cordis]
-    Provider[Provider adapter / execution]
+    Workflow[Workflow plugin]
+    Team[Agent Team plugin]
+    Worker[Worker model / Exchange]
+    Seam[DSH capability seams]
+    Provider[Worker providers]
 
     Local --> Workflow
     Local --> Team
-    Workflow -->|semantic phase interface only| Team
+    Workflow -->|semantic phase interface| Team
     Team --> Worker
-    Team --> DSH
+    Team --> Seam
     Worker --> Provider
+    Provider --> Seam
 ~~~
 
-### Forbidden dependency shortcuts
-
-These edges are intentionally absent:
+### Forbidden shortcuts
 
 ~~~text
-Workflow  -X-> Website Agent / MCP session
-Workflow  -X-> DSH member status / mailbox / TeamTask as completion authority
+Workflow -X-> Website conversation / Codex thread / Claude session
+Workflow -X-> individual Worker provider lifecycle
+Workflow -X-> DSH TeamTask as phase-completion authority
+
 Agent Team -X-> WorkflowRun internal state
-Provider   -X-> WorkflowRunId / Team semantic identity
-AgentOS    -X-> shadow DSH Team roster / mailbox / Team DAG
+
+Worker Provider -X-> WorkflowRun semantic identity
+Worker Provider -X-> Agent Team phase authority
+
+AgentOS -X-> duplicate DSH/runtime state merely for convenience
 ~~~
 
-If a future implementation appears to require one of these edges, first check whether responsibility is leaking across a boundary.
+## DSH reuse
+
+DSH is not treated as one monolithic dependency.
+
+AgentOS consumes explicit capability seams.
+
+Primary examples:
+
+~~~text
+ctx.subagents
+  -> Worker provider registry/runtime
+
+ctx.storageDomain
+  -> AgentOS durable records
+
+ctx.jobs
+  -> optional process-local execution adapter
+
+ctx.workflowEngine
+  -> optional bounded live orchestration inside one WorkItem
+
+ctx.approval / ctx.userQuestions
+  -> optional human-interaction presentation
+
+DSH session / tools / workspace
+  -> provider/runtime support
+~~~
+
+See [DSH capability reuse](dsh-reuse.md) for the canonical matrix and limitations.
 
 ## Runtime topology
 
-The current expected runtime topology keeps semantic authority local even when substantive Worker execution happens on a Website Agent.
+A first implementation can run in one local DSH/Cordis host while Workers use multiple providers.
 
 ~~~mermaid
 flowchart LR
-    subgraph Local["Local machine / AgentOS"]
+    subgraph Host["Local DSH / Cordis host"]
         LA[Local Agent]
-        WF[Workflow]
-        AT[Agent Team provider]
-        DT[DSH Agent Teams]
-        WS[Worker server]
-        ENV[Repository / environment]
+        AT[Agent Team plugin]
+        WF[Workflow plugin]
+        EX[Worker Exchange Service]
+        SP[Worker Provider Registry]
+        STORE[storage-domain]
+        ENV[Workspace / tools]
     end
 
-    subgraph Remote["Provider side"]
-        WA1[Website Agent execution A]
-        WA2[Website Agent execution B]
+    subgraph LocalWorkers["Local/out-of-process providers"]
+        DW[DSH subagent]
+        CX[Codex]
+        CL[Claude Code]
     end
 
-    LA --> WF
+    subgraph Remote["Remote provider"]
+        WA[Website Agent]
+    end
+
     LA --> AT
+    LA --> WF
     WF --> AT
-    AT --> DT
 
-    DT --> WS
-    WS <-->|Worker exchange via MCP transport| WA1
-    WS <-->|Worker exchange via MCP transport| WA2
+    AT --> EX
+    AT --> SP
+    AT --> STORE
+    WF --> STORE
 
-    LA --> ENV
+    SP --> DW
+    SP --> CX
+    SP --> CL
+    SP --> WA
+
+    DW <--> EX
+    CX <--> EX
+    CL <--> EX
+    WA <-->|MCP| EX
+
     AT --> ENV
     WF --> ENV
 ~~~
 
-The exact process layout may evolve. The architectural invariant is that provider-local conversation/session/task handles remain adapter-local, while current Worker truth is enforced by the Worker server and Team/Workflow semantics remain in their owning capabilities.
+The exact process layout may change. Semantic ownership must not.
 
 ## Semantic identity versus provider handles
 
-Stable AgentOS identity must survive transport/session replacement.
-
 ~~~mermaid
 flowchart LR
-    WR[WorkflowRunId] --> WI[WorkItem / phase input]
-    WI --> TA[Team phase execution]
-    TA --> WA[WorkerAssignment.assignmentId]
-    WA --> ATT[attemptId]
+    RUN[WorkflowRunId]
+    ITEM[WorkItem / phase input]
+    PHASE[Agent Team phase]
+    WORKER[workerId]
+    ASSIGN[assignmentId]
+    ATTEMPT[attemptId]
 
-    ATT -. maps to .-> H1[Website conversation / MCP task]
-    ATT -. maps to .-> H2[ACP session]
-    ATT -. maps to .-> H3[A2A task/context]
+    RUN --> ITEM
+    ITEM --> PHASE
+    PHASE --> WORKER
+    WORKER --> ASSIGN
+    ASSIGN --> ATTEMPT
+
+    ATTEMPT -. binding .-> DSH[DSH session/subagent handle]
+    ATTEMPT -. binding .-> CX[Codex run/thread/process]
+    ATTEMPT -. binding .-> CL[Claude query/session/process]
+    ATTEMPT -. binding .-> WEB[Website conversation / MCP Task]
 ~~~
 
-Provider handles may rotate or disappear without changing the higher-level semantic identity. A new provider execution may produce a new attemptId while preserving the same assignment and exact input binding.
+Provider handles may rotate or disappear without changing higher-level semantic identities.
 
-## Completion and correctness chain
-
-Different layers have different completion meanings. They must not be collapsed.
+## Completion chain
 
 ~~~mermaid
 flowchart TB
-    PE[Provider produces candidate work]
-    CA[Current completion Artifact accepted by Worker server]
-    TT[Relevant DSH TeamTask may complete]
-    PR[Typed AgentOS phase result commits]
-    WW[Workflow WorkItem may complete]
-    EE[Effect-bearing work validated against actual state / receipt]
+    OUT[Provider produces candidate work]
+    ART[Current completion Artifact accepted by Worker Exchange]
+    TEAM[Agent Team collaboration policy satisfied]
+    RESULT[Typed AgentOS phase result commits]
+    WORK[Workflow WorkItem may complete]
+    EFFECT[Effect-bearing work validated by actual state / receipt]
 
-    PE --> CA --> TT --> PR --> WW
-    WW --> EE
+    OUT --> ART --> TEAM --> RESULT --> WORK
+    WORK --> EFFECT
 ~~~
 
-Key consequences:
+When a Team Runtime provider has its own task state, those task transitions are internal mechanics between accepted Worker work and typed phase completion; they are not AgentOS phase authority by themselves.
 
-1. Provider inactivity is not Worker completion.
-2. Message delivery is not completion.
-3. DSH TeamTask completion alone is not AgentOS phase completion.
-4. Workflow advances only from a current typed phase result bound to the exact phase input.
-5. Real side effects require actual observed evidence or receipts; model prose is never sufficient authority.
+## Current implementation direction
 
-## Workflow and Agent Team relationship
+Current choices are intentionally replaceable:
 
-Workflow and Agent Team are peer AgentOS capabilities, not a parent runtime and child runtime.
-
-~~~text
-Local
-  +-> Agent Team
-  |
-  +-> Workflow
-        |
-        +-> Agent Team phase interface
-~~~
-
-Workflow may coordinate Agent Team phases, but Agent Team remains directly usable without Workflow. This keeps simple collaborative work lightweight while allowing the same semantic Team boundary to participate in durable long-running work.
-
-## Current implementation choices
-
-The current implementation direction is:
-
-- **DSH Agent Teams** as the Team runtime.
-- **DSH/Cordis primitives** reused for runtime/storage mechanics where appropriate.
-- **Local Worker server** as current durable Worker truth.
-- **MCP** as the first Website-facing Worker transport profile.
-- **Website Agent** as the first remote provider execution style.
-- **ACP/A2A/direct providers** deferred behind the same Worker semantics.
-
-These are implementation choices, not permanent architecture requirements. Unresolved implementation work belongs in the [initial implementation proposal](../proposals/initial-implementation.md).
+- **Cordis/DSH** as the local plugin runtime.
+- **Agent Team** and **Workflow** as AgentOS Cordis plugins.
+- **`ctx.subagents`** as the primary DSH execution-provider seam.
+- **`ctx.storageDomain`** as the primary durable AgentOS-state seam.
+- **Website Agent over MCP** as the first remote Worker provider.
+- **DSH subagent** as a local Worker provider.
+- **Codex and Claude Code** as additional Worker provider candidates where their actual lifecycle guarantees satisfy the requested Worker capabilities.
+- community **dsh-agent-teams** as a possible Team Runtime provider only after a stable callable adapter is proved; AgentOS does not assume an undocumented `ctx.agentTeams` service.
 
 ## Cross-cutting invariants
 
-1. AgentOS owns semantics that are not already owned by DSH.
-2. Local remains directly usable; Workflow is not mandatory for simple work.
-3. Workflow and Agent Team remain peer capabilities with explicit ownership boundaries.
-4. DSH Team identity, roster, mailbox, Team tasks, lifecycle, and persistence are never shadowed in AgentOS.
-5. Worker, assignment, attempt, provider, transport, and session identities remain distinct.
-6. Typed durable completion bridges Worker collaboration into Agent Team and Agent Team into Workflow.
-7. Activity, inactivity, delivery, UI state, or provider turn completion never substitute for semantic completion.
-8. Real effects are validated from actual state or receipts rather than model claims.
-9. User authority and side-effect completion remain separate.
-10. Unknown execution outcomes reconcile according to explicit policy; missing handles never authorize blind retry.
-11. Provider choices stay replaceable behind requirements/reference boundaries.
-12. New abstractions require evidence of a real semantic, lifecycle, authority, or replacement boundary.
+1. AgentOS owns product semantics; DSH owns reusable runtime mechanics.
+2. Agent Team and Workflow are peer AgentOS plugins.
+3. Worker is provider-neutral.
+4. Worker Exchange Service is state authority, not an Agent.
+5. Worker and Exchange Service may be colocated without merging their responsibilities.
+6. Provider/session/task ids never become Worker/phase/Workflow semantic identity.
+7. Provider capability limitations must be reflected in Worker capability selection.
+8. Typed phase completion bridges Agent Team into Workflow.
+9. Activity, inactivity, message delivery, provider turn completion, or runtime task completion alone never substitute for semantic completion.
+10. Real effects are validated from actual state or receipts.
+11. Authority and effect completion remain distinct.
+12. Unknown outcomes reconcile before unsafe retry.
+13. DSH/plugin-specific behavior stays behind adapters.
+14. New abstractions require a real semantic, lifecycle, authority, or replacement boundary.
 
 ## Canonical neighbors
 
-- [Interaction model](interaction-model.md) — end-to-end request, collaboration, completion, and recovery flows.
-- [Agent communication architecture](agent-communication.md) — Agent roles, protocol matrix, Website Agent boundary, and peer-message routing.
-- [Worker boundary model](worker-boundaries.md) — placement of Contract, Schema, MCP, Skill, and Server invariant concerns.
-- [Requirements](../requirements/README.md) — normative behavior.
-- [Reference](../reference/README.md) — exact protocols, APIs, MCP mapping, server invariants, and schemas.
-- [software-worker Skill](../../.agents/skills/software-worker/SKILL.md) — procedural Worker methodology.
-- [Initial implementation proposal](../proposals/initial-implementation.md) — unresolved implementation change.
-- [Research](../research/README.md) — temporary provider/runtime evidence.
+- [Plugin architecture](plugins/README.md)
+- [Agent Team plugin](plugins/agent-team.md)
+- [Workflow plugin](plugins/workflow.md)
+- [Worker model](worker-model.md)
+- [Agent communication architecture](agent-communication.md)
+- [Worker boundary model](worker-boundaries.md)
+- [DSH capability reuse](dsh-reuse.md)
+- [Requirements](../requirements/README.md)
+- [Reference](../reference/README.md)
+- [Initial implementation proposal](../proposals/initial-implementation.md)
