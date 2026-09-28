@@ -38,6 +38,8 @@ Create a small DSH-native AgentOS where:
 6. Implementations can change without leaking implementation-native identity into AgentOS semantics.
 7. Replaceability is verified through reusable conformance tests.
 8. Profiles/bundles compose capabilities without becoming a hidden monolith.
+9. Host task/session handles remain projections rather than AgentOS semantic identities.
+10. Execution backends remain below semantic capability contracts when multiple workers are genuinely required.
 
 ## Non-goals
 
@@ -54,33 +56,44 @@ Create a small DSH-native AgentOS where:
 ~~~text
 +--------------------------------------------------+
 | DSH / Cordis host kernel                         |
-| lifecycle · DI · config · composition            |
+| lifecycle · DI · config · plugin runtime         |
 +--------------------------+-----------------------+
                            |
+                           | hosts
+                           v
++--------------------------------------------------+
+| AgentOS root plugin / profile                    |
+| selects Skills, capabilities, policies, providers|
++--------------------------+-----------------------+
+                           |
+                           | depends on semantics
                            v
 +--------------------------------------------------+
 | AgentOS semantic surface                         |
-| minimal contracts/invariants defining AgentOS    |
+| only contracts/invariants AgentOS must own       |
 +--------------------------+-----------------------+
                            |
-              semantic capability boundary
+                    capability resolution
                            |
           +----------------+----------------+
           |                |                |
           v                v                v
    DSH services      public tools      AgentOS adapters /
    and plugins       / plugins         implementations
-          \                |                /
-           +---------------+----------------+
-                           |
-                           v
-+--------------------------------------------------+
-| AgentOS profiles / bundles                       |
-| choose and compose capabilities                  |
-+--------------------------------------------------+
 ~~~
 
-The semantic surface is intentionally empty-by-default. A concept enters it only when AgentOS must own its meaning independently of the implementation.
+Optional cross-host projections remain edge adapters:
+
+~~~text
+Chat / Work / CLI / another host
+            |
+     MCP / Tasks / host tool API
+            |
+            v
+     AgentOS capability surface
+~~~
+
+The semantic surface is intentionally empty-by-default. A concept enters it only when AgentOS must own its meaning independently of the implementation. A host task/session handle may reference a semantic operation, but it does not become that operation's identity.
 
 ## Ownership rule
 
@@ -416,6 +429,44 @@ team
 
 The profile chooses capabilities. Provider/model/executor choice remains below semantic capability selection.
 
+## Transport and host-adapter boundary
+
+A portable or host-specific lifecycle API may project an AgentOS operation without owning its semantics.
+
+~~~text
+host task/session handle T1
+        |
+        | status / cancellation / input projection
+        v
+AgentOS semantic operation A1
+~~~
+
+When AgentOS owns A1, `T1 != A1`.
+
+Examples of possible projections include DSH Jobs, MCP Tasks, CLI handles, or another host-specific task API. Their lifecycle vocabulary may be intentionally coarser and their retention may be shorter than AgentOS semantic history.
+
+If AgentOS does **not** own separate domain state for the operation, consume the DSH/public semantic owner directly rather than inventing an AgentOS record only to create this separation.
+
+Edge adapters may translate trusted host interaction into provenance, but they may not allow model output to self-assert protected user authority.
+
+MCP Tasks is therefore not a required AgentOS kernel dependency. It may become a first-class adapter when a concrete portable long-running AgentOS capability requires it.
+
+## Execution adapter boundary
+
+The same separation applies to heterogeneous workers:
+
+~~~text
+semantic capability
+      |
+      +-> DSH worker
+      +-> Codex/external worker
+      +-> future worker
+~~~
+
+The semantic input/output contract belongs above the worker implementation. Worker-native task, session, process, or execution IDs stay adapter-local.
+
+Do not add a generic AgentOS Worker abstraction speculatively. Introduce it only when one real AgentOS-owned capability needs multiple execution backends while preserving the same semantic contract, side-effect rules, cancellation behavior, provenance, and result semantics.
+
 ## Repository shape
 
 Do not design the package tree ahead of proven boundaries.
@@ -485,7 +536,9 @@ The first real AgentOS semantic component should be discovered from a concrete u
 4. Does AgentOS need any durable identity/state independent of DSH?
 5. Which first use case proves a real AgentOS semantic boundary?
 6. Which existing DSH/public capability can serve as the first alternate implementation behind such a boundary?
-7. What compatibility/version contract should AgentOS declare against DSH?
+7. Which AgentOS capability, if any, needs a portable long-running projection such as MCP Tasks rather than only DSH-native lifecycle?
+8. Which concrete capability first proves a real DSH-vs-external worker substitution boundary?
+9. What compatibility/version contract should AgentOS declare against DSH?
 
 ## Acceptance criteria
 
@@ -496,6 +549,8 @@ Before implementation expands beyond the root plugin/profile:
 - Public tools/plugins are consumed directly unless an AgentOS invariant requires an adapter.
 - Every AgentOS-owned contract names the semantic invariant it protects.
 - Implementation-native IDs do not leak into AgentOS semantic identities.
+- Host task/session handles remain projections rather than semantic identity when AgentOS owns separate domain state.
+- Worker implementations remain below semantic capability contracts when a real substitution boundary exists.
 - Component boundaries follow real lifecycle/authority/failure/replacement differences.
 - Replaceability is backed by conformance tests or a clearly independently owned host boundary.
 - Static behavior stays in Skills/profile configuration where sufficient.
