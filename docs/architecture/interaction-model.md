@@ -3,365 +3,234 @@
 - **Status:** canonical interaction model
 - **Date:** 2026-09-28
 
-This document shows how the canonical architecture composes end to end. Ownership rules remain in [Architecture](README.md); the exact Agent-to-Agent protocol routing is defined in [Agent communication architecture](agent-communication.md); detailed behavior remains in [requirements](../requirements/README.md) and [reference](../reference/README.md).
-
-The diagrams intentionally show **semantic interactions**, not frozen language-level APIs.
+This document shows how AgentOS capability compositions interact end to end.
 
 ## Entry modes
-
-AgentOS keeps the simplest valid path available for each kind of work.
 
 ~~~mermaid
 flowchart LR
     U[User] --> L[Local Agent]
 
-    L -->|simple / immediate| D[Direct tools and environment]
+    L -->|simple| D[Direct tools/environment]
     L -->|collaborative| T[Agent Team]
-    L -->|durable / recoverable| W[Workflow]
-    W -->|collaborative phase| T
+    L -->|durable| W[Workflow]
+    W -->|collaborative WorkItem| T
 
-    T --> LR[Typed phase/final result]
-    W --> WR[Durable Workflow result / PendingAction]
-    D --> DR[Observed effect/result]
-
-    LR --> L
-    WR --> L
-    DR --> L
+    T --> TR[Typed phase result]
+    W --> WR[Durable run result / PendingAction]
+    D --> DR[Observed result]
 ~~~
 
-No optional layer is required for simpler work:
+No optional layer is required for simpler work.
 
-~~~text
-simple:
-  User -> Local -> tools/environment
-
-collaborative:
-  User -> Local -> Agent Team
-
-durable collaborative:
-  User -> Local -> Workflow -> Agent Team
-~~~
-
-## Direct Agent Team flow
-
-Agent Team can run without Workflow.
+## Agent Team composition flow
 
 ~~~mermaid
 sequenceDiagram
-    participant U as User
-    participant L as Local Agent
-    participant T as Agent Team
-    participant D as DSH Agent Teams
-    participant W as Worker boundary
-    participant P as Website Agent
+    participant L as Local / Workflow
+    participant A as Agent Team semantics
+    participant D as DSH ctx.agentTeams
+    participant S as Worker Selector
+    participant P as Worker Provider
     participant V as Validation
 
-    U->>L: collaborative request
-    L->>T: semantic phase request + exact input
-    T->>D: create/continue dedicated Team and TeamTasks
-    D->>W: Worker API / Worker Protocol
-    W->>P: MCP: assignment + current Messages
-    P->>W: MCP: Messages + contribution/completion Artifacts
-    W-->>D: accepted current Worker state/artifacts
-    D-->>T: Team collaboration state
-    T->>V: validate effect-bearing evidence when required
-    T-->>L: typed durable phase/final result
-    L-->>U: result
-~~~
+    L->>A: execute phase with exact input
+    A->>D: create/recover Team collaboration context
+    A->>S: select Workers by capabilities
+    S-->>A: Worker bindings
 
-The Team provider may use multiple Workers and multiple provider executions internally. Local depends only on the Agent Team semantic result.
-
-## Durable Workflow flow
-
-Use Workflow when work needs durable lifecycle, recovery, waiting, authority, or reattachment.
-
-~~~mermaid
-sequenceDiagram
-    participant U as User
-    participant L as Local Agent
-    participant WF as Workflow
-    participant T as Agent Team
-    participant V as Validation
-    participant E as Environment
-
-    U->>L: long-running request
-    L->>WF: start / inspect / respond / cancel / reattach
-    WF->>WF: bind current WorkItem input
-    WF->>T: execute semantic phase
-    T-->>WF: typed phase result bound to exact input
-
-    alt effect-bearing work
-        WF->>E: execute or observe effect through authorized path
-        E-->>V: actual state / receipt
-        V-->>WF: validated evidence
+    loop required assignments
+        A->>P: provider-neutral assignment via adapter
+        P-->>A: contribution/completion Artifacts
     end
 
-    alt more work is required
-        WF->>WF: commit next WorkItem / dependency state
-    else user or external authority is required
-        WF-->>L: PendingAction / WAITING
-        L-->>U: request input or authority
+    A->>D: peer coordination / Team task progression
+    A->>V: validate effects/evidence when required
+    A->>A: synthesize + bind typed result
+    A-->>L: typed durable phase result
+~~~
+
+DSH Team runtime supplies collaboration mechanics. Worker providers supply execution. AgentOS supplies phase policy and typed result semantics.
+
+## Workflow composition flow
+
+~~~mermaid
+sequenceDiagram
+    participant U as User
+    participant L as Local Agent
+    participant W as Workflow
+    participant S as ctx.storageDomain
+    participant A as Execution Adapter
+    participant T as Agent Team
+
+    U->>L: long-running request
+    L->>W: start
+    W->>S: durable WorkflowRun / current WorkItem
+
+    alt collaborative WorkItem
+        W->>T: exact semantic phase input
+        T-->>W: typed phase result
+    else other WorkItem
+        W->>A: dispatch through selected adapter
+        A-->>W: result / observed state / handle
+    end
+
+    W->>W: exact-input fenced commit
+
+    alt waiting for user/external input
+        W-->>L: PendingAction
+        L-->>U: present request
         U->>L: response
-        L->>WF: respond
+        L->>W: respond
     else terminal
-        WF-->>L: durable terminal result
+        W-->>L: durable result
         L-->>U: result
     end
 ~~~
 
-Workflow observes typed Agent Team phase completion. It does not poll individual provider executions or infer phase completion from Team activity.
+DSH Jobs, workflowEngine, subagents, Schedule, and interaction plugins are adapter choices inside WorkItems, not Workflow identity.
 
-## Software collaboration path
+## Initial software capability profile
 
-The current software flow composes semantic phases rather than exposing Team members or provider sessions to Workflow.
+Software is one capability profile over the agnostic Worker model.
 
 ~~~mermaid
 flowchart LR
-    R[RESEARCH] --> RR[ResearchResult]
-    RR --> I[IMPLEMENT]
+    R[RESEARCH<br/>research + brainstorm + debate] --> RR[ResearchResult]
+    RR --> I[IMPLEMENT<br/>implement + tdd]
     I --> IR[ImplementationReport]
-    IR --> V[VALIDATE actual repository/environment]
-    V --> RV[REVIEW]
+    IR --> V[VALIDATE<br/>actual state]
+    V --> RV[REVIEW<br/>review + debate]
     RV --> RVR[ReviewResult]
-
-    RVR -->|accepted| DONE[Terminal result]
-    RVR -->|changes required| REM[Bounded remediation]
-    REM --> I
+    RVR -->|accepted| DONE[Done]
+    RVR -->|changes required| I
 ~~~
 
-The same dedicated DSH Team may span research -> implementation -> review. Separate Worker instances and provider bindings preserve independence where the collaboration policy requires it.
+Future profiles can define different phases/capabilities without changing Worker identity.
 
-## Inside one Agent Team phase
-
-A phase has three distinct coordination layers:
-
-1. **DSH Team mechanics** — membership, mailbox, TeamTask lifecycle, continuation.
-2. **Worker exchange** — Assignment, Message, Artifact, current attempt/input binding.
-3. **AgentOS phase semantics** — independent-first policy, synthesis, typed phase completion.
+## Inside an Agent Team phase
 
 ~~~mermaid
 flowchart TB
-    subgraph Team["AgentOS Agent Team phase"]
-        Policy[Phase policy / capability selection]
-        Synth[Lead / synthesizer]
+    subgraph Semantics["AgentOS phase semantics"]
+        Policy[Phase policy]
+        Selector[Worker capability selector]
         Result[Typed phase result]
     end
 
-    subgraph DSH["DSH Agent Teams"]
-        A[DSH Worker A]
-        B[DSH Worker B]
-        M[Mailbox / TeamTasks]
+    subgraph Runtime["DSH Team collaboration"]
+        Lead[Lead]
+        A[Teammate A]
+        B[Teammate B]
+        Team[ctx.agentTeams mailbox/tasks]
     end
 
-    subgraph Boundary["Worker boundary"]
-        WS[Local Worker server]
+    subgraph Providers["Worker providers"]
+        PA[Provider A<br/>DSH/Codex/Website/...]
+        PB[Provider B<br/>DSH/Claude/Website/...]
     end
 
-    subgraph Providers["Website execution (current provider)"]
-        PA[Website Agent A]
-        PB[Website Agent B]
-    end
+    Policy --> Selector
+    Policy --> Lead
+    Lead <--> Team
+    A <--> Team
+    B <--> Team
 
-    Policy --> A
-    Policy --> B
-    A <--> M
-    B <--> M
-    A <--> WS
-    B <--> WS
-    WS <--> PA
-    WS <--> PB
+    Selector --> PA
+    Selector --> PB
 
-    A --> Synth
-    B --> Synth
-    Synth --> Result
+    PA --> Result
+    PB --> Result
 ~~~
 
-The diagram is conceptual: DSH peer collaboration uses DSH messaging, while provider-facing context is represented through Worker Messages and provider work products return as Worker Artifacts.
+Team member and Worker provider do not need to be the same runtime object.
 
-## Independent-first collaboration
+## Independent-first policy
 
-Research and review require independent work before peer exchange.
+When a phase declares independent-first:
 
 ~~~mermaid
 sequenceDiagram
-    participant Lead as Lead / phase coordinator
+    participant P as Phase coordinator
     participant A as Worker A
     participant B as Worker B
-    participant Team as DSH Team mailbox
-    participant Synth as Synthesizer
+    participant T as Team collaboration
+    participant S as Synthesizer
 
-    Lead->>A: same authoritative phase input
-    Lead->>B: same authoritative phase input
+    P->>A: same exact input
+    P->>B: same exact input
 
-    par independent work
-        A->>A: investigate / review independently
+    par independent execution
+        A->>A: investigate/review
     and
-        B->>B: investigate / review independently
+        B->>B: investigate/review
     end
 
-    A-->>Lead: current contribution Artifact
-    B-->>Lead: current contribution Artifact
+    A-->>P: contribution Artifact
+    B-->>P: contribution Artifact
 
-    Lead->>Lead: independent-work barrier satisfied
+    P->>P: barrier satisfied
 
-    A->>Team: peer evidence / challenge
-    Team-->>B: peer message
-    B->>Team: peer evidence / challenge
-    Team-->>A: peer message
+    A->>T: peer evidence
+    T-->>B: peer evidence
+    B->>T: response/challenge
+    T-->>A: response/challenge
 
-    A-->>Lead: revised completion Artifact
-    B-->>Lead: revised completion Artifact
+    A-->>P: current completion Artifact
+    B-->>P: current completion Artifact
 
-    Lead->>Synth: required current completion Artifacts
-    Synth-->>Lead: typed phase result
+    P->>S: required current Artifacts
+    S-->>P: typed phase result
 ~~~
 
-Lead does not proxy normal peer debate. DSH messaging is the collaboration channel; Worker Message is the provider-neutral representation delivered to the target provider assignment when needed.
-
-## Protocol routing inside collaboration
-
-The same collaboration composes multiple protocols at different ownership boundaries:
-
-~~~text
-Local Agent
-  -- AgentOS semantic interface -->
-Agent Team
-  -- DSH Agent Teams -->
-DSH Worker
-  -- Worker API + Worker Protocol -->
-local Worker server
-  -- MCP Worker transport -->
-Website Agent
-~~~
-
-Peer Website Agents do not communicate directly. A peer message returns through the local Worker boundary, crosses the DSH Team mailbox to the target DSH Worker, and is then delivered to the target Website Agent as a Worker Message.
-
-See [Agent communication architecture](agent-communication.md) for the full protocol matrix and sequence diagrams.
-
-## Website-backed Worker exchange
-
-Website execution remains behind the Worker boundary. The Website Agent does not become a Team member identity or Workflow identity.
-
-~~~mermaid
-sequenceDiagram
-    participant T as Agent Team / DSH Worker
-    participant S as Local Worker server
-    participant M as MCP transport
-    participant W as Website Agent
-
-    T->>S: create/bind current WorkerAssignment
-    W->>M: capabilities / claim
-    M->>S: provider-facing request
-    S-->>M: assignment + current state
-    M-->>W: assignment
-
-    loop collaboration / continuation
-        W->>M: publish contribution or send/receive Message
-        M->>S: validate and commit request
-        S-->>M: accepted current state
-        M-->>W: result
-    end
-
-    W->>M: publish completion Artifact
-    M->>S: completion candidate
-    S->>S: auth + attempt + input + schema + lifecycle checks
-    S-->>M: accepted completion state
-    M-->>W: acknowledgement
-
-    S-->>T: current accepted completion Artifact / Worker state
-~~~
-
-MCP is the first Website-facing transport profile. ACP, A2A, or direct providers may have different native lifecycles while preserving the same Worker semantics.
-
-## Completion propagation
-
-Each layer advances only from the completion signal owned by the layer below it.
-
-~~~mermaid
-flowchart TB
-    P[Provider output]
-    A[Accepted current completion Artifact]
-    TT[Relevant DSH TeamTask completion]
-    R[Typed AgentOS phase result]
-    WI[Workflow WorkItem completion]
-    TR[Workflow terminal result]
-
-    P -->|Worker server accepts| A
-    A -->|Team policy allows| TT
-    TT -->|Lead/synthesis commits| R
-    R -->|exact current phase input| WI
-    WI --> TR
-~~~
-
-The arrows are not equivalences. Each transition adds a stronger semantic guarantee.
-
-## What each layer observes
-
-| Observer | May depend on | Must not use as completion authority |
-|---|---|---|
-| Local Agent | Agent Team result, Workflow state/result, actual environment | Website UI/session state |
-| Workflow | typed current Agent Team phase result, effect evidence/receipts | DSH member inactivity, mailbox delivery, TeamTask alone, Website Agent state |
-| Agent Team | DSH Team runtime, current accepted Worker Artifacts, phase policy | raw provider response alone |
-| DSH Worker/Team | Team mailbox/Task state plus accepted Worker state needed by policy | provider UI inactivity |
-| Worker server | durable current assignment/attempt/input state, schemas, authorization | provider claims that bypass current-state checks |
-| Provider execution | assignment, Messages, available tools/Skill guidance | ownership of Team/Workflow state |
+The transport used to reach A/B depends on their Worker providers.
 
 ## Restart and reconciliation
 
-Durability matters when a process, transport, or provider handle disappears.
-
 ~~~mermaid
 flowchart TD
-    X[Workflow or Local restarts]
-    R[Reload durable WorkflowRun / current WorkItem]
-    I[Ask Agent Team provider to inspect/reconcile existing phase]
-    T[Recover DSH Team / TeamTask state]
-    W[Recover Worker server assignment/artifact state]
-    P{Provider outcome known?}
-    C[Continue from durable current state]
-    Q[Apply unknown-outcome policy]
-    B[Block / reconcile before retry / safe retry]
-    N[Never infer not-executed from missing handle]
+    X[Host / Local restart]
+    R[Reload WorkflowRun from durable domain]
+    C[Reconcile current WorkItem adapter]
+    A{Agent Team WorkItem?}
+    T[Ask Agent Team to inspect/reconcile phase]
+    O[Inspect actual adapter/environment outcome]
+    P{Outcome known?}
+    K[Commit/preserve current result]
+    U[Apply SAFE_RETRY / RECONCILE_BEFORE_RETRY / BLOCK_ON_UNKNOWN]
 
-    X --> R --> I
-    I --> T
-    I --> W
-    W --> P
-    P -->|yes| C
-    P -->|no| Q --> B --> N
+    X --> R --> C --> A
+    A -->|yes| T --> P
+    A -->|no| O --> P
+    P -->|yes| K
+    P -->|no| U
 ~~~
 
-Workflow still observes only the Agent Team provider's semantic phase state/result. It does not take over Worker/provider reconciliation itself.
+Missing provider/session/job handles never prove work did not happen.
 
-## Authority versus side effects
-
-User authorization and effect completion are intentionally separate.
+## Authority versus effect
 
 ~~~mermaid
 flowchart LR
-    PA[PendingAction]
-    AUTH[Authority granted]
-    WORK[Consequential WorkItem]
-    EFFECT[External side effect]
-    EVIDENCE[Receipt / observed state]
-    COMPLETE[WorkItem completion]
+    P[PendingAction]
+    A[Authority granted]
+    W[Effect WorkItem]
+    E[External effect]
+    R[Receipt / observed state]
+    C[WorkItem completed]
 
-    PA --> AUTH --> WORK --> EFFECT --> EVIDENCE --> COMPLETE
+    P --> A --> W --> E --> R --> C
 ~~~
 
-A durable authorization record proves permission, not that the consequential effect happened.
+Approval UI is presentation; PendingAction and effect completion are separate durable semantics.
 
-## Future Controller
+## What each layer observes
 
-A future Controller may become another client of the same capabilities.
-
-~~~mermaid
-flowchart LR
-    U[User] <--> C[Controller]
-    C --> L[Local]
-    C --> W[Workflow]
-    L --> T[Agent Team]
-    W --> T
-~~~
-
-It must reuse existing AgentOS contracts rather than redefine them.
+| Layer | Observes | Does not treat as semantic authority |
+|---|---|---|
+| Local Agent | Agent Team result, Workflow state/result, actual direct tool result | Worker provider UI/session state |
+| Workflow | current typed phase result, WorkItem adapter evidence | individual Worker inactivity, Team message delivery, Team task alone |
+| Agent Team | Team runtime state, Worker Artifacts, phase policy | raw provider response alone |
+| DSH Team runtime | roster/tasks/mailbox/member lifecycle | AgentOS typed phase result |
+| Worker provider | Assignment/Messages/tools | Team/Workflow semantic ownership |
+| Worker Exchange | current assignment/attempt/input/artifact state | provider claims bypassing invariants |
