@@ -37,9 +37,9 @@ literature-search
 statistical-analysis
 ~~~
 
-AgentOS therefore owns the requirement-to-provider matching policy and any conformance needed to trust advertised capabilities.
+The [Worker plugin](plugins/worker/README.md) owns requirement-to-provider matching and the conformance needed to trust advertised capabilities.
 
-It does **not** need a new Worker runtime to do this.
+It remains a thin semantic plugin over DSH provider mechanics rather than a new agent runtime.
 
 ### 2. Execution binding
 
@@ -291,7 +291,7 @@ ACP idle/stopReason
 
 The domain-agnostic seam is DSH `ctx.subagents`, not ACP itself.
 
-AgentOS should add a Website Agent provider to that registry so Website execution participates in the same delegation interface as other providers.
+The [Website Agent plugin](plugins/website-agent/README.md) integrates Website execution behind the Worker provider seam so software and scientific Profiles use the same Worker contract.
 
 Implementation options, in order of preference:
 
@@ -321,3 +321,14 @@ Before adding any Worker/Workflow field, schema, store, or service:
 5. keep that state out of wire formats unless the remote peer truly needs it.
 
 **No field or service is justified only because it makes the architecture look symmetrical.**
+
+
+## Plugin ownership
+
+The residual semantics above are distributed across canonical AgentOS plugins rather than one generic core:
+
+- [Worker](plugins/worker/README.md): capability selection, provider binding, result acceptance;
+- [Agent Team](plugins/agent-team/README.md): collaboration policy;
+- [Workflow](plugins/workflow/README.md): durable sequencing/recovery semantics;
+- [Website Agent](plugins/website-agent/README.md): Website provider bridge;
+- [A2A](plugins/a2a/README.md): remote agent provider/protocol adapter.
