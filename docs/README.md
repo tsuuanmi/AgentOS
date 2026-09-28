@@ -8,8 +8,7 @@ AgentOS applies the documentation lifecycle defined by [Governance](governance/R
 
 | Area | Role | Authority |
 |---|---|---|
-| [Requirements](requirements/README.md) | behavior and constraints that must remain true | canonical / living |
-| [Architecture](architecture/README.md) | current structure, ownership, dependency direction, cross-cutting invariants | canonical / living |
+| [Architecture](architecture/README.md) | current structure, plugin contracts, behavioral invariants, ownership, and dependency direction | canonical / living |
 | [Product principles](architecture/product-principles.md) | why AgentOS exists and the product/architecture constraints that follow | canonical / living |
 | [Protocol stack](architecture/protocol-stack.md) | canonical ACP/A2A/MCP boundary ownership | canonical / living |
 | [Reference](reference/README.md) | exact protocols, APIs, transport mappings, Exchange invariants, and schemas | canonical / living |
@@ -24,16 +23,15 @@ Only create additional standard areas such as `design/`, `decisions/`, `validati
 
 ## Read order
 
-1. Read the relevant [requirements](requirements/README.md).
-2. Read [architecture](architecture/README.md) for ownership and dependency boundaries.
-3. Read [reference](reference/README.md) when exact protocol/API/schema/Exchange-invariant behavior matters.
-4. Load an Agent Skill only when procedural working method matters.
-5. Read a proposal only for the unresolved change being implemented.
-6. Read research only when provider/runtime evidence or an unresolved question requires it.
-7. Read source and tests once implementation exists.
+1. Read [architecture](architecture/README.md), including the relevant plugin document, for current behavior, invariants, ownership, and dependency boundaries.
+2. Read [reference](reference/README.md) when an exact AgentOS-owned contract or protocol mapping matters.
+3. Load an Agent Skill only when procedural working method matters.
+4. Read a proposal only for the unresolved change being implemented.
+5. Read research only when provider/runtime evidence or an unresolved question requires it.
+6. Read source and tests once implementation exists.
 
 ## Authority rule
 
-A detailed lower-authority document does not become production truth. Accepted conclusions are promoted into requirements, architecture, reference, schemas, source/tests, or another correct canonical home.
+A detailed lower-authority document does not become production truth. Accepted conclusions are promoted into architecture, reference, schemas, source/tests, or another correct canonical home.
 
 README files route; they do not duplicate the specifications they link to. Research that has been fully promoted is deleted rather than retained as a parallel legacy specification.
