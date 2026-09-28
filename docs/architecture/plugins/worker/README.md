@@ -148,32 +148,34 @@ Provider output stays provider-native until mapped into the caller's typed resul
 
 ## Website Agent
 
-Website Agent is not a Worker type. It is a protocol-neutral Website execution core exposed through provider adapters.
+Website Agent is not a Worker type. It is a protocol-neutral Website execution core exposed to runtimes through ACP.
 
-The preferred bounded local path is:
+The preferred runtime-control path is:
 
 ~~~text
 Worker plugin
   -> ctx.subagents
       -> DSH ACP provider/client
-          -> Website ACP Agent adapter
-              -> Website Agent core
+          -> ACP
+              -> Website ACP Agent adapter
+                  -> Website Agent Core
 ~~~
 
 See [Website Agent plugin](../website-agent/README.md) and [Website adapters](../website-agent/adapters.md).
 
 ## A2A
 
-Remote independent agents should enter through the Worker provider seam when practical:
+A2A is not the primary Worker provider transport in AgentOS.
+
+Its primary role is horizontal peer communication between the Website Agent and Agent Team Members:
 
 ~~~text
-Worker plugin
-  -> ctx.subagents
-      -> A2A provider
-          -> remote A2A Agent
+Worker/runtime
+  -> ACP -> Website Agent
+               <-> A2A <-> Agent Team Member
 ~~~
 
-The A2A provider reuses native A2A Task/Message/Artifact structures and keeps AgentOS bookkeeping local.
+Worker owns execution selection/control. A2A owns peer collaboration.
 
 See [A2A plugin](../a2a/README.md).
 
