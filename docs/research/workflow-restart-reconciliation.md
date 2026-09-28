@@ -1,7 +1,7 @@
 # Workflow restart and reconciliation
 
 - **Status:** active proving research
-- **Canonical semantics:** [Workflow requirements](../requirements/workflow.md)
+- **Canonical semantics:** [Workflow requirements](../requirements/workflow/README.md)
 - **Scope:** crash-window evidence for the first Workflow provider and its TDD suite.
 
 ## Core rule
