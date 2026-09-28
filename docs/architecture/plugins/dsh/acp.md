@@ -5,38 +5,73 @@
 
 DSH already provides ACP on both sides.
 
-## Subagent ACP provider
+## Subagent ACP provider/client
 
-`@deepseek-ai/dsh-subagent-acp` registers an ACP-compatible execution provider on `ctx.subagents`.
+`@deepseek-ai/dsh-subagent-acp` registers an ACP-compatible provider on `ctx.subagents`.
 
-Current documented behavior is one-shot:
+It is the ACP **Client** side from the perspective of a delegated child Agent.
 
-- fresh subprocess per run;
+Current behavior:
+
+- fresh ACP Agent subprocess per Worker run;
 - ACP initialize;
-- fresh session;
-- prompt/update lifecycle;
-- final result mapping;
+- fresh `session/new`;
+- one `session/prompt`;
+- streamed update/result folding;
 - cancellation/permission handling;
 - teardown after the run.
 
-AgentOS should reuse this provider before adding product-specific agent integrations.
+AgentOS should reuse this provider before creating product-specific ACP clients.
+
+## Website Agent composition
+
+The Website Agent plugin exposes its Internet-derived core through an ACP **Agent** adapter:
+
+~~~text
+Worker
+  -> ctx.subagents
+      -> DSH subagent-acp        # ACP client
+          -> Website ACP adapter # ACP agent
+              -> Website core
+~~~
+
+The Website core owns browser/auth/native-conversation/reconciliation behavior.
+
+ACP owns the protocol lifecycle.
+
+See [Website Agent adapters](../website-agent/adapters.md#acp-adapter).
 
 ## ACP server
 
 DSH also provides an ACP server for controlling persistent DSH agents from an ACP client.
 
-This is useful for external automation but does not change Worker semantic identity.
+That direction is distinct from the Website composition above and does not change Worker semantic identity.
 
-## Continuation
+## Continuation gap
 
-The broader `ctx.subagents` contract supports continuable providers, while current `subagent-acp` is one-shot.
+Stable ACP v1 supports loading prior sessions when the Agent advertises `loadSession`.
 
-If continuation becomes necessary, prefer an upstream DSH enhancement. Add an AgentOS continuable ACP provider only if upstream ownership is not practical.
+The Website ACP adapter can map a durable ACP session to a stable core conversation key.
+
+However current DSH `subagent-acp` always creates a fresh ACP session and currently does not load a prior one.
+
+Therefore:
+
+~~~text
+current DSH ACP provider
+  -> bounded one-shot Website execution
+
+future/upstream continuation support
+  -> load/reconnect ACP session
+  -> same Website core conversation
+~~~
+
+If continuation is needed, prefer upstreaming the generic capability to DSH before adding an AgentOS-specific ACP provider.
 
 ## Version rule
 
-Target the ACP surface supported by current DSH.
+Target the stable ACP surface supported by current DSH.
 
-Do not design AgentOS around draft-only ACP features.
+Do not make AgentOS depend on draft-only ACP v2 features when stable v1 semantics are sufficient.
 
 See [Worker plugin](../worker/README.md) and [Website Agent plugin](../website-agent/README.md).
