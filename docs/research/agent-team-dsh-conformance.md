@@ -2,18 +2,19 @@
 
 - **Status:** active proving research
 - **Canonical semantics:** [Agent Team plugin contract](../architecture/plugins/agent-team/README.md)
-- **Canonical architecture:** [Agent Team composition](../architecture/plugins/agent-team/README.md)
-- **Scope:** determine the smallest AgentOS semantic delta over DSH's current experimental `ctx.agentTeams` service.
+- **Scope:** determine the smallest AgentOS policy delta over DSH's current experimental ctx.agentTeams + ctx.subagents services.
 
-DSH now provides an experimental programmatic Agent Team service with durable roster, peer mailbox, task board, continuable teammate lifecycle, recovery, and Session projection.
+DSH already provides Team identity/roster, durable peer mailbox, task board, continuable teammate lifecycle, recovery, and Session projection.
 
-The architecture therefore no longer asks whether AgentOS should build those mechanics.
+AgentOS therefore does not build those mechanics.
 
-The remaining question is: **which AgentOS behavioral invariants are not already satisfied by the DSH Team + Subagent contracts?**
+The remaining question is:
+
+> **Which collaboration/capability/acceptance invariants are not already satisfied by DSH Team + Subagent contracts?**
 
 ## Confirmed upstream reuse
 
-AgentOS should prefer DSH ownership for:
+Prefer DSH ownership for:
 
 - Team identity and roster;
 - durable Team messages;
@@ -22,13 +23,14 @@ AgentOS should prefer DSH ownership for:
 - teammate spawn/resume/interruption;
 - Team change waiting;
 - Team state replay/recovery;
-- Team Session projection.
+- Team Session projection;
+- delegated-provider registry/lifecycle through ctx.subagents.
 
 ## Conformance questions
 
 ### 1. Semantic phase wrapper
 
-Prove the smallest adapter that exposes:
+Prove the smallest AgentOS service that exposes:
 
 ~~~text
 execute phase
@@ -37,71 +39,77 @@ cancel phase
 read typed phase result
 ~~~
 
-without leaking DSH Session/member/task ids to Local Agent or Workflow.
+without leaking DSH Session/member/task/provider ids to Local Agent or Workflow.
 
-### 2. Agnostic Worker mapping
+### 2. Capability-driven provider selection
 
-DSH Team teammates are DSH Agents, while AgentOS Worker is provider-neutral.
+Prove one Team phase can select execution from the same semantic capability requirement across:
 
-Prove how one Team collaboration can bind work to:
+- DSH local providers;
+- ACP-compatible providers through existing DSH ACP;
+- Website Agent through the Website ACP bridge;
+- A2A remote agents when configured.
 
-- DSH subagent;
-- Website Agent over MCP;
-- Codex/Claude where capability requirements permit;
-- future providers.
+Do not require Worker == DSH teammate.
 
-Do not require `Worker == DSH teammate`.
+### 3. Minimal ExecutionBinding
 
-### 3. Worker Exchange delta
+Most phase executions should use provider-native lifecycle directly.
 
-DSH already has durable Team mailbox/task state and Subagent continuation.
+Prove which cases actually require AgentOS-owned binding state:
 
-Determine which Worker Protocol facts still require AgentOS-owned state, for example:
+~~~text
+semantic phase/work item
+  -> current provider
+  -> provider-native handle
+  -> optional generation only if replacement can race
+~~~
 
-- assignment identity;
-- exact input binding;
-- provider attempt fencing;
-- provider-neutral Artifact acceptance;
-- remote Website claim/publish state.
-
-Do not add a parallel mailbox/task journal merely because Worker Protocol has Message/Artifact vocabulary.
+Do not add a universal Assignment, attempt id, Message/Artifact store, or Worker Exchange.
 
 ### 4. Independent-first barrier
 
-Prove that AgentOS can enforce independent-first research/review policy above generic Team mechanics without modifying the DSH Team domain.
+Prove independent-first research/review policy above generic Team mechanics without modifying the DSH Team domain.
+
+The barrier may consume provider-native results/evidence. It must not require an AgentOS universal Artifact envelope.
 
 ### 5. Typed phase completion
 
-Prove the exact durable boundary:
+Prove:
 
 ~~~text
-required current Worker evidence
-  -> Agent Team policy satisfied
-  -> typed phase result bound to exact phase input
+required current provider evidence/results
+  -> collaboration policy satisfied
+  -> output contract valid
+  -> required effects/evidence valid
+  -> typed phase result
 ~~~
 
-DSH task completion is runtime evidence, not the typed AgentOS phase result itself.
+DSH task completion, ACP end-turn, or A2A terminal TaskStatus is runtime/provider evidence, not phase completion authority by itself.
 
-### 6. Provider capability projection
+### 6. Capability projection
 
-DSH Subagent providers differ:
+Provider capabilities differ.
 
-- local spawn/fork can be continuable;
-- current Codex/Claude providers are one-shot;
-- remote Website continuation depends on MCP/provider behavior.
+Prove capability advertisement from real guarantees:
 
-Prove capability advertisement from real provider guarantees.
+- DSH spawn/fork may be continuable;
+- current DSH ACP provider is one-shot;
+- Website ACP bridge is initially one-shot;
+- A2A capabilities come from AgentCard/AgentSkill plus conformance;
+- effect capabilities require actual tools/environment authorization.
 
 ## TDD proving order
 
 1. Adapter can create/recover one DSH Team without copying Team state.
 2. AgentOS phase identity remains distinct from DSH Session/Team ids.
-3. Worker selector can choose at least one local provider and one Website provider.
-4. Provider-native ids never become Worker identity.
+3. Capability selector can choose a local ACP/DSH provider.
+4. Website ACP bridge can satisfy a research capability through the same provider seam.
 5. Independent-first barrier is enforceable above DSH Team state.
-6. Peer evidence can reach a target Worker regardless of provider binding.
-7. Stale provider attempts cannot satisfy current Worker completion.
-8. Typed phase result cannot commit before required current evidence.
-9. Host restart recovers semantic phase state through DSH + AgentOS-owned delta only.
+6. Provider-native peer evidence can be routed without a universal Worker Message.
+7. A replacement race, if reproducible, is rejected using minimal local binding/fence state.
+8. Typed phase result cannot commit before declared evidence/output/effect conditions.
+9. A2A remote provider can be added without changing the phase caller contract.
+10. Host restart recovers phase semantics through DSH + only demonstrated AgentOS-owned state.
 
-Once these questions are executable and answered, this research file should be pruned and the remaining facts promoted into implementation/reference docs.
+Once executable tests answer these questions, this research file should be pruned and the remaining facts promoted into implementation/reference docs.
