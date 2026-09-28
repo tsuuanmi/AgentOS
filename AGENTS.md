@@ -31,9 +31,9 @@ For non-trivial work:
 - Workflow owns semantic Definition/Profile, WorkItem, recovery, acceptance, and effect policy; generic durable runtime mechanics come from DSH first or an optional plugin-backed runtime only when justified.
 - Worker is an AgentOS semantic plugin whose invocations are capability-driven execution roles; it owns provider selection/binding/acceptance, not provider runtime identity.
 - Worker uses DSH `ctx.subagents` as the default delegated-provider seam.
-- ACP is the preferred execution/control protocol for compatible providers; reuse the existing DSH ACP provider before product-specific integrations.
-- Website Agent reuses the protocol-neutral Website core from `@tsuuanmi/internet`; ACP and A2A are adapters around that same core.
-- A2A owns independent Agent-to-Agent Task/Message/Artifact collaboration. Start with zero AgentOS A2A extensions.
+- ACP is the standard runtime/client <-> Agent protocol for Website Agent; DSH is the first ACP runtime/client integration, but Website Core must remain runtime-agnostic.
+- Website Agent reuses the protocol-neutral Website Core from `@tsuuanmi/internet`: account, provider, browser, conversation, reconciliation, and result retention live there.
+- A2A is the standard Website Agent <-> Agent Team Member peer-collaboration protocol. Start with zero AgentOS A2A extensions.
 - MCP owns Agent-to-tool/capability/data access; do not recreate an MCP Worker protocol.
 - Provider/protocol ids remain implementation handles. Add local ExecutionBinding/fencing only for a demonstrated retry/replacement/reconciliation invariant.
 - Provider terminal output is evidence, not automatic AgentOS phase/WorkItem completion.
