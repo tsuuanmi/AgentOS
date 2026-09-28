@@ -4,9 +4,10 @@ Research is exploratory and non-normative. It collects evidence needed to decide
 
 ## Current research
 
+- [Agent Team software flow v0](agent-team-software-flow-v0.md) — one DSH Team collaboration spanning research (brainstorm + debate), implementation, and review (independent review + debate), with typed phase completion.
 - [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) — detailed authority/reuse map for roster, mailbox, Team tasks, continuation, provider limits, result bridging, and the exact AgentOS layer that should remain.
 - [DSH Agent Teams first adaptation](agent-team-dsh-first-adaptation.md) — use DSH Agent Teams as the v1 Team runtime and port Internet Team's research/review collaboration policies onto it; defer website-native teammates to a provider bridge.
-- [Agent Team semantic contract v0](agent-team-semantic-contract-v0.md) — minimal independently callable research/review capability above both Internet-backed reasoning protocols and DSH Agent Teams collaboration substrate.
+- [Agent Team semantic contract v0](agent-team-semantic-contract-v0.md) — minimal independently callable research/implementation/review phase capability above both Internet-backed reasoning protocols and DSH Agent Teams collaboration substrate.
 - [Workflow restart and reconciliation v0](workflow-restart-reconciliation-v0.md) — crash matrix for research/implementation/validation/review/PendingAction, execution admission/fencing, and the only valid recovery action after unknown outcomes.
 - [Software Workflow vertical slice v0](workflow-software-vertical-slice-v0.md) — prove the reduced durable model on research -> implementation -> validation -> review -> remediation/authority using DSH adapters.
 - [Durable long-running Workflow over DSH](workflow-long-running-dsh-runtime.md) — define the single-Host v1 runtime that survives Local/client disconnect and Host restart by combining DSH Storage Domain, cold Session resume, reconciliation, and existing execution plugins.
