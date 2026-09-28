@@ -23,6 +23,7 @@ AgentOS should apply that discipline more aggressively because it is intended to
 
 See:
 
+- [Workflow DSH reuse](../research/workflow-dsh-reuse.md)
 - [Internet architecture review](../research/internet-architecture-review.md)
 - [Plugin boundary inventory](../research/plugin-boundary-inventory.md)
 
@@ -287,6 +288,54 @@ team role instructions
 team collaboration protocol with runtime-enforced semantics
   -> component/plugin over DSH Agent Teams
 ~~~
+
+## Workflow reuse rule
+
+Workflow research confirms that AgentOS should **not build another generic workflow engine**.
+
+Existing DSH primitives should be reused below Workflow semantics:
+
+~~~text
+bounded fan-out/fan-in
+  -> ctx.workflowEngine
+
+background Local execution/progress
+  -> ctx.jobs
+
+same-session Local objective
+  -> ctx.goals
+
+one-shot / continuable workers
+  -> ctx.subagents
+
+collaborative local Team substrate
+  -> ctx.agentTeams
+
+immediate in-turn sensitive approval
+  -> ctx.approval
+
+user-facing reminders
+  -> Schedule
+
+Local status/history projection
+  -> Session events / projections
+~~~
+
+These primitives do not currently replace the durable Workflow semantic owner.
+
+The Workflow capability/provider must still preserve, where required:
+
+- durable WorkflowRun identity and lifecycle;
+- durable WorkItem dependency/readiness/result semantics;
+- durable PendingAction that survives Local disconnect;
+- execution-attempt fencing and safe reconciliation;
+- correctness-bearing result/artifact/receipt binding;
+- convergence and terminal-state semantics;
+- Local reattachment to the same durable run.
+
+Implementation-native ids such as DSH WorkflowRun, Job, Goal, Team task, subagent child, or transport task ids remain adapter references rather than canonical Workflow identities.
+
+See [Workflow DSH reuse](../research/workflow-dsh-reuse.md).
 
 ## Contract-first replacement
 
