@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentos.dev/schemas/worker-common.schema.json",
+  "$id": "urn:agentos:schema:worker-common",
   "title": "AgentOS Worker Common Definitions",
   "description": "Reusable definitions shared by the AgentOS Worker Protocol schemas.",
   "$defs": {
@@ -128,7 +128,11 @@
     },
     "extensions": {
       "type": "object",
-      "description": "Plugin-owned extension data. Core correctness semantics should use first-class fields.",
+      "description": "Plugin-owned extension data keyed by an absolute URI namespace. Core correctness semantics should use first-class fields.",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:"
+      },
       "additionalProperties": true
     },
     "error": {
