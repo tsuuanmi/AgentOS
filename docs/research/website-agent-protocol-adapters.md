@@ -13,11 +13,11 @@ Do not build a Website Agent runtime from scratch.
 Use the existing Website participant/browser logic in `@tsuuanmi/internet` as the core and expose that **same core** through ACP and A2A adapters.
 
 ~~~text
-                       Internet-derived Website core
-                     /                              \
-              ACP Agent adapter                A2A Agent adapter
-                    |                                 |
-             DSH ACP client                     A2A remote peer
+                 Internet-derived Website Core
+                     /                    \
+            ACP runtime port          A2A peer port
+                 |                         |
+        DSH / other runtime         Agent Team Member
 ~~~
 
 ## Existing core evidence
@@ -93,8 +93,8 @@ ACP/A2A adapters may map protocol state into core identities but cannot duplicat
 2. expose/refine the smallest supported core API;
 3. ACP Agent adapter unit tests;
 4. DSH ACP one-shot integration test;
-5. A2A AgentExecutor adapter tests;
-6. A2A client/server integration test;
+5. Website A2A Agent adapter tests;
+6. Agent Team Member <-> Website Agent A2A peer integration test;
 7. continuation/load conformance only after one-shot paths work;
 8. scientific literature-search Profile as a second-domain proof.
 
