@@ -17,7 +17,9 @@ For non-trivial work:
 - Keep AgentOS smaller than the harness it runs on.
 - Do not build a second plugin runtime, loader, lifecycle manager, or configuration system beside DSH/Cordis.
 - Prefer DSH-native plugins, services, events, and bundles.
-- Split a capability into separate contract/provider/consumer packages only when those roles have independent change or replacement pressure.
+- Own AgentOS semantics; compose DSH/public/external implementations.
+- Keep host task/session/worker handles as adapter-local identities unless the external identity itself is the semantic object.
+- Split a capability into separate contract/provider/consumer packages only when those roles have independent lifecycle, authority, failure, or replacement pressure and the boundary can be conformance-tested.
 - Avoid privileged core behavior that ordinary plugins cannot replace.
 - Keep one canonical home for each fact; link instead of duplicating.
 - Update documentation with architecture, contract, or behavioral changes.
