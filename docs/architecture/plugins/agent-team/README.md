@@ -1,127 +1,125 @@
-# Agent Team capability composition
+# Agent Team plugin
 
 - **Status:** canonical architecture
-- **Role:** AgentOS collaborative-work capability
-- **Shape:** composition of DSH Team/Subagent/runtime plugins plus a thin AgentOS semantic layer
+- **Owner:** AgentOS
+- **Host:** DSH / Cordis
+- **Role:** collaboration policy over DSH Team mechanics and Worker execution
 
-Agent Team is **not a Team runtime built from scratch**.
+Agent Team is an AgentOS semantic plugin.
 
-The preferred direction is to compose DSH's Team and Subagent capabilities and add only the AgentOS-specific semantics that are missing.
+It does not implement a Team runtime or provider registry.
 
-## Upstream foundation
+## Responsibilities
 
-Current DSH already exposes an experimental `ctx.agentTeams` service through `@deepseek-ai/dsh-experimental-agent-team`.
+Agent Team owns:
 
-That service already owns mechanics including:
+- collaboration phase contract;
+- required Worker capabilities per participant;
+- team formation/role policy;
+- independent-first and peer-review barriers;
+- peer evidence/revision policy;
+- typed phase acceptance/result;
+- collaboration-specific evidence/effect requirements.
 
-- implicit Team identity rooted in a Lead Session;
-- durable roster;
-- continuable teammate provisioning;
-- durable peer mailbox;
-- shared dependency-aware task board;
-- task compare-and-set revisions;
-- teammate interruption/waiting;
-- crash/reload recovery through durable Session state;
-- Session projection for Team state.
+Agent Team delegates execution selection to the [Worker plugin](../worker/README.md).
 
-Its profile bundle composes Team service, Team tools, Web UI, durable Session storage, and existing Subagent providers.
+## Reuse
 
-AgentOS should reuse those mechanics where their contract satisfies the required semantics.
+### DSH Agent Team
 
-## AgentOS semantic delta
+DSH `ctx.agentTeams` owns:
 
-Agent Team adds only policy above the runtime:
+- Team identity/roster;
+- tasks;
+- mailbox;
+- teammate lifecycle;
+- waiting/interruption;
+- recovery;
+- Session projection.
 
-- semantic capability requirements;
-- right-agent-right-job selection;
-- provider capability/conformance checks;
-- independent-first/domain collaboration barriers;
-- mapping independent remote agents through A2A when needed;
-- typed phase result acceptance;
-- stale ExecutionBinding rejection when replacement races are possible;
-- correctness/effect validation required by the phase.
+See [DSH Agent Team](../dsh/agent-team.md).
 
-It does not own a parallel Team mailbox, generic Worker Message/Artifact protocol, or generic Worker Exchange service.
+### Worker
+
+Worker owns:
+
+- right-agent-right-job provider selection;
+- provider conformance;
+- dispatch;
+- ExecutionBinding when required;
+- provider-neutral result acceptance.
+
+Agent Team must not branch directly on ACP/A2A/Website/local provider types.
+
+## Composition
 
 ~~~mermaid
 flowchart TB
-    API[AgentOS Agent Team semantic service]
-    Phase[Phase policy + typed acceptance]
-    Select[Capability selector]
-    Binding[ExecutionBinding only when needed]
-
+    API[Agent Team plugin]
+    Phase[Collaboration phase policy]
     DSHAT[DSH ctx.agentTeams]
-    Sub[DSH ctx.subagents]
-    ACP[DSH ACP provider]
-    Website[Website Agent provider]
-    A2A[A2A adapter]
+    Worker[Worker plugin]
 
     API --> Phase
-    Phase --> Select
     Phase --> DSHAT
-    Phase --> Binding
-
-    Select --> Sub
-    Sub --> ACP
-    Sub --> Website
-    Select -. remote .-> A2A
+    Phase --> Worker
 ~~~
 
-A2A owns remote Task/Message/Artifact transport. ACP/DSH providers own their native execution lifecycle. AgentOS stores only the binding facts needed to know which provider execution is current for a semantic phase.
-
-See [Minimal semantic delta](../../minimal-semantic-delta.md).
-
-
+See [Composition map](composition.md).
 
 ## Behavioral invariants
 
-These are part of the plugin contract, not a separate requirements layer.
-
 ### Phase contract
 
-A collaboration phase declares:
+A phase declares:
 
 - exact objective/input;
 - required semantic capabilities;
+- number/shape of participants;
 - independence/barrier policy;
 - peer-exchange policy;
 - expected typed result;
 - evidence/effect requirements.
 
-Software-development phase names are profile configuration, not Agent Team core semantics.
+Domain phase names belong to Workflow/Profile configuration.
 
-### Independent-first collaboration
+### Independent-first
 
-When a phase requires independent analysis:
+When independence is required:
 
-1. each selected Worker receives the same authoritative input;
-2. independent work happens before peer evidence is exposed;
-3. the declared barrier must be satisfied before cross-review/debate begins;
-4. peer communication is evidence/context, not authority;
-5. revisions may follow stronger peer evidence;
-6. synthesis/acceptance consumes the required current provider-native results/evidence.
+1. each Worker receives the same authoritative input;
+2. independent execution completes before peer evidence is revealed;
+3. the declared barrier is satisfied before debate/cross-review;
+4. peer communication is evidence, not authority;
+5. Workers may revise when stronger evidence appears;
+6. phase synthesis/acceptance consumes accepted current Worker results.
 
-Do not require a custom AgentOS Artifact type to implement this barrier; use DSH state, A2A Artifacts, provider results, or phase-local evidence records as appropriate.
-
-### Completion boundary
-
-Completion remains layered:
+### Completion
 
 ~~~text
-provider terminal/result
-  -> AgentOS phase acceptance
-  -> typed phase result
+Worker accepted result(s)
+  -> collaboration policy satisfied
+  -> Agent Team typed phase result
   -> Workflow may advance
 ~~~
 
-A DSH task state, ACP idle/end-turn, A2A terminal TaskStatus, Website UI state, or model claim is not by itself AgentOS phase completion.
+Provider terminal state alone never completes an Agent Team phase.
 
-Phase acceptance validates the declared output contract, current ExecutionBinding when relevant, collaboration policy, and required effect/evidence.
+### Provider independence
 
-### Provider/runtime separation
+Changing ACP/Website/A2A/local provider must not change the Agent Team caller contract.
 
-Team runtime and Worker execution provider are separate choices.
+Provider ids/session ids do not appear in phase results unless the domain contract explicitly requires them.
 
-Current default composition is DSH ctx.agentTeams + ctx.subagents. Provider replacement must not change the Agent Team caller contract.
+## Non-responsibilities
 
-Provider/session/runtime ids do not appear in typed phase results unless the domain contract explicitly asks for them.
+Agent Team does not own:
+
+- provider registry;
+- ACP/A2A/MCP protocol mechanics;
+- Website bridge;
+- generic Worker lifecycle;
+- Workflow sequencing;
+- DSH Team roster/mailbox/task persistence.
+
+Those belong to Worker, Workflow, DSH, or provider plugins.
