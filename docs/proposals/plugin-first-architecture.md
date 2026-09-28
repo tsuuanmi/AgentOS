@@ -337,6 +337,62 @@ Implementation-native ids such as DSH WorkflowRun, Job, Goal, Team task, subagen
 
 See [Workflow DSH reuse](../research/workflow-dsh-reuse.md).
 
+## Long-running Workflow provider
+
+AgentOS v1 should treat Workflow as a **thin durable coordination plugin over existing DSH primitives**, not as another general-purpose engine.
+
+Reuse:
+
+~~~text
+ctx.storageDomain
+  durable Workflow state over JSON/SQLite
+
+ctx.agents.resume
+  cold-resume persisted Local/Agent Sessions
+
+ctx.workflowEngine
+  bounded live fan-out/fan-in
+
+ctx.subagents
+  worker execution
+
+ctx.jobs
+  live background progress/control
+
+ctx.agentTeams / Agent Team provider
+  collaborative reasoning substrate
+
+ctx.approval / ctx.userQuestions
+  live interaction mechanics
+
+Schedule / webhook
+  reminders and future external ingress
+~~~
+
+### V1 runtime constraint
+
+The first provider is intentionally **single-Host**.
+
+DSH Storage Domain is durable but currently has single-process change visibility and no cross-table transaction. Therefore v1 should store each WorkflowRun as one durable aggregate record and serialize semantic transitions through atomic record updates.
+
+~~~text
+WorkflowRun record
+  + lifecycle
+  + WorkItems
+  + ExecutionRefs
+  + PendingActions
+  + Result/Receipt refs
+~~~
+
+The in-memory scheduler is derived and disposable. On Host restart the plugin scans non-terminal runs, reconciles uncertain execution, rebuilds timers/ready work, and continues without replaying current completed work.
+
+Long-running v1 means durability across Local/client disconnect and Host restart. It does not require active execution while the machine is powered off.
+
+See:
+
+- [Durable long-running Workflow over DSH](../research/workflow-long-running-dsh-runtime.md)
+- [Software Workflow vertical slice v0](../research/workflow-software-vertical-slice-v0.md)
+
 ## Contract-first replacement
 
 When AgentOS defines a stable component boundary, the contract should own the semantics.
@@ -618,10 +674,13 @@ DSH / Cordis
 V1 should prove:
 
 1. Local can call Agent Team directly.
-2. Local can start/inspect/respond/cancel/reattach a durable Workflow.
-3. Workflow can call Agent Team without routing every step through Local.
-4. Workflow can dispatch environment-native work to Local/worker capabilities.
-5. Agent Team and Workflow implementations remain replaceable behind semantic contracts where a real boundary is needed.
+2. Local can start/inspect/respond/cancel and later reattach to a durable Workflow.
+3. Workflow state survives Host restart through DSH Storage Domain.
+4. Restart reconciles lost live handles rather than replaying current completed work.
+5. Workflow can call Agent Team without routing every step through Local.
+6. Workflow can cold-resume a persisted Session when an execution adapter genuinely needs Agent context.
+7. Workflow can dispatch environment-native work to Local/worker capabilities.
+8. Agent Team and Workflow implementations remain replaceable behind semantic contracts where a real boundary is needed.
 
 Controller integration is deliberately postponed until these boundaries are working.
 
@@ -633,16 +692,17 @@ Current research priority is **Workflow first, Agent Team second, Controller lat
 
 Open questions are now:
 
-1. What is the minimal Local-facing Workflow contract: start, inspect, respond, cancel, reattach, status/result projection, and authority semantics?
-2. Which Workflow semantics must be durable and provider-independent versus provider-native?
-3. What is the minimal Agent Team semantic contract for research, critique, review, synthesis, and artifact/result projection?
-4. Which parts of the current `internet` Team behavior are semantic Agent Team responsibilities versus implementation details?
-5. Can DSH Agent Teams serve as an implementation substrate for some Agent Team semantics without becoming the semantic definition?
-6. How should Workflow call Agent Team and workers without coupling to one provider/runtime?
-7. Does AgentOS need any durable identity/state independent of DSH and delegated Workflow providers?
-8. Which first vertical slice proves Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end?
-9. Which long-running operations need MCP Tasks or another transport projection after the Workflow contract is clear?
-10. What compatibility/version contract should AgentOS declare against DSH?
+1. Validate the minimal Local-facing Workflow contract: start, inspect, respond, cancel, reattachment, status/result projection, and authority semantics.
+2. Validate the single-Host DSH Storage Domain provider: one aggregate WorkflowRun record, restart reconstruction, reconciliation, and backend-independent semantics.
+3. Which Workflow semantics must remain provider-independent if the durable runtime is later replaced?
+4. What is the minimal Agent Team semantic contract for research, critique, review, synthesis, and artifact/result projection?
+5. Which parts of the current `internet` Team behavior are semantic Agent Team responsibilities versus implementation details?
+6. Can DSH Agent Teams serve as an implementation substrate for some Agent Team semantics without becoming the semantic definition?
+7. How should Workflow call Agent Team and workers without coupling to one provider/runtime?
+8. Does AgentOS need any durable identity/state independent of DSH and delegated Workflow providers?
+9. Use the software vertical slice v0 to prove Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end; which missing semantic, if any, is actually required? proves Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end?
+10. Which long-running operations need MCP Tasks or another transport projection after the Workflow contract is clear?
+11. What compatibility/version contract should AgentOS declare against DSH?
 
 ## Acceptance criteria
 
