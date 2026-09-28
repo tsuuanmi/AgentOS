@@ -125,7 +125,7 @@ DSH Agent Teams core
   cold resume / recovery
 ```
 
-AgentOS should be materially smaller than DSH Agent Teams. It does not wrap or mirror those mechanics; it adds only product reasoning semantics and the minimal bridge needed to return typed research/review results to Local or Workflow.
+AgentOS should be materially smaller than DSH Agent Teams. It does not wrap or mirror those mechanics; it adds only product collaboration semantics and the minimal bridge needed to return typed phase results to Local or Workflow.
 
 Adapt from Internet Team:
 
@@ -135,6 +135,20 @@ Adapt from Internet Team:
 - strongest-supported synthesis;
 - provider identity below semantic roles;
 - typed final research/review results.
+
+### Debate is preserved as policy
+
+AgentOS keeps the valuable Internet Team behavior:
+
+```text
+independent brainstorm
+  -> peer exchange / debate
+  -> strongest-supported synthesis
+```
+
+Research and review should normally use this bounded interaction pattern. The implementation uses DSH TeamTasks/mailbox/continuable teammates; AgentOS does not introduce a second TeamPlan/TeamTurn/round runtime.
+
+For the software flow, the same dedicated DSH Team may continue from research into implementation and then review. Workflow owns outer phase checkpoints; Team internals remain DSH-owned.
 
 Do not port Internet Team's TeamPlan persistence, mailbox/session runtime, account scheduler, or per-member Workflow graph model.
 
@@ -189,7 +203,7 @@ The second path means **Workflow invokes Agent Team as a capability**. It does n
 Ownership is:
 
 - **Workflow** owns durable coordination semantics for a WorkflowRun: sequencing, dependencies, waiting, authority, recovery, result binding, and convergence.
-- **Agent Team** owns collaborative reasoning semantics: member/provider selection, team interaction, research/review strategy, synthesis, and provider-native execution details.
+- **Agent Team** owns collaborative work semantics inside its provider: research/brainstorm/debate methodology, implementation collaboration, review/debate strategy, synthesis, and provider-native execution details.
 - **Local Agent** may call Agent Team directly without creating a Workflow.
 - A Workflow may call Agent Team when one WorkItem requires collaborative reasoning.
 - Agent Team returns a typed semantic result; only the Workflow owner/reconciler commits that result into Workflow state.
