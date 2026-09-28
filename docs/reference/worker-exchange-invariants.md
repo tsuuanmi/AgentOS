@@ -1,172 +1,121 @@
-# Worker Exchange invariants
+# Execution binding and result acceptance invariants
 
 - **Status:** canonical / living reference
-- **Semantic reference:** [Worker Protocol](worker-protocol.md)
-- **Schemas:** [repository schemas](../../schemas/README.md)
+- **Legacy path:** this file previously described a generic Worker Exchange Service.
+- **Semantic reference:** [Worker Contract](worker-protocol.md)
 
-## Purpose
+AgentOS no longer assumes a standalone Worker Exchange service or a parallel Assignment/Message/Artifact lifecycle.
 
-These rules govern the authoritative Worker Exchange state regardless of whether a provider reaches it in-process, through MCP, or through another adapter.
+These are the minimal cross-provider correctness invariants that remain after reusing DSH, ACP, and A2A.
 
-A concrete Website-facing implementation may expose these rules through a local MCP server. The server is an implementation surface; the invariants belong to the logical Worker Exchange authority.
+## Binding ownership
 
-They require current durable state, cross-object equality, authorization, idempotency history, or transactionality and therefore are not delegated to JSON Schema, provider transport identity, or Skill instructions.
+The semantic owner of work (Workflow WorkItem or Agent Team phase invocation) may persist an ExecutionBinding when retry/recovery/replacement requires it.
+
+~~~text
+semantic work
+  -> exact semantic input when required
+  -> current provider kind
+  -> provider-native handle
+  -> optional generation/fence
+~~~
+
+Provider-native handles can be DSH SubagentRun ids, ACP session/prompt state, A2A task/context ids, Website provider handles, or future provider references.
+
+## No duplicate identity by default
+
+Do not add workerId, assignmentId, or attemptId solely to mirror provider ids.
+
+The semantic owner already has an identity for the work.
+
+A separate binding generation exists only when required to distinguish a current execution from an older execution that may still report or perform effects.
+
+## Exact input
+
+If retry/recovery correctness depends on exact input, store an immutable input snapshot or digest on the semantic WorkItem/phase invocation.
+
+The provider binding records that it was started from that input.
+
+Do not require every protocol message or artifact to echo the digest.
+
+## Current-result acceptance
+
+A provider result can be accepted only when:
+
+1. it maps to the current ExecutionBinding when a binding is required;
+2. any required fence/generation still matches;
+3. the provider reached an acceptable terminal state;
+4. the output satisfies the caller's declared result schema/contract;
+5. required evidence/effects pass validation.
+
+An old provider result arriving after replacement is ignored/rejected when it can be identified as stale.
+
+## Provider lifecycle
+
+Use provider-native lifecycle as evidence:
+
+~~~text
+A2A -> TaskStatus
+ACP -> session state/update + stopReason
+DSH -> SubagentRun / Team state
+~~~
+
+AgentOS should not persist a second Worker lifecycle merely for normalization.
+
+A small projected state for UI/query convenience is non-authoritative unless a concrete semantic requirement says otherwise.
+
+## Communication and deliverables
+
+Use native communication/deliverable models:
+
+- A2A Message/Artifact;
+- DSH Team mailbox;
+- ACP prompt/update;
+- provider result types.
+
+AgentOS-owned durability is required only for AgentOS-owned semantic records, not copies of all provider traffic.
+
+## Cancellation and replacement
+
+Cancellation/replacement behavior follows the selected provider.
+
+AgentOS records enough binding state to decide whether:
+
+- the existing provider can resume;
+- the existing provider must be cancelled;
+- a replacement is safe;
+- an old result/effect must be fenced.
+
+Unknown outcome never authorizes blind replay of a non-idempotent effect.
+
+## Effect authority
+
+For effectful work, local/environment policy decides whether an effect is authorized and whether it actually completed.
+
+Provider/model output is not effect authority.
 
 ## Authorization
 
-Knowing an opaque id never grants authority.
+Use the authentication/authorization model of the owning boundary:
 
-Before claim, Message read/write, Artifact publish, inspect, cancellation, or local effects, the Exchange establishes that the authenticated/provider-local principal or binding is authorized for the targeted Worker and assignment.
+- A2A security schemes for remote A2A access;
+- ACP/DSH process/provider policy for delegated ACP work;
+- MCP authorization for tools;
+- DSH/Cordis service boundaries for in-process plugins.
 
-~~~text
-authenticated principal / provider binding
-  -> allowed workerId
-  -> assignment authorization
-  -> current attempt authorization where required
-~~~
-
-Transport metadata may assist provider-local correlation but is never sufficient semantic authority by itself.
-
-## Assignment identity
-
-For assignment-scoped operations:
-
-- `workerId` identifies the assignment owner;
-- `assignmentId` identifies the targeted assignment;
-- `inputBinding` on Messages/Artifacts matches the assignment when present;
-- provider-local execution ids never substitute for AgentOS ids.
-
-## Attempt fencing
-
-Only the current `attemptId` may perform attempt-scoped provider operations.
-
-When execution is superseded, rebound, cancelled, or fenced, a newer attempt may replace the old one without changing `assignmentId` unless semantic work changed.
-
-A stale attempt must not:
-
-- read current attempt-only Messages;
-- publish current Artifacts;
-- learn a newer current `attemptId` through provider-facing inspect;
-- execute local effects under the newer attempt.
-
-## Dynamic schema validation
-
-For each correctness-bearing Message or Artifact with a declared schema reference, the Exchange:
-
-1. resolves the referenced registered schema;
-2. rejects unresolved correctness-bearing schemas;
-3. validates payload/data against the resolved schema;
-4. applies required application-level URI/media-type/digest checks.
-
-## Capability enforcement
-
-An assignment must not begin on a Worker whose binding cannot satisfy its required semantic capabilities.
-
-Provider features needed to guarantee those semantics—such as later-input delivery, workspace access, or resumability—are checked before advertising the corresponding Worker capabilities.
-
-## Claim atomicity
-
-An assignment claim is atomic.
-
-One assignment must not silently create multiple concurrent current attempts unless a future explicit shared-execution contract defines that behavior.
-
-## Message delivery
-
-Messages are durable communication, not completion authority.
-
-The Exchange provides stable `messageId` identity and replay/deduplication semantics for Worker Protocol Messages it owns.
-
-When the selected DSH Team runtime already owns peer mailbox durability, AgentOS must not duplicate that mailbox merely for convenience; the adapter maps only the Worker-specific exchange state required by the contract.
-
-For cursor delivery:
-
-- replaying an older cursor may safely replay already-seen Messages;
-- consumers deduplicate by `messageId`;
-- advancing a cursor must not skip committed Messages.
-
-## Artifact idempotency
-
-`artifactId` is an idempotency key within its assignment.
-
-Repeating the same current Artifact may return a duplicate acknowledgement.
-
-Reusing an `artifactId` with different content is a protocol error.
-
-A stale-attempt Artifact is rejected even if `assignmentId` and `inputBinding` still match.
-
-## Durable-before-ack
-
-An accepted correctness-bearing Message/Artifact and required state transition are durable before success is acknowledged.
-
-A successful completion acknowledgement cannot precede the authoritative completion record.
-
-The durability mechanism may reuse DSH Session/domain state or another provider-specific store when it satisfies these invariants.
-
-## Completion acceptance
-
-A completion Artifact may complete an assignment only when:
-
-1. Worker and assignment identities are current.
-2. Artifact `attemptId` is the current provider execution attempt.
-3. Artifact `inputBinding` matches the exact assignment input.
-4. Required Worker capabilities were satisfied for the execution.
-5. Artifact data validates against the assignment's expected output schema.
-6. The Artifact is durably accepted.
-7. The lifecycle transition to completed succeeds atomically with the authoritative completion reference.
-
-Contribution Artifacts do not transition the assignment to completed.
-
-## Lifecycle state
-
-WorkerState is authoritative exchange state.
-
-Current states:
-
-~~~text
-queued
-active
-input_required
-completed
-failed
-cancelled
-superseded
-~~~
-
-Messages may explain input needs or failure context, but a Message does not itself become lifecycle authority.
-
-## Cancellation and supersession
-
-After cancellation or supersession:
-
-- no stale Artifact may commit as current;
-- no stale local effect may execute under the fenced attempt;
-- recovery inspects authoritative state before deciding whether to resume, supersede, or create a new attempt.
-
-## Local effect authority
-
-Provider/model intent is not local effect authority.
-
-Filesystem, test, git, terminal, credential, or other effectful operations pass local authorization/policy checks for the current Worker, assignment, attempt, and input binding before execution.
-
-Unknown effect outcomes never authorize blind retry.
-
-## Provider-local state
-
-Provider execution references remain implementation-local:
-
-~~~text
-DSH subagent/session id
-Codex run/thread/process id
-Claude Code query/session/process id
-Website conversation/binding metadata
-ACP session id
-A2A task/context id
-MCP Task id
-transport/tunnel/session metadata
-~~~
-
-They may be persisted for recovery but never become semantic Worker identity or Team phase results.
+Add AgentOS authorization state only when the product exposes a distinct authority decision not represented by those boundaries.
 
 ## Verification targets
 
-Behavioral tests cover at least unauthorized access, cross-Worker mismatch, stale attempt read/publish/inspect, attempt rotation, Message replay/deduplication, Artifact idempotency/conflicts, unresolved dynamic schemas, invalid Artifact data, contribution remaining non-terminal, durable completion before acknowledgement, restart/recovery, provider replacement, and local-effect authorization.
+Behavioral tests should focus on real residual risks:
+
+- provider capability mismatch;
+- wrong provider result mapped to a semantic WorkItem;
+- stale result after replacement when races are possible;
+- exact-input mismatch on durable retry/recovery;
+- invalid typed result;
+- unverified effect claimed as complete;
+- unknown effect outcome retried unsafely;
+- provider replacement without leaking provider ids into semantic results.
+
+Do not write tests for legacy Worker Exchange mechanics that the architecture no longer requires.
