@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentos.dev/schemas/worker-assignment.schema.json",
+  "title": "AgentOS Worker Assignment",
+  "description": "A self-contained unit of capability-driven work offered to one Worker.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workerId",
+    "assignmentId",
+    "requiredCapabilities",
+    "objective",
+    "inputBinding",
+    "expectedOutput"
+  ],
+  "properties": {
+    "workerId": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "assignmentId": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "requiredCapabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "worker-common.schema.json#/$defs/capability"
+      }
+    },
+    "objective": {
+      "$ref": "worker-common.schema.json#/$defs/objective"
+    },
+    "inputBinding": {
+      "$ref": "worker-common.schema.json#/$defs/inputBinding"
+    },
+    "context": {
+      "type": "array",
+      "items": {
+        "$ref": "worker-common.schema.json#/$defs/reference"
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "acceptedResults": {
+      "type": "array",
+      "items": {
+        "$ref": "worker-common.schema.json#/$defs/reference"
+      }
+    },
+    "expectedOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaRef"
+      ],
+      "properties": {
+        "schemaRef": {
+          "$ref": "worker-common.schema.json#/$defs/schemaRef"
+        }
+      }
+    },
+    "extensions": {
+      "$ref": "worker-common.schema.json#/$defs/extensions"
+    }
+  }
+}
