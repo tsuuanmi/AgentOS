@@ -1,7 +1,7 @@
 # DSH Agent Team conformance research
 
 - **Status:** active proving research
-- **Canonical semantics:** [Agent Team requirements](../requirements/agent-team/README.md)
+- **Canonical semantics:** [Agent Team plugin contract](../architecture/plugins/agent-team/README.md)
 - **Canonical architecture:** [Agent Team composition](../architecture/plugins/agent-team/README.md)
 - **Scope:** determine the smallest AgentOS semantic delta over DSH's current experimental `ctx.agentTeams` service.
 
@@ -9,7 +9,7 @@ DSH now provides an experimental programmatic Agent Team service with durable ro
 
 The architecture therefore no longer asks whether AgentOS should build those mechanics.
 
-The remaining question is: **which AgentOS requirements are not already satisfied by the DSH Team + Subagent contracts?**
+The remaining question is: **which AgentOS behavioral invariants are not already satisfied by the DSH Team + Subagent contracts?**
 
 ## Confirmed upstream reuse
 
