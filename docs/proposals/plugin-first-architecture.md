@@ -14,9 +14,11 @@ AgentOS is starting from a nearly empty repository. This makes it possible to ch
 Two nearby references matter:
 
 - **internet** demonstrates the desired integration direction: run on DSH/Cordis rather than creating a separate agent runtime. AgentOS should go further in keeping its own architecture small.
-- **DeepSeek Harness** already treats the product as a plugin tree: model adapters, tools, persistence, agent loop, UI surfaces, and other capabilities are mounted through Cordis and can be replaced through composition.
+- **DeepSeek Harness** already treats the product as a plugin tree: model adapters, tools, persistence, agent loop, UI surfaces, subagents, workflows, and other capabilities are mounted through Cordis and can be replaced through composition.
 
 AgentOS should therefore be a **DSH plugin that composes capabilities**, not a platform beneath them.
+
+The current [plugin-boundary research](../research/plugin-boundary-inventory.md) further narrows AgentOS-owned plugins toward policy and fixed product behavior rather than infrastructure.
 
 ## Goal
 
@@ -50,12 +52,17 @@ Create a small agent-oriented layer where:
               \                    /
                \                  /
                 v                v
-                 AgentOS plugin
-          thin policy + composition
+                 AgentOS bundle
+              composition only
                        |
-          only when a gap remains
-                       v
-            AgentOS-specific plugin
+         +-------------+-------------+
+         |             |             |
+         v             v             v
+   delegation      model        context/tool
+     policy        policy          policy
+         |
+         +---- optional fixed workflow recipes
+         +---- optional Team strategy
 ```
 
 AgentOS should mostly **select, connect, and constrain** existing capabilities. It should implement a capability itself only when the capability belongs to the AgentOS domain and no existing surface expresses it cleanly.
@@ -68,13 +75,17 @@ Before adding code to AgentOS, ask:
 
 If DSH exposes an appropriate service, plugin, event, provider seam, bundle, or lifecycle primitive, consume it directly.
 
-Examples of responsibilities that should normally remain in DSH:
+Responsibilities that should normally remain in DSH include:
 
 - agent and session lifecycle;
+- subagent delegation and child lifecycle;
+- workflow execution;
+- Agent Teams runtime;
+- goals, jobs, todo, and scheduling;
 - tool registration/execution;
-- LLM routing;
-- filesystem and shell access;
-- sandbox/approval policy;
+- LLM provider/model adapters;
+- filesystem, shell, terminal, sandbox, LSP;
+- compaction;
 - persistence primitives;
 - plugin loading/disposal;
 - profile and bundle composition;
@@ -86,9 +97,11 @@ If the behavior is a bounded action with an existing public tool contract, Agent
 
 This is especially appropriate when AgentOS needs the result of an action but does not need to own the action's internal lifecycle or durable state.
 
+Examples may include browser/research/repository actions exposed by other plugins or public tools.
+
 ### 3. Can existing capabilities be composed?
 
-If the behavior emerges by coordinating existing DSH plugins/services/tools, keep the logic in the thin AgentOS plugin or bundle composition.
+If the behavior emerges by coordinating existing DSH plugins/services/tools, keep the logic in an AgentOS policy or fixed recipe plugin rather than creating infrastructure.
 
 Composition should not create a second hidden runtime.
 
@@ -102,15 +115,15 @@ The new capability should have a clear semantic owner and should not duplicate a
 
 It does **not** mean every module becomes a package.
 
-At the product boundary, AgentOS itself is a DSH plugin/bundle. Inside AgentOS, independently meaningful behavior should remain plugin-shaped when replacement or isolated lifecycle/configuration is valuable.
+At the product boundary, AgentOS itself is a DSH plugin/bundle. Inside AgentOS, independently meaningful behavior should remain plugin-shaped when replacement or isolated configuration is valuable.
 
 A component should become an AgentOS-specific plugin when one or more are true:
 
 - the behavior is not already owned by DSH or a suitable public tool;
 - it has independent configuration or lifecycle;
-- multiple providers are plausible or already exist;
+- multiple strategies/providers are plausible;
 - users may enable/disable it independently;
-- it contributes an AgentOS-specific service, policy, tool, event, context, or adapter;
+- it contributes AgentOS-specific policy, tool behavior, event handling, context, or adapters;
 - it can evolve without forcing unrelated AgentOS capabilities to change.
 
 A component should remain local implementation code when:
@@ -118,6 +131,38 @@ A component should remain local implementation code when:
 - it exists only to support one plugin;
 - replacing it independently provides no product or architecture value;
 - separating it would create more API surface than useful decoupling.
+
+Static instructions and procedures should normally be **Skills**, not plugins. Promote them only when runtime state, lifecycle, events, tools, or executable policy are required.
+
+## Initial AgentOS-owned plugin candidates
+
+Research currently supports these boundaries:
+
+### `agentos-bundle`
+
+Composition only. Selects DSH plugins, public capabilities, and AgentOS plugins. Contains no domain engine.
+
+### `agentos-delegation-policy`
+
+Owns AgentOS-specific decisions about when work stays local, uses a subagent, Team, workflow, or public capability. It consumes DSH execution primitives rather than implementing them.
+
+### `agentos-model-policy`
+
+Optional independent policy for dynamic provider/model/reasoning-effort selection. It consumes DSH LLM routing rather than implementing model adapters.
+
+### `agentos-context-policy`
+
+Optional dynamic policy for prompt/context/tool visibility using DSH prompt, skill, injection, and scoped-tool primitives. Pure static instructions should remain Skills.
+
+### `agentos-workflow-<recipe>`
+
+Optional fixed product workflows built over `ctx.workflowEngine` and `ctx.subagents`. AgentOS does not own another workflow engine.
+
+### `agentos-team-strategy`
+
+Optional collaboration protocol over DSH's experimental `ctx.agentTeams`: role assignment, review/debate/synthesis policy, and Lead behavior. AgentOS does not own roster, mailbox, task board, or teammate lifecycle.
+
+Long-term memory, external-agent bridges, or new durable project state remain deferred until requirements demonstrate a gap in existing DSH/public capabilities.
 
 ## Capability seam pattern
 
@@ -141,7 +186,7 @@ Do **not** add an AgentOS contract in front of a DSH contract unless AgentOS sem
 
 ## Proposed repository shape
 
-Start smaller than `internet`:
+Do not create generic `capability/` and `provider/` trees before real seams exist. Prefer packages named after their actual responsibility:
 
 ```text
 AgentOS/
@@ -153,14 +198,20 @@ AgentOS/
 │   ├── proposals/
 │   ├── research/
 │   └── governance/
-└── packages/                 # only after implementation begins
-    ├── bundle/               # optional default AgentOS composition
-    ├── capability/           # AgentOS-only definitions when a seam is real
-    ├── provider/             # swappable AgentOS implementations
-    └── feature/              # self-contained AgentOS plugins
+└── packages/                         # after implementation begins
+    ├── bundle/
+    │   └── agentos/
+    ├── policy/
+    │   ├── delegation/
+    │   ├── model/                    # only if needed
+    │   └── context/                  # only if needed
+    ├── workflow/
+    │   └── <recipe>/                 # concrete fixed workflows only
+    └── team/
+        └── strategy/                 # optional; DSH Agent Teams dependency
 ```
 
-The exact package groups are deliberately provisional. If DSH's package conventions fit better, AgentOS should follow them instead of inventing a parallel taxonomy.
+This shape is illustrative, not a checklist. Start with fewer packages and add boundaries only when the graduation test is satisfied.
 
 ## Relationship to DSH
 
@@ -168,24 +219,31 @@ The exact package groups are deliberately provisional. If DSH's package conventi
 
 - process/application launch;
 - agent/session runtime primitives;
+- subagent runtime and providers;
+- generic workflow engine;
+- generic Team runtime;
+- goals/todo/jobs/schedule;
 - plugin loading and unloading;
 - dependency injection/context;
 - configuration and patch composition;
 - profiles and bundles;
 - plugin installation/management;
 - lifecycle cleanup and reversible effects;
-- generic tool, LLM, filesystem, shell, sandbox, persistence, UI, and other harness-level primitives.
+- generic tool, LLM, filesystem, shell, sandbox, persistence, UI, compaction, skills, and other harness-level primitives.
 
 AgentOS should consume these directly where possible.
 
 ### AgentOS owns
 
-Only the thin layer needed to produce the AgentOS behavior:
+Only the thin layer needed to produce AgentOS behavior:
 
-- AgentOS-specific policy or coordination semantics not already available from DSH;
+- AgentOS-specific delegation/coordination policy;
+- optional model-selection policy;
+- optional dynamic context/tool-surface policy;
+- fixed AgentOS workflow recipes;
+- optional Team reasoning/collaboration strategy;
 - composition of DSH plugins/services and public tools into the AgentOS experience;
-- AgentOS-specific contracts only where a true replaceable capability seam exists;
-- AgentOS-specific plugins that fill demonstrated gaps.
+- additional contracts only where a true replaceable AgentOS capability seam emerges.
 
 If DSH or a public tool already owns a capability cleanly, AgentOS should not mirror it.
 
@@ -195,10 +253,12 @@ AgentOS and `internet` share the same foundational direction: **DSH is the runti
 
 AgentOS should nevertheless be leaner. `internet` currently owns substantial deterministic workflow state and orchestration because its browser-backed multi-account workflow has product-specific correctness requirements. AgentOS should not import those control-plane concepts by default.
 
+In particular, `internet/src/team` and `internet/src/workflow` should not be treated as templates for an AgentOS core. Current DSH already owns generic subagents, workflow execution, jobs, goals, and an experimental Team coordination substrate.
+
 Reuse from `internet` should therefore be classified:
 
-- **consume directly** — an existing DSH/public capability can replace the need entirely;
-- **reuse pattern** — the architectural lesson is useful, but AgentOS needs a smaller implementation;
+- **consume directly** — an existing DSH/public capability replaces the need entirely;
+- **reuse pattern** — the architectural lesson is useful, but AgentOS needs a smaller policy/recipe plugin;
 - **extract plugin** — only when behavior is genuinely reusable and DSH does not already own it;
 - **do not port** — product-specific workflow/control-plane logic that AgentOS does not require.
 
@@ -227,14 +287,28 @@ For each behavior, distinguish:
 
 This prevents a tool result or hidden external session from accidentally becoming an undocumented AgentOS state machine.
 
+## Plugin graduation test
+
+Before creating a new AgentOS plugin, require:
+
+1. DSH/public capabilities do not already own the same semantics.
+2. The component has one coherent independently meaningful responsibility.
+3. It has independent change/configuration/replacement pressure.
+4. Consumers can depend on a smaller stable boundary than its implementation.
+5. It meaningfully participates in DSH plugin lifecycle/events/configuration/tool/service contribution.
+6. Replacing it does not require editing a central AgentOS dispatcher.
+7. Its activation, disposal, configuration, and visible behavior can be tested independently.
+
+If these conditions fail, keep the code inside its owning plugin.
+
 ## Evolution rules
 
 1. Search DSH for an existing capability first.
 2. Prefer a public tool when the need is action-shaped.
 3. Prefer composition over a new subsystem.
-4. Start with the smallest AgentOS feature plugin that fills the remaining gap.
+4. Start with the smallest AgentOS feature/policy plugin that fills the remaining gap.
 5. Introduce an AgentOS capability contract only when a stable seam is needed.
-6. Add a second provider without changing consumers.
+6. Add a second strategy/provider without changing consumers.
 7. Keep default composition separate from capability logic.
 8. Remove obsolete providers and compatibility paths rather than accumulating permanent fallback layers.
 9. Document architecture changes in the same PR that introduces them.
@@ -242,16 +316,15 @@ This prevents a tool result or hidden external session from accidentally becomin
 
 ## Research questions
 
-The next research phase should answer these before package topology is finalized:
+The next research phase should answer:
 
-1. Which desired AgentOS behaviors are already available as DSH plugins/services?
-2. Which can be delegated cleanly to existing public tools?
-3. Which `internet` modules disappear entirely once DSH/public capabilities are used directly?
-4. Which `internet` modules are reusable patterns rather than reusable code?
-5. What are the first 1-3 genuinely AgentOS-specific capability gaps?
-6. Should AgentOS ship as one DSH bundle, one root plugin, or a minimal bundle plus optional plugins?
-7. What DSH compatibility/version contract should AgentOS declare?
-8. What is the minimal TDD strategy for activation, disposal, tool delegation, replacement, and composition?
+1. What concrete behavior should `agentos-delegation-policy` own versus leave entirely to model prompting/Skills?
+2. Does AgentOS need dynamic model routing in v1, or can DSH profile configuration choose routes initially?
+3. What context behavior is dynamic enough to justify `agentos-context-policy` instead of Skills?
+4. What is the first fixed workflow recipe that has deterministic semantics worth encoding?
+5. Should Team strategy remain optional until DSH Agent Teams leaves experimental status?
+6. What DSH compatibility/version contract should AgentOS declare?
+7. What is the minimal TDD strategy for activation, disposal, policy decisions, tool delegation, and composition?
 
 ## Acceptance criteria for this proposal
 
@@ -260,7 +333,6 @@ Before implementation begins, we should be able to draw a dependency graph where
 - DSH is the only composition/lifecycle kernel;
 - existing DSH plugins/services are reused instead of mirrored;
 - public tools are used for appropriate bounded actions instead of duplicated subsystems;
-- the AgentOS layer contains little domain infrastructure and mostly composition/policy;
-- every AgentOS-specific plugin corresponds to a demonstrated semantic gap;
-- consumers import AgentOS contracts rather than providers only where such contracts are actually needed;
+- the AgentOS layer contains policy, recipes, and composition rather than generic infrastructure;
+- every AgentOS-specific plugin passes the plugin graduation test;
 - no proposed AgentOS package duplicates an existing DSH or public responsibility without a documented reason.
