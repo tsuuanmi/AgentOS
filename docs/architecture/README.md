@@ -158,7 +158,7 @@ After reuse, AgentOS owns only product semantics such as:
 - effect/evidence validation;
 - plugin composition.
 
-See [Minimal semantic delta](minimal-semantic-delta.md).
+See [AgentOS semantic delta](plugins/agentos/semantic-delta.md).
 
 ## Domain profiles
 
@@ -193,7 +193,7 @@ They do not require new Worker/Agent Team/Workflow engines.
 - [Plugin architecture](plugins/README.md)
 - [Product principles](product-principles.md)
 - [Protocol stack](protocol-stack.md)
-- [Agent communication](agent-communication.md)
+- [Worker communication](plugins/worker/communication.md)
 - [Interaction model](interaction-model.md)
-- [Minimal semantic delta](minimal-semantic-delta.md)
+- [AgentOS semantic delta](plugins/agentos/semantic-delta.md)
 - [Reference](../reference/README.md)
