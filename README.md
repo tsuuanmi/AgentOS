@@ -1,28 +1,32 @@
 # AgentOS
 
-AgentOS is a lightweight, plugin-first **interactive local-agent system** designed to run inside [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+AgentOS is a lightweight, plugin-first **interactive agent system** designed to run on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) while separating user interaction, local execution, external reasoning, and durable coordination.
 
 The project is intentionally small. AgentOS should not become a second harness, runtime, plugin manager, lifecycle engine, or orchestration kernel. DSH owns composition and plugin lifecycle. AgentOS follows a contract-first rule: **own AgentOS semantics, compose implementations**, and add an AgentOS-specific component only when an existing DSH/public contract cannot preserve the required meaning.
 
 ## Interaction
 
-The user interacts with a Local Agent running on DSH. That Local Agent can work directly, consult a Team such as Internet Team, or hand work to a Workflow that can itself compose research, Team, worker, validation, and review capabilities.
+AgentOS separates four roles so each can use the environment where it is strongest:
 
 ```text
-User
-  <-> Local Agent
-        |
-        +-> Direct capabilities
-        +-> Team / Internet Team
-        +-> Workflow
-              +-> Research / Consult
-              +-> Worker
-              +-> Validation / Review
+Controller
+  access / human interaction / cloud-native capabilities
+
+Local Agent
+  repository / files / shell / local data / local runtime
+
+Internet Team
+  external research / critique / synthesis / native ecosystems
+
+Workflow
+  durable coordination / recovery / authority
 ```
 
-Workflow delegation does not replace the Local Agent. The user can continue interacting locally while delegated work runs, and progress/results/pending actions return through the Local surface.
+The user may interact through a Controller or directly with Local. Controller can research and use cloud capabilities before Local is needed; Local can call Internet Team or start a durable Workflow; Workflow can compose Local/external workers, Internet Team, validation, and review.
 
-See [the local-first interaction model](docs/architecture/interaction-model.md).
+**Local can do almost everything, but AgentOS should not force Local to do everything.** Optional planes should degrade gracefully rather than becoming universal hard dependencies.
+
+See [the interaction model](docs/architecture/interaction-model.md).
 
 ## Direction
 
