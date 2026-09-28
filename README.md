@@ -10,11 +10,15 @@ Conceptually:
 AgentOS composition
   + Agent Team capability composition
   + Workflow capability composition
+      + fixed domain-agnostic Core
+      + declarative Definitions/Profiles
   + agnostic Worker contracts/adapters
   + selected DSH plugins/providers
 ~~~
 
 Agent Team and Workflow are not greenfield engines. They are built from DSH capability seams such as `ctx.agentTeams`, `ctx.subagents`, `ctx.storageDomain`, Jobs, workflowEngine, interaction, Session, workspace/tools, and provider plugins.
+
+Workflow Core is fixed and domain-agnostic. Software development is one declarative Workflow Profile; future profiles such as scientific research should normally change configuration/capability packs/adapters rather than fork the Core.
 
 See the canonical [architecture](docs/architecture/README.md).
 
@@ -26,7 +30,8 @@ Start at [docs/README.md](docs/README.md).
 - [Architecture](docs/architecture/README.md) — composition, ownership, protocols, and dependency boundaries.
 - [AgentOS composition](docs/architecture/plugins/agentos/README.md) — plugin-of-plugins model.
 - [Agent Team composition](docs/architecture/plugins/agent-team/README.md) — DSH Team/Subagent reuse plus AgentOS semantic delta.
-- [Workflow composition](docs/architecture/plugins/workflow/README.md) — DSH persistence/execution/interaction reuse plus durable semantic delta.
+- [Workflow composition](docs/architecture/plugins/workflow/README.md) — domain-agnostic Core plus DSH persistence/execution/interaction reuse.
+- [Workflow definitions/profiles](docs/architecture/plugins/workflow/definitions.md) — config-driven domain workflows.
 - [Worker model](docs/architecture/worker-model.md) — agnostic capability-driven Worker and provider bindings.
 - [Reference](docs/reference/README.md) — Worker protocol/API/Exchange/MCP contracts.
 - [JSON Schemas](schemas/README.md) — machine-readable Worker structures.
