@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentos:schema:mcp-worker-submit-request",
+  "title": "AgentOS MCP Worker Submit Request",
+  "description": "Submits one structured Worker contribution or terminal outcome.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "submission"
+  ],
+  "properties": {
+    "submission": {
+      "$ref": "urn:agentos:schema:worker-submission"
+    }
+  }
+}
