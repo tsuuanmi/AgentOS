@@ -147,18 +147,45 @@ PendingAction/delivery
 
 Prove restart/reconciliation with the same Team provider.
 
-## Website Agent binding questions
+## Website Agent bridge direction
 
-Still unresolved and should be answered during the first vertical slice:
+The completion/communication model is now explicit.
 
-1. What exact durable identity binds one DSH member to one Website Agent/conversation?
-2. Where is that binding persisted so Host/Session recovery does not accidentally create or reuse the wrong Website Agent?
-3. How does a teammate deliver a DSH peer message to its Website Agent without injecting unnecessary local reasoning/context?
-4. What compact result does the Website Agent return to the DSH teammate?
-5. How is cancellation/timeout/re-auth handled without mutating DSH Team semantics?
-6. Does the Lead use its own Website Agent for synthesis in all profiles or only website-heavy ones?
+Stable software roles:
 
-Do not create a generic remote teammate runtime before these concrete questions are answered.
+~~~text
+Lead / Synthesizer
+Researcher Primary
+Researcher Challenger
+Implementer
+Reviewer Correctness
+Reviewer Architecture
+~~~
+
+Each role has one isolated Website Agent binding for the Team run.
+
+Completion is layered:
+
+~~~text
+Website Agent assignment completion
+  -> DSH TeamTask completion
+  -> typed Lead phase completion
+  -> Workflow WorkItem completion
+~~~
+
+Workflow never polls Website Agents directly.
+
+Provider-v1 should persist AgentOS-only binding/assignment/completion state in an AgentOS DSH Storage Domain while leaving DSH roster/mailbox/task state solely in DSH Agent Teams.
+
+Current remaining bridge questions are implementation-level:
+
+1. exact Storage Domain schema/transaction shape for member bindings and assignment completions;
+2. exact Website Agent adapter API for assign/continue/inspect/cancel;
+3. provider-specific completion detection and auth/re-auth behavior;
+4. how local tool requests from Website Agent I are represented and authorized;
+5. whether Lead synthesis always uses Website Agent S or can be local for some profiles.
+
+See [Website Agent bridge protocol v0](../research/website-agent-bridge-protocol-v0.md).
 
 ## Typed completion questions
 
@@ -203,9 +230,10 @@ Not required to ship v1:
 Implementation can begin when:
 
 - architecture/contracts remain internally consistent;
-- Website Agent per-member binding has a concrete minimal persistence/identity design;
-- typed completion has a concrete testable contract;
-- first research Team topology is fixed enough for black-box tests;
+- stable Team roles and Website Agent completion ownership are reflected in tests;
+- the per-member binding/assignment Storage Domain schema is concrete enough to implement;
+- typed completion has a concrete testable API;
+- the fixed research Team topology is encoded in black-box tests;
 - Workflow provider choices remain clearly implementation-specific;
 - no DSH Team/runtime state is shadowed by AgentOS.
 
