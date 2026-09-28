@@ -1,281 +1,169 @@
 # Ecosystem reuse evaluation
 
-- **Status:** active research / build-vs-reuse evaluation
+- **Status:** active research / component reuse evaluation
 - **Reviewed:** 2026-09-28
-- **Question:** does an existing system already provide enough of AgentOS that AgentOS should adopt, embed, or be replaced by it?
+- **Architectural constraint:** DeepSeek Harness / Cordis remains the AgentOS Host.
 
-This document is intentionally exploratory. Accepted conclusions should be promoted into canonical architecture and this file should be deleted when the build-vs-reuse question is resolved.
+The question is no longer "which framework should replace AgentOS/DSH?"
+
+The useful question is:
+
+> **Which existing protocol, library, runtime, or implementation can sit behind an AgentOS/Cordis plugin so AgentOS does not rebuild commodity mechanics?**
 
 ## Evaluation criteria
 
-A strong replacement or reusable substrate should cover most of these needs:
+A reusable component is valuable when it:
 
-1. capability-oriented "right agent, right job" routing;
-2. replaceable model/agent providers;
-3. Teams or multi-agent collaboration;
-4. declarative or composable workflows;
-5. durable state, restart/resume, and human/external pending actions;
-6. structured inputs/outputs and reusable Artifacts;
-7. remote-agent boundaries such as MCP, A2A, or ACP;
-8. local execution/tool access for software work;
-9. ability to support software-development and scientific-research workflows without changing the orchestration core;
-10. enough openness that AgentOS does not become coupled to one vendor/runtime;
-11. a credible path to reducing duplicated context/research rather than simply adding more agent calls.
+1. fits a clear plugin/provider/adapter boundary;
+2. preserves DSH/Cordis as Host;
+3. does not duplicate an existing DSH service;
+4. removes more owned code than the adapter adds;
+5. preserves AgentOS semantic contracts;
+6. keeps provider/runtime ids below the plugin boundary;
+7. materially improves correctness, interoperability, or operations.
 
-## Current conclusion
+## Adopt/reuse now
 
-There are now several mature systems that overlap heavily with AgentOS. We should **not** build generic agent runtime, Team, workflow, persistence, transport, or provider mechanics merely because AgentOS needs them.
+### DSH/Cordis
 
-However, no reviewed system is yet an obvious drop-in replacement for the current DSH-native direction without changing the chosen runtime/ecosystem and product boundaries.
+Reuse Host lifecycle, DI/composition, ctx.agentTeams, ctx.subagents, ACP provider/server, storageDomain, Session, and optional jobs/workflow/schedule/approval/questions/tools.
 
-The strongest candidates to learn from or potentially adopt more deeply are:
+### A2A
 
-- **Agno / Agno AgentOS** for the closest integrated Agents + Teams + Workflows + runtime product;
-- **Microsoft Agent Framework** for provider-neutral production workflows, checkpointing, multi-agent orchestration, MCP, and A2A;
-- **Google ADK** for multi-agent composition, graph workflows, and A2A;
-- **LangGraph** for durable graph execution/recovery;
-- **CrewAI** for the Crews + Flows split;
-- **OpenAI Agents SDK** for minimal manager/handoff orchestration, structured handoffs, MCP, sessions, and sandboxed specialist execution;
-- **A2A 1.0** as the strongest standard candidate for remote Worker Task/Message/Artifact exchange;
-- **Agent Client Protocol (ACP)** as the strongest standard candidate for replaceable local coding-agent execution;
-- **Temporal/Inngest** as reference durable runtimes that set the bar for generic retry/checkpoint/wait mechanics.
+Reuse Task/TaskStatus, Message, Artifact/Part, AgentCard/AgentSkill, auth, update delivery, and extension mechanisms.
 
-The immediate architecture implication is conservative:
+Initial AgentOS A2A integration should use **zero custom protocol extensions** unless a conformance test proves remote data is missing.
 
-> Keep AgentOS as a thin semantic/composition layer over DSH while continuously testing whether an upstream framework, protocol, or durable runtime can satisfy a boundary better than custom code.
+### ACP
 
-The deeper [protocol/runtime reuse research](protocol-runtime-reuse.md) now suggests a more specific split: A2A for remote independent agents, ACP for coding agents, MCP for tools/Website-host boundaries, and DSH-native services for in-process/runtime-local mechanics. AgentOS should retain semantic invariants above those protocols rather than create a new universal wire protocol.
+Reuse compatible Agent execution/control through DSH's existing ACP provider.
 
-A runtime replacement should happen only if a candidate removes more AgentOS-owned complexity than the migration/integration layer it introduces.
+Website Agent should first be exposed through a local ACP bridge for bounded work.
 
-## Existing DSH/Cordis
+### MCP
 
-Current AgentOS already has a reusable substrate: DSH/Cordis.
+Reuse for tool/capability/data interoperability, not as a Worker protocol.
 
-The current architecture review found reusable seams for Team roster/mailbox/task mechanics, subagent providers, durable storage, bounded workflow execution, jobs, sessions, tools, provider integrations, and plugin composition.
+## Evaluate only when a concrete gap appears
 
-This remains the lowest-friction reuse path because it preserves the existing TypeScript/Cordis-native architecture and requires only the AgentOS semantic delta.
+### Temporal
 
-See [DSH capability reuse](../architecture/dsh-reuse.md).
+Strong candidate for generic durable execution behind a Workflow adapter when DSH primitives cannot economically satisfy a concrete long-lived/recovery requirement.
 
-### Direction
+### Inngest
 
-**Reuse aggressively.** Do not create an AgentOS replacement for mechanics already guaranteed by DSH.
+TypeScript-native candidate for durable steps, retries, sleeps, and event waits behind the same plugin boundary.
 
-## Agno and Agno AgentOS
+## Architecture references, not alternate Hosts
 
-Official documentation:
+### Mastra / Mastra Factory
 
-- <https://docs.agno.com/>
-- <https://docs.agno.com/agent-os/introduction>
-- <https://docs.agno.com/teams/overview>
-- <https://docs.agno.com/workflows/overview>
+Strong reference for typed workflows, A2A/ACP/MCP separation, software-factory stages, persistent sessions, human gates, and Temporal-backed durability.
 
-Agno is especially relevant because it already uses the name **AgentOS** for its runtime.
+### Microsoft Agent Framework
 
-Its current stack provides:
+Reference for checkpoint/rehydration, HITL, graph workflows, and A2A hosting.
 
-- Agents, Teams, and Workflows;
-- Team modes including coordinate, route, broadcast, and tasks;
-- workflows composed from Agents, Teams, functions, and nested Workflows;
-- sequential/parallel/conditional/loop/router control flow;
-- persistent sessions/state and background execution;
-- MCP, A2A, REST, and other runtime interfaces;
-- tracing, evaluations, scheduling, authorization, and human-in-the-loop;
-- remote members and multiple framework/provider integrations.
+### Agno AgentOS
 
-This is the closest reviewed off-the-shelf product to the broad shape of this project.
+Reference for integrated Agent/Team/Workflow product semantics and durable background execution. It also creates a separate naming/positioning question because of the existing AgentOS name.
 
-### Differences / open questions
+### Google ADK
 
-- Agno is a Python-first SDK/runtime while current AgentOS is explicitly DSH/Cordis-native.
-- Adopting Agno as the primary runtime would likely replace, rather than simply complement, much of the current DSH composition.
-- AgentOS currently places unusual emphasis on exact input/result binding, provider-neutral Worker semantics, effect receipts, semantic completion, and a Website-Agent-to-Local-Agent bridge.
-- The current Agno Team documentation notes limitations around using some external-framework adapters directly as Team members or Workflow steps; this matters if arbitrary local/website agents must remain first-class replaceable Workers.
-- We have not yet proved whether Agno's persisted workflow/background semantics satisfy the exact restart/fencing/unknown-outcome invariants currently proposed for AgentOS.
+Reference for A2A and graph/dynamic multi-agent composition.
 
-### Direction
+### LangGraph
 
-**Highest-priority external build-vs-buy candidate.**
+Durability/state-machine reference.
 
-Before implementing a large custom Workflow or Agent Team runtime, a focused Agno spike would be justified if we are willing to reconsider DSH/Cordis as the host.
+### CrewAI
 
-Also evaluate the project-name collision independently: even if we do not adopt Agno, shipping a second agent platform called "AgentOS" creates avoidable ambiguity.
+Team-versus-Flow ergonomics reference.
 
-## Microsoft Agent Framework
+### OpenAI Agents SDK
 
-Official documentation:
+Reference for keeping orchestration primitives small.
 
-- <https://learn.microsoft.com/en-us/agent-framework/>
-- <https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints>
-- <https://learn.microsoft.com/en-us/agent-framework/journey/agent-to-agent>
+## Why full framework embedding is usually lower ROI
 
-Microsoft Agent Framework is the successor to AutoGen and Semantic Kernel and now provides a production-oriented framework for agents and graph-based multi-agent workflows.
+DSH already owns the Host, provider registry, Team mechanics, Session state, tools, and plugin composition.
 
-Relevant capabilities include:
-
-- multiple model/provider integrations;
-- graph-based workflows;
-- sequential, concurrent, handoff, and group collaboration patterns;
-- checkpointing and resume/rehydration;
-- human-in-the-loop;
-- MCP/tool integration;
-- A2A clients and hosting for remote agents;
-- middleware, telemetry, state management, and declarative agents.
-
-### Fit
-
-Architecturally, this overlaps heavily with Agent Team + Workflow.
-
-Its checkpointing and remote-agent support are particularly relevant to the durable Workflow and Worker-provider design.
-
-### Difference
-
-Using it as the primary runtime would introduce a new Python/.NET/Go framework beside or instead of DSH/Cordis. It also does not by itself define the exact AgentOS Artifact/effect semantics or the specific Website Worker bridge we currently want.
-
-### Direction
-
-**Learn from and prototype against the semantic boundaries before reproducing equivalent workflow/checkpoint/A2A mechanics.**
-
-If DSH becomes insufficient, Microsoft Agent Framework is a serious runtime-replacement candidate.
-
-## Google Agent Development Kit (ADK)
-
-Official documentation:
-
-- <https://google.github.io/adk-docs/>
-- <https://github.com/google/adk-docs/blob/main/docs/a2a/index.md>
-- <https://github.com/google/adk-docs/blob/main/docs/agents/workflow-agents/index.md>
-
-ADK supports multi-agent composition and A2A remote agents. Newer ADK versions are moving from fixed Sequential/Parallel/Loop orchestration primitives toward more flexible graph/dynamic workflows.
-
-Relevant ideas:
-
-- local and remote agents can participate in one multi-agent system;
-- deterministic workflow control can be separated from model-driven agent reasoning;
-- A2A provides a standard remote-agent boundary;
-- shared state/output bindings connect workflow stages.
-
-### Direction
-
-**Strong reference for remote-agent and graph-workflow design.**
-
-Potential runtime replacement is less compelling while DSH remains the selected host, but ADK's A2A integration should inform AgentOS provider boundaries.
-
-## LangGraph
-
-Official project:
-
-- <https://github.com/langchain-ai/langgraph>
-
-LangGraph focuses on resilient graph execution with:
-
-- durable execution;
-- resume after failures;
-- human-in-the-loop;
-- state and memory;
-- tracing/observability through LangSmith.
-
-### Fit
-
-LangGraph is strongest as a workflow/runtime substrate rather than as the whole AgentOS product model.
-
-### Direction
-
-**Do not rebuild durable graph mechanics merely to have them.** Compare any custom Workflow Core behavior against LangGraph's semantics and DSH's existing workflow/storage capabilities.
-
-Adopting LangGraph directly would add a second runtime unless AgentOS changes hosts.
-
-## CrewAI
-
-Official documentation:
-
-- <https://docs.crewai.com/>
-- <https://github.com/crewAIInc/crewAI>
-
-CrewAI explicitly separates:
+Embedding a second full agent framework normally introduces duplicate ownership:
 
 ~~~text
-Crew
-  = collaborative agent group
-
-Flow
-  = structured/event-driven workflow and shared state
+two provider registries
+two workflow runtimes
+two persistence models
+two session models
+two plugin/config systems
 ~~~
 
-This is conceptually close to AgentOS's Agent Team / Workflow split.
+Prefer the lowest reusable primitive that satisfies the invariant:
 
-### Direction
+~~~text
+protocol SDK > narrow library > durable runtime adapter > full second framework
+~~~
 
-**Learn from the separation and developer ergonomics.**
+## Examples
 
-CrewAI remains more role/agent-framework-centric than the current agnostic Worker + DSH plugin composition, so it is not presently a clear drop-in replacement.
+### Remote Agent
 
-## OpenAI Agents SDK
+~~~text
+AgentOS A2A adapter
+  -> official A2A JS SDK
+~~~
 
-Official documentation:
+### Compatible delegated Agent
 
-- <https://openai.github.io/openai-agents-python/>
-- <https://openai.github.io/openai-agents-python/multi_agent/>
-- <https://openai.github.io/openai-agents-python/handoffs/>
+~~~text
+DSH ctx.subagents
+  -> existing DSH ACP provider
+~~~
 
-The SDK intentionally keeps a small primitive set:
+### Website Agent
 
-- Agents;
-- agents-as-tools / manager orchestration;
-- handoffs;
-- structured handoff inputs;
-- guardrails;
-- sessions;
-- MCP tools;
-- sandbox agents and resumable sandbox sessions;
-- tracing.
+~~~text
+DSH ACP provider
+  -> Website ACP bridge
+~~~
 
-### Direction
+for one-shot work, then add/upstream continuation only if needed.
 
-**Useful reference for keeping orchestration primitives small.**
+### Durable Workflow
 
-It does not currently replace the need for AgentOS's provider-neutral durable Workflow/Team semantics when the system spans local workers, website agents, DSH providers, and non-OpenAI execution.
+Use DSH primitives first.
 
-## Comparative view
+If a failing requirement demonstrates a generic durability gap:
 
-| System | Teams / routing | Workflow | Durability | Remote/open protocol | Provider flexibility | Current role for AgentOS |
-|---|---|---|---|---|---|---|
-| DSH/Cordis | strong existing Team/Subagent seams | bounded workflow + jobs + storage | strong reusable substrate | ACP/providers; MCP client | strong within DSH plugins | **primary host; reuse first** |
-| Agno AgentOS | Teams with routing/task modes | rich Workflows | sessions/background/durable runtime options | MCP + A2A + remote members | broad | **closest full alternative; spike if host can change** |
-| Microsoft Agent Framework | multi-agent orchestration | graph workflows | checkpoints/resume | MCP + A2A | broad | **strong alternative/reference** |
-| Google ADK | multi-agent | graph/dynamic workflows | runtime/session state | A2A | broad model/tool ecosystem | **reference / possible alternative** |
-| LangGraph | graph/subgraph patterns | core strength | core strength | integration-dependent | broad | **workflow-runtime reference** |
-| CrewAI | Crews | Flows | state/event-driven execution | integrations | broad | **Team/Workflow ergonomics reference** |
-| OpenAI Agents SDK | manager + handoffs | code/LLM orchestration | sessions; resumable sandbox capabilities | MCP | supports non-OpenAI model providers but OpenAI-centered SDK | **minimal-primitives reference** |
+~~~text
+AgentOS Workflow plugin
+  -> Temporal/Inngest adapter plugin
+~~~
 
-The table describes current documented capabilities, not equivalence guarantees.
+## Distinctive AgentOS hypothesis
 
-## What appears distinctive enough to keep evaluating
+Existing systems already show that Agent, Team, Workflow, MCP, A2A, durable tasks, and software-factory pipelines are commodity building blocks.
 
-The value of AgentOS should not be "we also have agents, teams, and workflows." Existing projects already provide those.
+The AgentOS hypothesis worth proving is:
 
-The remaining hypothesis worth proving is the combination of:
+1. **right agent, right job** over heterogeneous DSH providers;
+2. **cost/context-aware allocation**;
+3. Website and local agents behind one provider-selection model;
+4. A2A for open remote collaboration;
+5. capability/Skill-driven domain Profiles;
+6. result/effect acceptance stronger than model prose;
+7. plugin-level implementation substitution without changing the DSH Host.
 
-1. **cost/context-aware capability allocation** — spend expensive reasoning where it matters;
-2. **right-agent-right-job selection** across heterogeneous local and website agents;
-3. **plugin-first replacement** where provider/runtime identity is below semantic Worker/Workflow contracts;
-4. **Artifact-first handoff** to avoid repeated research/context;
-5. **DSH-native composition** instead of introducing another runtime when DSH already owns the mechanics;
-6. **exact semantic completion/effect evidence** across agents that may live in different execution environments;
-7. **domain profiles** proving the same Core can support both software development and scientific research.
+## Open research
 
-If existing frameworks can supply these properties with less custom code, AgentOS should adopt them rather than compete with them.
+1. Can the existing DSH ACP provider + Website ACP bridge cover enough research/scientific work without continuation?
+2. What real workflow first requires continuable ACP, if any?
+3. Can the first A2A path remain extension-free?
+4. Which Workflow durability requirement, if any, exceeds DSH primitives enough to justify Temporal/Inngest?
+5. Does the existing Agno AgentOS name create enough product ambiguity to justify renaming this project?
 
-## Before implementation grows
+## Decision rule
 
-Before substantial runtime implementation, answer these questions with small spikes/conformance tests:
+Do not add a framework/runtime dependency because its feature list overlaps AgentOS.
 
-1. Can current DSH Team/Subagent/Storage/Workflow seams satisfy the required contracts with only a thin semantic layer?
-2. Can Agno AgentOS satisfy the complete software-development profile including arbitrary local/remote Workers and durable restart semantics?
-3. Can Microsoft Agent Framework's checkpoint + A2A model satisfy Worker/Workflow requirements more directly than the proposed custom Exchange/Core?
-4. Can A2A 1.0 Task/Message/Artifact + an AgentOS extension replace parallel remote Worker wire structures while preserving assignment/input/attempt invariants?
-5. Which exact AgentOS invariants remain after those reuse opportunities are applied?
-6. Is the project name still appropriate given Agno's existing AgentOS product?
-
-Only the residual semantic delta should be implemented.
+Add it only when a specific AgentOS plugin can delegate a concrete mechanic to it with a smaller, clearer ownership boundary.
