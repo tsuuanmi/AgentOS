@@ -802,3 +802,178 @@ DSH Session persistence
 That asymmetry is desirable.
 
 AgentOS should be much smaller than DSH Agent Teams because its value is the product reasoning contract, not another collaboration runtime.
+
+
+## 23. Invocation isolation: prefer one root Team per semantic Agent Team run
+
+DSH Team identity is rooted in one ordinary root Agent Session.
+
+That creates an important v1 design choice.
+
+Reusing the user's long-lived Local root Team for every semantic research/review invocation has drawbacks:
+
+- teammate names are immutable and never reused;
+- default maxMembers is finite;
+- Team tasks/tombstones accumulate;
+- member Sessions accumulate context;
+- repeated research loses fresh independence;
+- Team messages/tasks pollute the user's long-lived Local collaboration space.
+
+DSH already provides a cleaner seam:
+
+~~~text
+ctx.agents.create({
+  sessionId,
+  meta: { cwd },
+  parentAgent: undefined
+})
+~~~
+
+Omitting parentAgent creates an ordinary runtime root. That root naturally becomes the Lead of its own implicit DSH Agent Team.
+
+Therefore the preferred provider-v1 isolation pattern is:
+
+~~~text
+Local or Workflow
+      |
+      v
+Agent Team invocation I1
+      |
+      v
+create dedicated ordinary root Agent R1
+      |
+      v
+DSH Team rooted at R1
+  +-> researcher-a
+  +-> researcher-b
+      |
+      v
+Lead R1 synthesizes typed result
+~~~
+
+The invocation's DSH root Session id is provider/adapter identity, not AgentOS semantic identity.
+
+### Benefits
+
+- roster/task/mailbox state is isolated per invocation;
+- teammate names may stay simple/reusable across different Teams;
+- fresh research remains genuinely fresh;
+- Workflow does not need to mutate the user's Local Team;
+- Local receives only compact final result;
+- an invocation can use the same cwd as Local without inheriting Local conversation history;
+- persisted root Session can be resumed if the invocation needs crash recovery.
+
+### Provider decision, not public contract
+
+AgentOS callers should not depend on "one root Session per invocation".
+
+A future provider may reuse a Team pool or use another substrate while preserving the same research/review contract.
+
+## 24. Reuse DSH Agent setup for Team-run composition
+
+ctx.agents.create/resume supports a scoped setup callback before Agent publication.
+
+That is a high-value seam for AgentOS.
+
+A dedicated Team Lead can be created with only the capabilities needed by the Team invocation:
+
+~~~text
+Team root Agent
+  +-> AgentOS research/review policy
+  +-> DSH Agent Team tools
+  +-> scoped semantic completion tool
+  +-> required read/research/repository tools
+~~~
+
+This avoids changing the user's Local Agent policy/tool surface and avoids a global AgentOS Team runtime.
+
+The Team root is driven only after creation completes.
+
+## 25. Typed completion should be durable at the Team root boundary
+
+The highest-value missing bridge is the final semantic result.
+
+A robust provider should account for this crash window:
+
+~~~text
+Lead produces final ResearchResult
+  -> Host crashes
+  -> Workflow has not yet committed ResultRef
+~~~
+
+If the only copy was an in-memory Promise or transient tool result, the Team would need to rerun unnecessarily.
+
+Therefore the completion bridge should have a durable provider-owned record before reporting success to the caller.
+
+A plausible v1 shape is a small AgentOS Session event on the dedicated Team root:
+
+~~~text
+agentos/team-result
+  invocation kind
+  exact input binding
+  typed ResearchResult or ReviewResult
+~~~
+
+The exact event/API is not frozen yet.
+
+The important invariant is:
+
+> Team semantic completion becomes durable before the Agent Team provider reports completion.
+
+On Workflow restart:
+
+~~~text
+inspect Team root Session
+  -> result already durable: recover it
+  -> no result: resume/reconcile Team run
+~~~
+
+This is not a second Team state store. It is one semantic completion fact that DSH Agent Teams itself intentionally does not model.
+
+## 26. Direct Local use and Workflow use can share the same provider
+
+With dedicated Team roots, both call paths converge:
+
+~~~text
+Local
+  -> Agent Team provider
+       -> dedicated DSH Team root
+       -> typed result
+
+Workflow WorkItem
+  -> same Agent Team provider
+       -> dedicated DSH Team root
+       -> typed result
+~~~
+
+This is preferable to making Local itself the Team Lead for one path and inventing another runtime path for Workflow.
+
+The user's Local Team remains available for ad-hoc native DSH collaboration, but AgentOS semantic research/review invocations remain isolated and reproducible.
+
+## 27. Updated highest-ROI provider shape
+
+The most promising v1 implementation shape is now:
+
+~~~text
+Agent Team semantic request
+       |
+       v
+DSH-backed Agent Team provider
+       |
+       +-> create isolated root Agent
+       |      cwd = caller/workflow workspace when required
+       |      fresh scoped Team policy
+       |
+       +-> DSH Agent Teams
+       |      spawn/fork continuable teammates
+       |      mailbox/task/wait/recovery
+       |
+       +-> Team Lead synthesis
+       |
+       +-> durable typed completion fact
+       |
+       v
+ResearchResult / ReviewResult
+~~~
+
+No custom AgentOS Team scheduler, transcript store, roster, mailbox, task graph, or member lifecycle is required.
