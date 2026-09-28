@@ -32,10 +32,13 @@ For AgentOS, the initial structure is intentionally minimal:
 docs/
 ├── README.md
 ├── architecture/
+├── contracts/
 ├── proposals/
 ├── research/
 └── governance/
 ```
+
+Contracts have now graduated because Workflow and Agent Team have stable AgentOS-owned semantics that implementation and conformance tests will target.
 
 Add requirements, design, decisions/ADR, reference, validation, engineering, security, or operations only when real artifacts need those homes.
 
@@ -80,7 +83,7 @@ For important behavior, readers should be able to navigate:
 
 ```text
 architecture / contract
-  -> proposal or decision when relevant
+  -> proposal or research when relevant
   -> owning plugin/package
   -> tests
 ```
