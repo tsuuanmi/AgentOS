@@ -36,29 +36,22 @@ AgentOS does not build another roster, mailbox, Team task graph, member lifecycl
 
 Instead, AgentOS adds collaboration semantics and a typed completion bridge.
 
-A DSH Team member is primarily a local coordination proxy for one isolated Website Agent/conversation:
+A DSH Team member is primarily a local coordination proxy for one isolated Website Agent/conversation. Members are **Workers selected by capabilities**, not permanent personas.
 
 ~~~text
-DSH researcher A <-> Website Agent A
-DSH researcher B <-> Website Agent B
-DSH implementer  <-> Website Agent I
-DSH reviewer A   <-> Website Agent RA
-DSH reviewer B   <-> Website Agent RB
-DSH Lead         <-> Website Agent S / synthesis
+Worker A [research, brainstorm, debate] <-> Website Agent A
+Worker B [research, brainstorm, debate] <-> Website Agent B
+Worker I [implement, tdd]               <-> Website Agent I
+Worker R1 [review, debate]              <-> Website Agent R1
+Worker R2 [review, debate]              <-> Website Agent R2
+Lead/Synthesis [synthesize]             <-> Website Agent S
 ~~~
 
 Research/review peers debate directly through DSH Team messaging. Local receives compact synthesis/results by default rather than the internal Team transcript.
 
-Software Team roles are stable across runs:
+Worker capabilities and the protocol shape are stable across runs; objectives/context values change.
 
-~~~text
-Lead / Synthesizer
-Researcher Primary
-Researcher Challenger
-Implementer
-Reviewer Correctness
-Reviewer Architecture
-~~~
+AgentOS uses a versioned JSON-Schema [Worker Protocol](docs/contracts/worker-protocol.md). MCP is the preferred cross-boundary transport profile when supported, while direct typed API calls may use the same schemas in-process.
 
 Website Agent completion is explicit: the Agent Team provider records an assignment result durably, then the DSH TeamTask may complete, then Lead commits the typed phase result. Workflow advances only from that final typed phase completion; it never infers completion from teammate inactivity or message delivery.
 
@@ -94,6 +87,7 @@ Canonical:
 - [Architecture](docs/architecture/README.md)
 - [Workflow contract](docs/contracts/workflow.md)
 - [Agent Team contract](docs/contracts/agent-team.md)
+- [Worker Protocol](docs/contracts/worker-protocol.md)
 
 Proposal/research documents are lower-authority change context and evidence.
 
