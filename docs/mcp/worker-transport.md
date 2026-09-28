@@ -79,6 +79,14 @@ Authentication principal may authorize access to a Worker, but does not become W
 
 Prefer a small Website-oriented surface.
 
+Canonical MCP tool-envelope schemas live under [`/schemas/mcp`](../../schemas/mcp/README.md).
+
+### agentos.worker.capabilities
+
+Returns the capability set for one explicit Worker binding.
+
+This is discovery/verification; provider/model names are not returned as semantic capabilities.
+
 ### agentos.worker.claim
 
 Website Agent asks for the next assignment available to its Worker binding.
@@ -248,6 +256,16 @@ Do not design new AgentOS Worker behavior around MCP sampling.
 Sampling is deprecated in current MCP for new integrations.
 
 Website reasoning should occur in the Website Agent that is already acting as the MCP client.
+
+## Delivery and idempotency semantics
+
+`claim` is atomic for one Worker assignment.
+
+`receive` is at-least-once. The Website client de-duplicates by `inputId`. The returned `nextCursor` is presented on the next receive call to advance the read position; repeating an older cursor may replay already-seen inputs safely.
+
+`submit` is idempotent by `submissionId`. Repeating the same current submission returns `duplicate`; reusing an id with different content is a protocol error.
+
+These are application semantics and must be tested; JSON Schema alone cannot enforce them.
 
 ## MCP schemas
 
