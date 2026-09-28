@@ -17,7 +17,8 @@ Accepted semantics already live in:
 - [Workflow architecture](../architecture/plugins/workflow/README.md)
 - [Agent Team requirements](../requirements/agent-team/README.md)
 - [Workflow requirements](../requirements/workflow/README.md)
-- [Worker Protocol](../reference/worker-protocol.md)
+- [Protocol stack](../architecture/protocol-stack.md)
+- [Worker Contract](../reference/worker-protocol.md)
 - [Worker API](../reference/worker-api.md)
 - [Worker Exchange invariants](../reference/worker-exchange-invariants.md)
 - [MCP Worker transport](../reference/mcp-worker-transport.md)
@@ -83,15 +84,25 @@ Characterize:
 - approval/questions presentation semantics;
 - Schedule/wake semantics where relevant.
 
-## 2. Protocol reuse gate before Worker schema freeze
+## 2. Standard protocol conformance before Worker schema freeze
 
-Before treating AgentOS Message/Artifact/State wire shapes as permanent, run the [protocol/runtime reuse](../research/protocol-runtime-reuse.md) compatibility checks.
+The protocol roles are now canonical: **ACP = interchangeable coding-Worker execution/control, A2A = independent agent-to-agent collaboration, MCP = tools/Website compatibility**.
 
-Prove whether native **A2A 1.0 Task / Message / Artifact + a narrow AgentOS extension** can preserve AgentOS assignment/input/attempt/completion semantics for remote independent Workers.
+Before treating AgentOS Message/Artifact/State wire shapes as permanent, run the [protocol/runtime reuse](../research/protocol-runtime-reuse.md) conformance checks.
 
-Also prove the existing DSH **ACP** provider against at least two interchangeable coding agents before adding more provider-specific integration code.
+### ACP Worker conformance
 
-This gate may reduce the amount of AgentOS-owned schema/transport code, but it must not weaken exact-input binding, attempt fencing, output-schema validation, or effect evidence.
+Use the existing DSH `subagent-acp` seam with at least two interchangeable ACP coding agents.
+
+Prove that one Worker Assignment can be executed through different ACP agents without changing Team/Workflow semantics, and characterize continuation, cancellation, permissions, cwd/tool isolation, session resume, and output guarantees.
+
+### A2A communication conformance
+
+Prove whether native **A2A 1.0 Task / Message / Artifact + a narrow AgentOS extension** preserves AgentOS assignment/input/attempt/completion semantics for remote independent agents.
+
+The goal is to delete or avoid parallel AgentOS wire structures, not to wrap A2A in another protocol.
+
+This gate may reduce AgentOS-owned schema/transport code, but it must not weaken exact-input binding, attempt fencing, output-schema validation, or effect evidence.
 
 ## 3. Agnostic Worker schema/contract conformance
 
@@ -114,7 +125,7 @@ Current software capabilities are only the first profile.
 
 Do **not** assume a standalone Worker server/store is required.
 
-Start from DSH Team/Subagent durability and identify only missing Worker Protocol authority.
+Start from DSH Team/Subagent/ACP durability and A2A semantics and identify only missing Worker Contract authority.
 
 Likely candidates to prove:
 
@@ -212,16 +223,17 @@ Do not add Jobs, direct Subagent, bounded DSH Workflow, Schedule, or extra inter
 Behavioral work follows strict **Red -> Green -> Refactor**.
 
 1. **DSH conformance** — failing characterization/conformance tests for the capability seams we intend to reuse.
-2. **Protocol reuse conformance** — failing A2A mapping and ACP provider tests that identify which wire/provider structures can be reused.
-3. **Worker contracts/schemas** — failing tests only for the residual AgentOS semantic structures after the reuse gate.
-4. **Worker Exchange delta** — failing authorization/fencing/idempotency tests only for gaps not already guaranteed upstream.
-5. **Website MCP Worker** — failing transport-equivalence and continuation tests.
-6. **Agent Team research phase** — failing capability selection, independence, peer exchange, Artifact and typed-result tests over DSH Team.
-7. **Implementation/review profile** — extend the same agnostic Worker path.
-8. **Workflow Definitions** — failing validation/binding tests proving software-development is config and unknown adapters/capabilities fail before execution.
-9. **Workflow durability** — failing restart/reconciliation/PendingAction tests around the working Team adapter and exact Definition binding.
-10. **Profile extensibility** — add a second non-software example/profile test (for example scientific research) without changing Workflow Core.
-11. **Optional adapters** — only when requirements require them.
+2. **ACP Worker conformance** — failing provider-neutral tests across at least two ACP coding agents.
+3. **A2A communication conformance** — failing mapping tests that identify which Task/Message/Artifact structures can be reused.
+4. **Worker contracts/schemas** — failing tests only for the residual AgentOS semantic structures after the reuse gate.
+5. **Worker Exchange delta** — failing authorization/fencing/idempotency tests only for gaps not already guaranteed upstream.
+6. **Website MCP compatibility Worker** — failing transport-equivalence and continuation tests.
+7. **Agent Team research phase** — failing capability selection, independence, peer exchange, Artifact and typed-result tests over DSH Team.
+8. **Implementation/review profile** — extend the same agnostic Worker path.
+9. **Workflow Definitions** — failing validation/binding tests proving software-development is config and unknown adapters/capabilities fail before execution.
+10. **Workflow durability** — failing restart/reconciliation/PendingAction tests around the working Team adapter and exact Definition binding.
+11. **Profile extensibility** — add a second non-software example/profile test (for example scientific research) without changing Workflow Core.
+12. **Optional adapters** — only when requirements require them.
 
 ## Deferred
 
