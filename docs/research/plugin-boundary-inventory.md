@@ -1,8 +1,10 @@
 # Plugin boundary inventory
 
-> Status: exploratory research  
+> Status: exploratory research; **candidate inventory, not package plan**  
 > Date: 2026-09-28  
-> Scope: identify which AgentOS responsibilities should become independent plugins, which should remain DSH dependencies, and which should remain ordinary local code.
+> Scope: identify possible AgentOS replacement boundaries after DSH/public capabilities are exhausted.
+>
+> **Correction after the full Internet docs review:** the candidates below are hypotheses only. The current architecture is contract-first: no policy/team/model/context package is approved merely because it looks independently useful. See [Internet architecture review](internet-architecture-review.md) and the current proposal for the authoritative framing.
 
 ## Research question
 
@@ -49,10 +51,10 @@ Classify every proposed AgentOS component into exactly one of four categories:
 
 1. **DSH primitive** — consume directly; never duplicate in AgentOS.
 2. **External/public capability** — call/use directly; do not internalize unless AgentOS must own semantics or state.
-3. **AgentOS plugin** — independent policy or behavior that remains meaningful above DSH primitives.
+3. **AgentOS semantic component/plugin** — an AgentOS-owned semantic contract or adapter boundary proven to require independent replacement.
 4. **Local library code** — implementation detail belonging to one plugin; not independently configurable or replaceable.
 
-## Strong AgentOS plugin candidates
+## Candidate AgentOS boundaries
 
 ### 1. AgentOS composition bundle
 
@@ -387,18 +389,21 @@ AgentOS
 
 This keeps AgentOS small while still making its actual product behavior independently replaceable.
 
-## Recommended first plugin boundaries
+## Recommended v1 boundary
 
-For the first implementation iteration, avoid creating every candidate at once.
+Do not pre-create the policy packages listed above.
 
-The smallest useful starting boundaries are:
+Start with only the root AgentOS DSH plugin/profile plus existing DSH services, public tools, and Skills.
 
-1. **`agentos-bundle`** — composition only;
-2. **`agentos-delegation-policy`** — the main AgentOS-specific behavior;
-3. **`agentos-model-policy`** — only if AgentOS needs dynamic route choice immediately;
-4. **`agentos-context-policy`** — only if static Skills/prompt sections are insufficient.
+A candidate graduates into an independent semantic component only after the contract-first graduation test in the current proposal is satisfied. In particular:
 
-Workflow recipes and team strategy should be added only when a concrete use case requires them.
+- delegation may remain Skill/profile guidance;
+- model choice may remain DSH/profile configuration;
+- context shaping may remain Skills/prompt contributions;
+- workflow recipes may remain Skills until deterministic runtime semantics are required;
+- Team strategy may remain ordinary DSH Team instructions until AgentOS must enforce a distinct collaboration contract.
+
+The first semantic component should come from a concrete use case, not from this inventory.
 
 ## Plugin graduation test
 
@@ -416,6 +421,8 @@ If those conditions fail, keep the code local to its owning plugin.
 
 ## Key conclusion
 
-The independent plugins in AgentOS should primarily be **policy and fixed product-behavior plugins**, not infrastructure.
+DSH already supplies most infrastructure seams and public tools supply many actions.
 
-DSH already supplies most infrastructure seams. Public tools supply many actions. AgentOS's durable architectural value is the thin, replaceable layer that decides **how those capabilities are selected and composed for a particular agent behavior**.
+The durable AgentOS boundary is therefore **not a predetermined collection of policy plugins**. It is the smallest set of AgentOS-owned semantic contracts that remain meaningful while DSH/public/external implementations change.
+
+A policy becomes a plugin only when runtime-enforced semantics, independent ownership, and conformance-tested replacement justify that boundary.
