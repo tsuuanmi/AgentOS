@@ -43,21 +43,21 @@ Providers and execution environments have different strengths, tools, latency, c
 
 ~~~text
 Goal
-  -> WorkItem / Assignment
+  -> phase / WorkItem
       -> required capabilities
-          -> Worker selection
+          -> provider selection
               -> provider/runtime binding
 ~~~
 
 Examples:
 
 ~~~text
-web research              -> research-capable Website Worker
-repository refactor       -> local development-capable Worker
-test execution            -> Worker with the real execution environment
-independent review        -> separate review-capable Worker/context
-literature discovery      -> scientific research-capable Worker
-data/statistical analysis -> analysis-capable Worker with the right tools
+web research              -> Website Agent provider with research capability
+repository refactor       -> local development-capable provider
+test execution            -> provider with the real execution environment
+independent review        -> separate review-capable provider/context
+literature discovery      -> Website/A2A provider with research capability
+data/statistical analysis -> analysis-capable provider with the right tools
 ~~~
 
 This is why Worker is domain-agnostic and capability-driven. "Researcher", "Developer", or "Reviewer" may describe a current assignment or capability profile, but they must not become permanent Worker runtime types.
@@ -128,7 +128,7 @@ The human currently performs much of the orchestration between these stages. Age
 
 ### Scientific research
 
-A second domain should be possible without changing Workflow Core:
+A second domain should be possible without changing the Workflow semantic plugin:
 
 ~~~text
 research question
@@ -143,7 +143,7 @@ research question
 
 The capabilities, schemas, and adapters differ. The generic Worker and Workflow semantics should not.
 
-A second real domain is an architectural test: if scientific research requires forking a software-specific Core, the abstraction is wrong.
+A second real domain is an architectural test: if scientific research requires a software-specific fork of the semantic Workflow/Worker architecture, the abstraction is wrong.
 
 ## 6. Prefer reusable results/evidence over repeated context
 
