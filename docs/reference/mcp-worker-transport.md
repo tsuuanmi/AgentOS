@@ -45,7 +45,7 @@ or
 no_work
 ~~~
 
-Claim atomicity and Worker authorization are local server invariants.
+Claim atomicity and Worker authorization are Worker Exchange invariants.
 
 ### agentos.worker.receive
 
