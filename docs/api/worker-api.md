@@ -21,13 +21,13 @@ capabilities(binding?) -> WorkerCapabilities
 
 enqueueAssignment(workerId, WorkerAssignment) -> AssignmentState
 
-appendInput(workerId, assignmentId, WorkerInput) -> AssignmentState
+appendMessage(workerId, assignmentId, Message) -> AssignmentState
 
 inspectAssignment(workerId, assignmentId) -> AssignmentState
 
 cancelAssignment(workerId, assignmentId, reason?) -> AssignmentState
 
-readSubmissions(workerId, assignmentId, cursor?) -> WorkerSubmission[]
+readArtifacts(workerId, assignmentId, cursor?) -> Artifact[]
 ~~~
 
 The exact programming-language shape may vary by plugin/runtime.
@@ -76,9 +76,9 @@ Enqueueing work does not imply a Website Agent is currently active.
 
 The local API owns assignment state. A Website-facing adapter creates an opaque execution `attemptId` when an assignment is successfully claimed. Rebinding or superseding Website execution rotates that attempt without changing `assignmentId`.
 
-## appendInput
+## appendMessage
 
-Adds structured input to an existing assignment.
+Adds a structured Message to an existing assignment.
 
 Examples:
 
@@ -88,13 +88,9 @@ Examples:
 - remediation context;
 - cancellation/control signal.
 
-Input validates against:
+Message uses the canonical Worker Message contract. The current `/schemas/worker-input.schema.json` filename is transitional until the Message/Artifact schema normalization pass.
 
-~~~text
-/schemas/worker-input.schema.json
-~~~
-
-Appending input must not silently create a new Website conversation or assignment.
+Appending a Message must not silently create a new provider conversation/session or assignment.
 
 ## inspectAssignment
 
@@ -108,23 +104,22 @@ Fences/cancels the current assignment.
 
 Late Website submissions after cancellation, rebinding, or supersession cannot commit as current. The provider fences them with the current `attemptId`.
 
-## readSubmissions
+## readArtifacts
 
-Reads durable Website Worker submissions.
+Reads durable Worker Artifacts.
 
-Submissions may be intermediate or terminal.
+Artifacts may be intermediate or terminal work products.
 
 Examples:
 
 ~~~text
 contribution
 completion
-input_required
-failure
-cancelled
 ~~~
 
-This distinction is required because an independent brainstorm contribution may complete one TeamTask/barrier without terminating the Website assignment before debate.
+Input-required, failure, cancellation, and other execution lifecycle concerns belong to Message/WorkerState rather than Artifact.
+
+This distinction is required because an independent brainstorm contribution Artifact may satisfy a collaboration barrier without terminating the assignment before debate.
 
 ## Website-facing MCP
 
@@ -147,7 +142,7 @@ Do not expose the internal Local API mechanically as MCP tools.
 
 ## Completion
 
-Local AgentOS considers a Website Worker assignment terminal only after a current terminal WorkerSubmission has been durably validated.
+Local AgentOS considers a Worker assignment successfully terminal only after a current completion Artifact has been durably validated.
 
 DSH member inactivity, MCP transport state, tunnel health, or a returned prose message are not assignment completion.
 
@@ -165,4 +160,4 @@ A plugin does not need to know:
 
 It depends only on Worker capabilities, explicit handles, and canonical schemas.
 
-`attemptId` is an application-level execution handle. It is never inferred from transport/session identity.
+`attemptId` is an application-level provider-execution handle. It is never inferred from transport/session identity.
