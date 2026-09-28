@@ -8,7 +8,7 @@ For non-trivial work:
 
 1. Read `README.md` and `docs/README.md`.
 2. Read `docs/architecture/plugins/README.md`, then the canonical plugin folder being changed; use `docs/architecture/plugins/dsh/` for DSH-owned dependencies.
-3. Read `docs/reference/` only when an exact AgentOS-owned semantic contract/invariant matters.
+3. Read plugin-local contract/invariant files in the same canonical plugin folder.
 4. Read `schemas/` only for AgentOS-owned serialized contracts; do not expect copies of ACP/A2A/MCP/DSH models.
 5. Load the relevant `.agents/skills/` Skill when procedural methodology matters.
 6. Read `docs/proposals/` only for the unresolved change being implemented.
@@ -17,7 +17,7 @@ For non-trivial work:
 
 ## Authority
 
-- Architecture, reference, governance, source, and tests describe current truth within their stated scope.
+- Architecture, governance, source, and tests describe current truth within their stated scope.
 - Plugin architecture documents include the behavioral invariants for the capability they define.
 - Skills are executable procedural guidance; proposals are evolutionary; research is non-normative.
 - JSON Schema exists only for AgentOS-owned serialized structures.
@@ -35,7 +35,8 @@ For non-trivial work:
 - Website Agent reuses the protocol-neutral Website Core from `@tsuuanmi/internet`: account, provider, browser, conversation, reconciliation, and result retention live there.
 - A2A is the standard Website Agent <-> Agent Team Member peer-collaboration protocol. Start with zero AgentOS A2A extensions.
 - MCP owns Agent-to-tool/capability/data access; do not recreate an MCP Worker protocol.
-- Provider/protocol ids remain implementation handles. Add local ExecutionBinding/fencing only for a demonstrated retry/replacement/reconciliation invariant.
+- Use ACP/A2A/DSH SDK/runtime objects directly; do not create AgentOS mirror Task/Message/Artifact/Status/Result models.
+- Provider/protocol ids remain native handles. Pass them through directly when semantics match; add local ExecutionBinding/fencing only for a demonstrated retry/replacement/reconciliation invariant.
 - Provider terminal output is evidence, not automatic AgentOS phase/WorkItem completion.
 - Validate consequential effects against actual repository/environment/external state or trustworthy receipts.
 - Exact Definition/input state belongs to the semantic owner when reproducibility/recovery needs it; do not echo local bookkeeping across every wire object.
