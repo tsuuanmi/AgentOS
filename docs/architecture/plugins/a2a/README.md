@@ -5,14 +5,14 @@
 - **Kind:** Worker provider/protocol adapter plugin
 - **Protocol:** A2A
 
-The A2A plugin integrates independently hosted agents into the Worker execution model without defining an AgentOS agent-to-agent wire protocol.
+The A2A plugin is the generic **Worker-side A2A provider/client adapter** for independently hosted agents. It does not contain Website execution logic and does not define an AgentOS agent-to-agent wire protocol.
 
 ## Preferred composition
 
 ~~~text
 Worker plugin
   -> DSH ctx.subagents
-      -> AgentOS A2A provider
+      -> AgentOS A2A provider/client
           -> official A2A JavaScript SDK
               -> remote A2A Agent
 ~~~
@@ -69,3 +69,22 @@ A2A Artifact/Part is the remote deliverable model.
 Do not wrap it in a universal AgentOS Worker Artifact.
 
 The Worker plugin validates/maps it into the caller's domain result contract.
+
+
+## Website Agent relationship
+
+Website Agent has an A2A **server-side adapter** over its protocol-neutral core.
+
+These are complementary sides:
+
+~~~text
+Worker
+  -> AgentOS A2A provider/client          # this plugin
+      -> A2A wire
+          -> Website A2A Agent adapter    # Website Agent plugin
+              -> Website Agent core
+~~~
+
+Do not move Website browser/auth/conversation/retry logic into this generic A2A plugin.
+
+See [Website Agent protocol adapters](../website-agent/adapters.md#a2a-adapter).
