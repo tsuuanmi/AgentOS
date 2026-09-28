@@ -11,6 +11,7 @@ AgentOS applies the documentation lifecycle defined by [Governance](governance/R
 | [Requirements](requirements/README.md) | behavior and constraints that must remain true | canonical / living |
 | [Architecture](architecture/README.md) | current structure, ownership, dependency direction, cross-cutting invariants | canonical / living |
 | [Product principles](architecture/product-principles.md) | why AgentOS exists and the product/architecture constraints that follow | canonical / living |
+| [Protocol stack](architecture/protocol-stack.md) | canonical ACP/A2A/MCP boundary ownership | canonical / living |
 | [Reference](reference/README.md) | exact protocols, APIs, transport mappings, Exchange invariants, and schemas | canonical / living |
 | [Proposals](proposals/README.md) | unresolved changes being prepared for implementation | evolutionary |
 | [Research](research/README.md) | temporary evidence for unresolved provider/runtime questions | exploratory |
