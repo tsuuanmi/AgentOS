@@ -12,99 +12,43 @@ DSH Agent Teams is the current core runtime. DSH owns Team identity, roster, dur
 
 AgentOS adds stable software roles, Website Agent bindings, collaboration policy, and typed semantic completion.
 
-## Stable Team roles
+## Capability-driven Workers
 
-The software Team topology is stable across runs. Task-specific inputs change; member responsibilities do not.
+Agent Team does not define permanent semantic identities such as Primary/Challenger or Correctness/Architecture reviewers.
+
+A DSH teammate is a **Worker instance** selected by capabilities.
+
+Canonical Worker semantics live in [Worker Protocol](worker-protocol.md).
+
+Software-v0 phase requirements are stable:
 
 ~~~text
-Lead / Synthesizer
-Researcher Primary
-Researcher Challenger
-Implementer
-Reviewer Correctness
-Reviewer Architecture
+RESEARCH
+  2 Workers:
+    research
+    brainstorm
+    debate
+
+IMPLEMENT
+  1 Worker:
+    implement
+    tdd
+
+REVIEW
+  2 Workers:
+    review
+    debate
+
+SYNTHESIS
+  Lead or Worker:
+    synthesize
 ~~~
 
-Not every phase activates every member.
+The Worker instances, Website Agent providers, and exact objective may vary.
 
-### Lead / Synthesizer
+The capability requirements and structured protocol do not.
 
-Owns:
-
-- Team-level phase coordination;
-- ensuring required member tasks/results exist;
-- phase synthesis;
-- typed phase completion submission;
-- concise Local-facing result.
-
-Does not:
-
-- proxy routine peer debate;
-- replace specialist members;
-- treat Team activity/status as semantic completion.
-
-The Lead may bind to its own Website Agent specialized for synthesis.
-
-### Researcher Primary
-
-Owns:
-
-- independent primary analysis;
-- solution/architecture proposal;
-- codebase/domain integration;
-- concrete implementation implications;
-- evidence and validation needs.
-
-### Researcher Challenger
-
-Owns:
-
-- independent alternative analysis;
-- counterexamples and hidden assumptions;
-- edge cases and failure modes;
-- alternative designs;
-- missing external/source evidence;
-- adversarial challenge of the primary proposal.
-
-Neither researcher is permanently authoritative over the other.
-
-### Implementer
-
-Owns:
-
-- turning accepted research into code/workspace changes;
-- TDD: Red -> Green -> Refactor;
-- reporting changed scope, tests, blockers, and unresolved issues.
-
-The Website Agent drives substantive implementation reasoning.
-
-The DSH member bridges required local tools/workspace effects and Team communication.
-
-ImplementationReport is not correctness authority; actual environment validation remains authoritative.
-
-### Reviewer Correctness
-
-Owns:
-
-- behavioral correctness;
-- regression risk;
-- edge cases;
-- test adequacy;
-- exact-input verification;
-- detecting unsupported claims of completion.
-
-### Reviewer Architecture
-
-Owns:
-
-- architecture/spec alignment;
-- responsibility placement;
-- coupling/cohesion;
-- maintainability;
-- unnecessary abstraction/legacy/fallback paths;
-- scope discipline.
-
-Reviewers work independently before debate.
+If a future profile needs a specialized lens, it composes another capability such as `architecture-analysis`, `test-analysis`, or `risk-analysis`; it does not create a new architectural Agent identity.
 
 ## Dedicated Team and Website Agent topology
 
@@ -113,32 +57,45 @@ One software collaboration uses a dedicated DSH root Team.
 Each semantic Team member has one isolated Website Agent/conversation binding.
 
 ~~~text
-DSH Lead
-  <-> Website Agent S / synthesis
+DSH Lead / synthesis Worker
+  <-> Website Agent S
 
-DSH Researcher Primary
-  <-> Website Agent RP
+DSH Worker A
+  capabilities: research, brainstorm, debate
+  <-> Website Agent A
 
-DSH Researcher Challenger
-  <-> Website Agent RC
+DSH Worker B
+  capabilities: research, brainstorm, debate
+  <-> Website Agent B
 
-DSH Implementer
+DSH Worker I
+  capabilities: implement, tdd
   <-> Website Agent I
 
-DSH Reviewer Correctness
+DSH Worker R1
+  capabilities: review, debate
   <-> Website Agent R1
 
-DSH Reviewer Architecture
+DSH Worker R2
+  capabilities: review, debate
   <-> Website Agent R2
 ~~~
 
-The DSH member is primarily a coordination/tool bridge, not a duplicate reasoning agent.
+The DSH Worker is primarily a coordination/tool bridge, not a duplicate reasoning agent.
 
 The Website Agent performs the substantive provider-native reasoning/work assigned to that role.
 
 A DSH member may perform minimal local coordination and tool mediation, but should not redo the Website Agent's substantive analysis.
 
-## Website Agent assignment protocol
+## Worker protocol and Website Agent assignment
+
+All DSH Worker <-> Website Agent communication uses the canonical [Worker Protocol](worker-protocol.md).
+
+The Website Agent receives a stable capability operating contract plus a versioned JSON payload. The protocol shape is stable; run-specific objective/context values vary.
+
+MCP is a preferred transport profile when the boundary supports it, but the semantic contract is transport-neutral and JSON-Schema-defined.
+
+### Assignment protocol
 
 A Website Agent conversation may contain multiple turns, so "one response arrived" is not sufficient completion.
 
@@ -149,7 +106,7 @@ Conceptually:
 ~~~text
 WebsiteAssignment
   assignmentId
-  memberRole
+  requiredCapabilities
   phase
   inputBinding
   expectedOutputSchema
@@ -172,10 +129,10 @@ These are provider mechanics, not public AgentOS phase states.
 
 ### Assignment start
 
-The DSH member receives a stable role-specific assignment envelope:
+The DSH Worker receives a stable structured assignment envelope:
 
 ~~~text
-role
+requiredCapabilities
 phase
 objective
 exact input refs/binding
@@ -185,7 +142,7 @@ expected output schema
 completion instruction
 ~~~
 
-The member forwards that assignment to its bound Website Agent with minimal transformation.
+The Worker forwards that JSON-structured assignment to its bound Website Agent with minimal transformation.
 
 ### Assignment completion
 
@@ -303,23 +260,22 @@ The DSH member should not silently summarize away correctness-bearing peer evide
 Active roles:
 
 ~~~text
-Researcher Primary
-Researcher Challenger
-Lead / Synthesizer
+two Workers: research + brainstorm + debate
+Lead / synthesis
 ~~~
 
 Flow:
 
 ~~~text
-Primary -> Website Agent RP -> independent result
-Challenger -> Website Agent RC -> independent result
+Worker A -> Website Agent A -> independent result
+Worker B -> Website Agent B -> independent result
 
 barrier: both initial TeamTasks complete
 
-Primary <---- direct DSH send_message ----> Challenger
+Worker A <---- direct DSH send_message ----> Worker B
     |                                      |
     v                                      v
-Website Agent RP                      Website Agent RC
+Website Agent A                       Website Agent B
 challenge/revise                     challenge/revise
 
 required debate tasks complete
@@ -343,8 +299,8 @@ ResearchResult is strongest-supported synthesis, not majority vote or equal-weig
 Active roles:
 
 ~~~text
-Implementer
-Lead / Synthesizer
+one Worker: implement + tdd
+Lead / synthesis
 ~~~
 
 The Implementer receives:
@@ -373,9 +329,8 @@ The outer Workflow/local validator then establishes actual repository/effect cor
 Active roles:
 
 ~~~text
-Reviewer Correctness
-Reviewer Architecture
-Lead / Synthesizer
+two Workers: review + debate
+Lead / synthesis
 ~~~
 
 Both reviewers receive the same exact implementation + validation binding, but have fixed different responsibilities.
@@ -388,12 +343,12 @@ independent reviews
       v
 barrier
       |
-Reviewer Correctness <---- send_message ----> Reviewer Architecture
+Worker R1 <---- send_message ----> Worker R2
         |                                      |
         v                                      v
 Website Agent R1                          Website Agent R2
-challenge false positives                challenge architecture claims
-strengthen evidence                      identify missed correctness impact
+challenge peer findings                  challenge peer findings
+strengthen evidence                      revise unsupported claims
         \                                  /
          revised final positions
                    |
@@ -473,8 +428,8 @@ AgentOS does not build another Team runtime merely to prove theoretical replacea
 
 Tests should prove:
 
-- role responsibilities/topology are stable across runs;
-- phase inputs vary without changing role contracts;
+- capability requirements/protocol shape are stable across runs;
+- phase objectives/inputs vary without changing the Worker protocol;
 - each member has an isolated Website Agent binding;
 - Website Agent assignment completion is explicit and durable;
 - member inactivity is never treated as completion;
