@@ -4,7 +4,7 @@ AgentOS is a lightweight DSH-native system for **durable collaborative agent wor
 
 It does not replace DeepSeek Harness. DSH owns runtime mechanics; AgentOS adds only the product semantics needed to turn those mechanics into coherent long-running collaborative work.
 
-## V1 model
+## Current model
 
 ~~~text
                          User
@@ -30,7 +30,7 @@ It does not replace DeepSeek Harness. DSH owns runtime mechanics; AgentOS adds o
 
 ## Agent Team
 
-V1 uses **DSH Agent Teams as the core Team runtime**.
+AgentOS currently uses **DSH Agent Teams as the core Team runtime**.
 
 AgentOS does not build another roster, mailbox, Team task graph, member lifecycle, or Team persistence layer.
 
@@ -51,7 +51,7 @@ Research/review peers debate directly through DSH Team messaging. Local receives
 
 Worker capabilities and the protocol shape are stable across runs; objectives/context values change.
 
-AgentOS uses a versioned JSON-Schema [Worker Protocol](docs/contracts/worker-protocol.md).
+AgentOS uses the structured [Worker Protocol](docs/contracts/worker-protocol.md). For Website-backed Workers, MCP is the default interoperability profile when the Website host supports it.
 
 Canonical machine-readable schemas live at repository root under [`/schemas`](schemas/README.md).
 
