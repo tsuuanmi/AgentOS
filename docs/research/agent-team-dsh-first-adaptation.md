@@ -1,9 +1,11 @@
 # DSH Agent Teams first: adapt Internet Team semantics
 
-- **Status:** target v1 research direction
+- **Status:** supporting / superseded where overlapping
 - **Date:** 2026-09-28
-- **Goal:** use DSH Agent Teams as the first Agent Team runtime and adapt the strongest reasoning semantics from Internet Team on top of it.
-- **See also:** [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) for the detailed reuse/non-duplication map.
+- **Goal:** preserve the historical reasoning behind choosing DSH Agent Teams as the v1 core.
+- **Canonical:** [Agent Team contract](../contracts/agent-team.md)
+- **Current provider research:** [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md)
+- **Note:** later research replaced the "future direct website teammate provider" assumption with per-DSH-member Website Agent bindings. Canonical/current docs win.
 
 ## Decision
 
