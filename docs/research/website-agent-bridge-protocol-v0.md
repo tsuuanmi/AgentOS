@@ -2,6 +2,9 @@
 
 - **Status:** active provider research
 - **Canonical semantics:** [Worker Protocol](../contracts/worker-protocol.md), [Agent Team contract](../contracts/agent-team.md)
+- **API:** [Worker API](../api/worker-api.md)
+- **MCP mapping:** [MCP Worker transport](../mcp/worker-transport.md)
+- **Schemas:** [repository `/schemas`](../../schemas/README.md)
 - **Goal:** implement a capability-driven Worker bridge from DSH Team members to Website Agents without inventing role-specific prompts or a second Team runtime.
 
 ## Core model
@@ -234,23 +237,13 @@ ReviewResult
 
 The phase result is durably committed before the Agent Team provider reports completion.
 
-## MCP profile
+## Transport references
 
-MCP 2026-07-28 is a strong transport fit because its core is stateless and stateful application workflows use explicit handles.
+The provider research remains transport-neutral.
 
-Candidate MCP tools:
+Use [Worker API](../api/worker-api.md) for callable operations and [MCP Worker transport](../mcp/worker-transport.md) only when MCP is the selected transport.
 
-~~~text
-agentos.worker.capabilities
-agentos.worker.start
-agentos.worker.continue
-agentos.worker.inspect
-agentos.worker.cancel
-~~~
-
-Their input/output schemas should reuse the canonical Worker JSON Schemas.
-
-If the optional MCP Tasks extension is available, a long-running Worker assignment may be projected as a Task. Worker assignment identity and completion semantics remain AgentOS-owned.
+Canonical request/result/message validation comes from repository-root [`/schemas`](../../schemas/README.md).
 
 ## TDD scenarios
 
