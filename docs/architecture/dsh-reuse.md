@@ -29,7 +29,8 @@ Prefer service definitions and capability seams over concrete implementation int
 | spawn/fork subagents | continuable local Workers through DSH providers | Agent Team | provider option |
 | Codex subagent | Codex Worker execution | Agent Team / Workflow | provider option; currently one-shot |
 | Claude Code subagent | Claude Worker execution | Agent Team / Workflow | provider option; currently one-shot |
-| ACP / DSH SDK subagents | alternate out-of-process execution | Agent Team / Workflow | provider option |
+| ACP subagent / DSH ACP server | standard interchangeable coding-Worker execution/control; persistent DSH automation | Agent Team / Worker binding | **preferred standard coding-Worker seam** |
+| DSH SDK subagent | alternate out-of-process Harness execution | Agent Team / Workflow | provider option |
 | `storage-domain` / `ctx.storageDomain` | durable schema-validated AgentOS-owned records | Workflow; Agent Team only for semantic delta | primary durable state seam |
 | `jobs` / `ctx.jobs` | process-local background work/progress | Workflow | optional WorkItem adapter |
 | `workflow` / `ctx.workflowEngine` | bounded live fan-out/pipeline execution | Workflow | optional WorkItem adapter |
@@ -121,13 +122,30 @@ See [Workflow composition](plugins/workflow/composition.md).
 
 Worker is agnostic.
 
-DSH's `ctx.subagents` is one strong provider seam because a composition can expose DSH, Codex, Claude Code, ACP, and DSH SDK providers side by side.
+DSH's `ctx.subagents` is the primary provider registry. For software-development Workers, its **ACP provider should be preferred as the generic interchange seam** when the selected coding agent supports ACP and the provider exposes the required lifecycle/tool guarantees.
 
-Website Agent is an additional AgentOS provider over MCP.
+~~~text
+AgentOS Worker
+  -> ctx.subagents
+      -> ACP provider
+          -> Codex / Claude Agent / Gemini CLI / Cursor / OpenCode / ...
+~~~
+
+DSH also exposes product-native Codex/Claude/DSH providers; retain them only when their native integration provides a materially stronger guarantee than the generic ACP path.
+
+Current DSH documentation/repository inventory does not expose a first-class A2A provider/service. AgentOS therefore treats **A2A remote-agent integration as a thin adapter/plugin gap**, not as a reason to define a custom agent-to-agent protocol.
+
+Website Agent remains an MCP compatibility provider when the host does not expose A2A.
 
 Provider limitations propagate into semantic capability advertisement. Installed provider != guaranteed capability.
 
-## MCP direction
+See [Protocol stack](protocol-stack.md).
+
+## Protocol direction
+
+Canonical protocol roles are defined in [Protocol stack](protocol-stack.md): ACP for interchangeable coding Workers, A2A for independent agent-to-agent communication, and MCP for tools/capabilities.
+
+DSH already provides ACP client/provider and ACP server seams, so AgentOS should reuse them rather than create coding-agent-specific adapters by default.
 
 DSH's MCP package makes a DSH agent an MCP **client** of external servers.
 
@@ -140,6 +158,8 @@ AgentOS Worker bridge = MCP server
 
 These are different roles. DSH MCP-client packages may still be Worker tools, but they are not the Website Worker Exchange MCP-server adapter.
 
+When remote independent agents support A2A, prefer A2A over extending MCP into a general agent collaboration protocol.
+
 ## Dependency rules
 
 1. Reuse an existing DSH service before introducing AgentOS state.
@@ -149,3 +169,5 @@ These are different roles. DSH MCP-client packages may still be Worker tools, bu
 5. Concrete provider plugins are composition choices, not AgentOS identities.
 6. Capability limitations must be visible to Worker selection and Workflow recovery.
 7. Optional DSH adapters land only when a concrete requirement needs them.
+8. Prefer the generic DSH ACP provider for interchangeable coding Workers before adding provider-specific AgentOS integrations.
+9. Add an A2A adapter as a protocol integration gap if required; do not implement a competing horizontal agent protocol.
