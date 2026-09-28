@@ -2,500 +2,326 @@
 
 - **Status:** active research
 - **Reviewed:** 2026-09-28
-- **Question:** after adopting the canonical ACP/A2A/MCP protocol split, which AgentOS schemas/state and durable-runtime mechanics still remain necessary?
+- **Question:** after adopting DSH as the Host and ACP/A2A/MCP as standard boundaries, what semantic or runtime behavior still needs AgentOS-owned implementation?
 
-This research follows the product rule: **reuse before build**.
+## Current conclusion
 
-The strongest finding is that AgentOS should distinguish **semantic contracts** from **wire protocols** more aggressively. Several open protocols now cover wire-level roles that the current Worker design was beginning to own itself.
-
-## Promoted protocol conclusion
-
-The protocol-role conclusion has been promoted into canonical [Protocol stack](../architecture/protocol-stack.md): AgentOS does **not** define one new universal Worker wire protocol.
-
-Instead:
+The residual AgentOS surface is smaller than the earlier Worker Protocol design assumed.
 
 ~~~text
-AgentOS Worker Contract
-  = semantic meaning and AgentOS correctness invariants
-
-A2A
-  = remote independent-agent communication
+DSH / Cordis
+  = Host + plugin/service/provider seams
 
 ACP
-  = local/remote coding-agent client protocol
+  = preferred compatible Agent execution/control protocol
+
+A2A
+  = independent Agent-to-Agent collaboration
 
 MCP
-  = agent-to-tool/capability integration
-    + Website bridge where the host is an MCP client
+  = Agent-to-tool/capability/data
 
-DSH native services
-  = in-process/runtime-local Team and Subagent mechanics
+AgentOS
+  = capability selection + plugin composition
+    + semantic Workflow/Team policy
+    + result/effect acceptance
+    + minimal recovery binding only when required
 ~~~
 
-This narrows the current Worker Protocol into a **Worker Contract / semantic profile** projected onto existing protocols. The remaining research question is which AgentOS-owned wire schemas can be removed after conformance mapping.
+The practical rule is:
 
-## 1. A2A is already the horizontal agent protocol
+> **Keep local correctness state local. Do not promote it onto A2A/ACP wire formats unless the remote peer must understand it.**
+
+## 1. A2A needs no AgentOS extension by default
 
 Official sources:
 
-- <https://a2a-protocol.org/latest/>
 - <https://a2a-protocol.org/latest/topics/key-concepts/>
-- <https://a2a-protocol.org/latest/topics/life-of-a-task/>
 - <https://a2a-protocol.org/dev/specification/>
-- <https://a2a-protocol.org/dev/topics/extensions/>
+- <https://a2a-protocol.org/latest/topics/extension-and-binding-governance/>
 
-A2A 1.0 is designed for communication between independent, potentially opaque agents across framework, language, and vendor boundaries.
+A2A already provides:
 
-Its core vocabulary overlaps strongly with AgentOS:
+- AgentCard and AgentSkill discovery;
+- Task and TaskStatus lifecycle;
+- Message;
+- Artifact and Part;
+- contextId for related interactions;
+- task history;
+- polling, streaming, subscription/push;
+- cancellation;
+- capability validation;
+- idempotency semantics;
+- structured data exchange;
+- metadata and extension points.
 
-~~~text
-A2A
-  AgentCard
-  AgentSkill
-  Task
-  TaskStatus
-  Message
-  Artifact
-  Part
-  contextId
-~~~
-
-A2A supports polling, streaming, push notifications, multi-turn task input, authentication discovery, and URI-identified extensions.
-
-In August 2026 A2A joined the Agentic AI Foundation as a Growth Stage project:
-
-- <https://a2a-protocol.org/latest/blog/2026/08/27/a-new-chapter-for-a2a-joining-the-agentic-ai-foundation/>
-
-The protocol itself describes MCP as the vertical tool/data layer and A2A as the horizontal agent-collaboration layer.
-
-### Mapping against AgentOS
-
-| AgentOS concept | A2A concept | Assessment |
-|---|---|---|
-| Worker discovery | AgentCard | strong reuse candidate |
-| Worker capabilities | AgentSkill + AgentCard | useful discovery signal; not sufficient as AgentOS correctness guarantee by itself |
-| Assignment | client Message initiating server Task | partial mapping; semantics differ |
-| Message | Message | strong overlap |
-| Artifact | Artifact | strong overlap |
-| WorkerState | Task + TaskStatus | strong lifecycle overlap |
-| queued | SUBMITTED | close |
-| active | WORKING | close |
-| input_required | INPUT_REQUIRED | direct |
-| completed | COMPLETED | direct |
-| failed | FAILED | direct |
-| cancelled | CANCELED | direct |
-| authorization/input gate | AUTH_REQUIRED / INPUT_REQUIRED | direct/close |
-| attemptId | no direct equivalent | AgentOS-owned/internal |
-| inputBinding | no direct equivalent | AgentOS-owned extension/internal |
-| expectedOutput schema contract | data Part + metadata/extension / AgentSkill modes | partial; needs stronger AgentOS convention |
-| contribution vs completion Artifact | Artifact + task lifecycle/events | partial; AgentOS may need an extension/convention |
-| effect receipt / observed-state proof | no general core equivalent | AgentOS/domain extension |
-
-### Important semantic mismatch: Assignment != A2A Task
-
-An AgentOS WorkerAssignment is scheduler-created semantic work with stable exact-input identity.
-
-An A2A Task is server-created after the client sends a Message.
-
-Therefore do **not** simply map assignmentId to taskId.
-
-A better mapping is likely:
+The previous AgentOS design considered adding remote fields such as:
 
 ~~~text
-AgentOS Assignment
-  -> A2A Message + AgentOS extension metadata
-      -> remote A2A Task
-
 assignmentId
-  != A2A taskId
-
 attemptId
-  != A2A taskId
-
-A2A taskId
-  = provider/transport execution handle
-~~~
-
-This preserves AgentOS fencing/retry semantics while reusing the open wire protocol.
-
-### A2A Extensions may eliminate custom envelopes
-
-A2A extensions are URI-identified and may add typed metadata, methods, and state semantics.
-
-AgentOS could define a narrow extension for facts such as:
-
-~~~text
 inputBinding
-assignmentId
-attemptId
+completion/contribution artifact role
 expectedOutputSchema
-artifact role: contribution/completion
-evidence references
 effect receipt references
 ~~~
 
-This would be preferable to inventing a parallel remote-agent protocol if the A2A extension model can preserve the required semantics.
+Critical review shows none of these requires an A2A extension initially.
 
-### Direction
+### assignmentId
 
-A2A is now the **canonical preferred protocol for independent agent-to-agent communication**. Before freezing AgentOS Worker Message/Artifact/State schemas, perform an explicit A2A 1.0 compatibility audit to identify the residual AgentOS extension only.
+The semantic Workflow WorkItem or Agent Team phase invocation already identifies AgentOS-owned work.
 
-## 2. ACP is already the coding-agent interoperability protocol
+A local mapping is enough:
+
+~~~text
+semantic work id
+  -> A2A taskId/contextId
+~~~
+
+The remote peer does not need another AgentOS id unless a concrete cross-system correlation use case appears.
+
+### attemptId / fencing
+
+A replacement race is local orchestration state.
+
+Use a local ExecutionBinding generation/fence when needed:
+
+~~~text
+semantic work
+  -> current A2A task handle
+  -> optional local generation
+~~~
+
+A stale remote result is rejected because it maps to a non-current binding.
+
+The remote agent does not need to know the generation.
+
+### inputBinding
+
+The owning WorkItem/phase retains the exact input snapshot/digest.
+
+If AgentOS created an A2A Task from that exact input, the local ExecutionBinding records the mapping.
+
+The digest does not need to be echoed by every A2A Message/Artifact.
+
+### expected output schema
+
+The caller owns the output contract.
+
+A remote Agent can receive structured output instructions in the normal task input and return structured data through native A2A Parts/Artifacts.
+
+An extension becomes useful only if multiple independent implementations need a standardized machine-readable schema-negotiation convention.
+
+### contribution versus completion Artifact
+
+A2A already separates Artifact delivery from Task lifecycle.
+
+Intermediate Artifacts can exist before terminal Task state. AgentOS phase policy decides which evidence it needs before accepting the phase.
+
+No universal AgentOS Artifact role enum is required.
+
+### effect receipts
+
+Effect evidence is domain/effect specific.
+
+It can be an A2A Artifact/structured result when the remote agent owns the effect, but AgentOS acceptance still checks the actual effect boundary.
+
+A universal A2A extension is not justified.
+
+### Result
+
+**Initial A2A adapter should use zero AgentOS protocol extensions.**
+
+Add one only after a failing interop/conformance test demonstrates information that genuinely must cross the remote boundary.
+
+## 2. ACP is the preferred Worker execution protocol where compatible
 
 Official sources:
 
 - <https://agentclientprotocol.com/>
 - <https://agentclientprotocol.com/get-started/architecture>
 - <https://agentclientprotocol.com/get-started/agents>
-- <https://agentclientprotocol.com/get-started/registry>
-- <https://github.com/agentclientprotocol/agent-client-protocol>
 
-Agent Client Protocol is designed to decouple coding agents from client/editor implementations.
+ACP's public documentation currently labels **v1 as Latest** and **v2 as Draft**.
 
-It uses JSON-RPC, reuses MCP representations where possible, supports multiple concurrent sessions, permissions, cancellation, semantic updates, and local stdio; remote support is being expanded.
-
-The current ACP ecosystem already lists/adapts many agents that AgentOS would otherwise integrate separately, including Codex CLI, Claude Agent, Gemini CLI, Cursor, Cline, OpenCode, OpenHands, GitHub Copilot, Factory Droid, Goose, Qwen Code, Kimi CLI, and others.
-
-This directly supports the AgentOS **right agent, right job** objective without requiring one custom adapter per coding agent.
-
-### DSH already implements ACP on both sides
-
-DeepSeek Harness already has:
-
-- @deepseek-ai/dsh-acp: an automation-oriented ACP server for persistent DSH agents;
-- @deepseek-ai/dsh-subagent-acp: an out-of-process ACP client/provider;
-- ctx.subagents: a registry where ACP, Codex, Claude Code, DSH and other providers can coexist.
-
-Official DSH references:
-
-- <https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/acp/README.md>
-- <https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/subagent/subagent-acp/README.md>
-- <https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/subagent.md>
-
-This means AgentOS already inherits a generic coding-agent integration seam.
-
-### Direction
-
-ACP is now the **canonical preferred interchangeable coding-Worker execution/control boundary**. For software-development Workers:
+Current DeepSeek Harness packages pin:
 
 ~~~text
-prefer ACP provider
-  when the target agent has a suitable ACP implementation
-
-use product-native DSH provider
-  when it provides materially stronger lifecycle/tool guarantees
-
-write a new AgentOS provider
-  only when neither existing seam is sufficient
+@agentclientprotocol/sdk 1.4.0
 ~~~
 
-Codex/Claude-specific providers remain useful because native integrations may expose stronger or more predictable behavior than generic ACP adapters. They should be provider choices, not architecture dependencies.
+in both the ACP server and subagent ACP provider.
 
-## 3. MCP should stay vertical, not become the universal Worker protocol
+Therefore AgentOS should target the ACP surface actually supported by DSH rather than designing around draft-only ACP v2 features.
 
-Official sources:
+### Domain agnosticism
 
-- <https://modelcontextprotocol.io/>
-- <https://blog.modelcontextprotocol.io/posts/2026-07-28/>
-- <https://tasks.extensions.modelcontextprotocol.io/>
+ACP originates from coding-agent/editor interoperability and still has coding-oriented concepts.
 
-MCP 2026-07-28 moved to a stateless core and formal extension model.
-
-The Tasks extension (io.modelcontextprotocol/tasks) provides durable handles for long-running tool calls with tasks/get, tasks/update, tasks/cancel, input-required states, deferred results, and recovery/handoff support in SDK integrations.
-
-This is useful for the AgentOS Website bridge because Website agents commonly act as MCP clients.
-
-However MCP Tasks are still **tasks attached to MCP requests/tool calls**, not a general remote-agent identity/collaboration protocol.
-
-### Direction
-
-Keep:
+AgentOS can nevertheless use ACP as the preferred **execution/control protocol for compatible providers**, including a Website Agent bridge, because the DSH abstraction above it is domain-agnostic:
 
 ~~~text
-Website host supports MCP only
-  -> AgentOS MCP Worker bridge
-
-agent supports A2A
-  -> prefer A2A remote Worker adapter
-
-local coding agent supports ACP
-  -> prefer ACP provider
-
-in-process DSH participant
-  -> native DSH service
+AgentOS capability policy
+  -> DSH ctx.subagents
+      -> ACP provider
+          -> compatible Agent
 ~~~
 
-MCP Task IDs must remain provider/transport handles and never become AgentOS Assignment/attempt identity.
+The domain-agnostic boundary is ctx.subagents + AgentOS capability policy.
 
-MCP Tasks may remove some custom polling/wait mechanics from the Website transport, but they do not remove the need for AgentOS semantic authorization/fencing.
+ACP is the preferred protocol implementation, not the definition of Worker.
 
-## 4. Worker Contract vs Worker Protocol
+## 3. Website Agent should reuse the ACP provider first
 
-Current AgentOS documentation uses "Worker Protocol" for provider-neutral meaning while explicitly saying transport is separate.
+Current DSH subagent ACP behavior is:
 
-That is internally consistent, but increasingly confusing because A2A, ACP, and MCP are actual protocols.
+- one fresh subprocess per run;
+- ACP initialize;
+- session/new;
+- one prompt;
+- streamed updates folded to a final result;
+- cancellation/permission handling;
+- teardown after the run.
 
-A clearer future vocabulary may be:
+This is ideal for bounded Website research/review/synthesis:
 
 ~~~text
-Worker Contract
-  = Assignment / capability / completion / exact-input semantics
-
-Worker Schema Profile
-  = AgentOS-owned structures that remain necessary
-
-A2A adapter/profile
-  = remote independent agents
-
-ACP adapter/profile
-  = coding agents
-
-MCP adapter/profile
-  = Website/tool-oriented hosts
-
-DSH adapter
-  = native runtime
+ctx.subagents
+  -> dsh-subagent-acp
+      -> local Website ACP bridge
+          -> Website Agent
 ~~~
 
-The key question is not the name. It is whether AgentOS schemas represent **irreducible semantics** or merely duplicate an upstream protocol shape.
+The local bridge speaks the stable ACP version supported by DSH on one side and Website-native networking on the other.
 
-## 5. Re-evaluate current AgentOS schemas against A2A
+This avoids depending on ACP remote transport maturity.
 
-Current AgentOS schemas already use names very close to A2A:
+### Continuation
+
+DSH ctx.subagents already supports continuable provider contracts, but current subagent-acp is one-shot.
+
+If a real workflow requires later turns in the same Website context:
+
+1. first consider upstreaming continuable ACP support to DSH;
+2. otherwise add a narrow AgentOS continuable ACP provider plugin.
+
+Do not create a parallel Worker conversation/exchange subsystem.
+
+## 4. Scientific Worker needs no new Worker architecture
+
+Scientific research is a second profile over the same provider seams.
 
 ~~~text
-WorkerAssignment
-WorkerMessage
-WorkerArtifact
-WorkerState
-WorkerCapabilities
+literature-search
+  -> Website ACP bridge
+
+data-analysis
+  -> local tool-enabled DSH/ACP provider
+
+scientific-review
+  -> Website ACP / A2A remote specialist / DSH Agent
 ~~~
 
-Before implementation, classify each field.
+Only capabilities, Skills, tools, output contracts, and provider configuration change.
 
-### Likely AgentOS semantic delta
+This is a stronger domain-agnostic proof than inventing a ScientificWorker type.
 
-- assignmentId;
-- attemptId;
-- inputBinding;
-- exact current-attempt fencing;
-- expected output JSON Schema;
-- capability guarantees used by selection;
-- contribution/completion acceptance semantics;
-- effect evidence / receipt binding;
-- stale-attempt non-disclosure;
-- provider-neutral semantic identity.
+## 5. MCP stays vertical
 
-### Strong upstream reuse candidate
+MCP should equip agents with tools/data/capabilities.
 
-- Message identity/content container;
-- Artifact identity/content container;
-- task lifecycle states;
-- remote agent discovery;
-- remote agent skill discovery;
-- streaming/polling/push update delivery;
-- transport/auth metadata.
+It does not need a Worker claim/send/receive/publish protocol.
 
-### Research task
+The previous AgentOS MCP Worker schemas have therefore been removed.
 
-Build a schema mapping that answers:
+Website ACP or A2A agents may consume MCP tools internally when useful.
+
+## 6. Durable Workflow mechanics are plugin implementation details
+
+DSH/Cordis remains the Host.
+
+Use DSH primitives first for persistence, jobs, bounded workflows, scheduling, human interaction, Session state, and provider lifecycle.
+
+If a concrete Workflow requirement exposes a generic durability gap, an AgentOS Cordis plugin may wrap a reusable runtime such as Inngest or Temporal.
 
 ~~~text
-Can AgentOS use native A2A Message/Artifact/Task
-+ one AgentOS extension
-instead of maintaining parallel Message/Artifact/State wire schemas?
+DSH Host
+  -> AgentOS Workflow semantic plugin
+      -> DSH mechanics                 # default
+
+or, if proven cheaper/safer
+
+DSH Host
+  -> AgentOS Workflow semantic plugin
+      -> external-runtime adapter
+          -> Inngest / Temporal / ...
 ~~~
 
-If yes, prefer the standard.
+The external runtime does not become an alternate Host.
 
-If no, document the exact semantic incompatibility field by field.
+## 7. Schema consequence
 
-## 6. Generic durable Workflow execution is also a reuse problem
+The following provisional schemas have been pruned:
 
-The AgentOS Workflow design currently owns durable concepts such as restart/reconciliation, pending external actions, attempt fencing, result binding, reattachment, and terminal convergence.
+- WorkerAssignment;
+- WorkerMessage;
+- WorkerArtifact;
+- WorkerState;
+- WorkerCapabilities/common envelopes;
+- MCP Worker request/result envelopes;
+- examples built on those envelopes.
 
-Some are product semantics. Others are generic durable-execution mechanics that mature systems already provide.
+Future schemas must correspond to actual AgentOS-owned serialized structures, not protocol-normalization copies.
 
-### DSH/Cordis remains first choice
+## 8. Remaining AgentOS semantic delta
 
-DSH already provides storage, Jobs, bounded workflow execution, Session durability, Agent Team, and Subagent lifecycle.
+Current strongest candidates are:
 
-Because AgentOS is currently DSH-native, this remains the lowest-cost substrate.
+1. capability requirements and right-agent-right-job selection;
+2. cost/context-aware provider policy;
+3. Workflow/Profile semantic configuration;
+4. collaboration barriers and typed Agent Team phase acceptance;
+5. exact Definition/WorkItem input ownership where reproducibility requires it;
+6. local ExecutionBinding/fencing only for demonstrated retry/replacement races;
+7. typed result acceptance;
+8. actual effect/evidence validation;
+9. composition policy deciding which plugin/provider supplies a capability.
 
-### Microsoft Agent Framework
+Notably absent:
 
-Official sources:
+- universal Worker identity;
+- universal Assignment identity;
+- custom Message/Artifact/State;
+- Worker Exchange;
+- A2A extension by default;
+- custom MCP Worker protocol.
 
-- <https://learn.microsoft.com/en-us/agent-framework/workflows/>
-- <https://learn.microsoft.com/en-us/agent-framework/workflows/checkpoints>
-- <https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop>
-- <https://learn.microsoft.com/en-us/agent-framework/hosting/self-hosting/a2a>
+## 9. Remaining conformance spikes
 
-Microsoft Agent Framework checkpoints capture all executor state, pending messages, pending external requests/responses, and shared state.
+### ACP
 
-The workflow can resume or rehydrate later. Pending HITL requests are restored and re-emitted.
+- run one semantic task through at least two ACP-compatible agents;
+- run one Website research task through the ACP bridge;
+- prove provider limitations/cancellation/result mapping;
+- add continuation only if a real workflow fails without it.
 
-Its A2A hosting layer deliberately lets the application retain ownership of task transitions, artifact boundaries, session mapping, authentication, and durable stores.
+### A2A
 
-This is a useful reference architecture: **framework mechanics below, application semantic authority above**.
+- connect one remote A2A agent using native Task/Message/Artifact;
+- keep exact-input/fence state local;
+- prove zero AgentOS extensions are sufficient for the first collaboration path.
 
-### Agno AgentOS
+### Workflow
 
-Official sources:
+- implement the smallest software Workflow using DSH primitives;
+- only evaluate an external durable-runtime adapter if a failing requirement shows generic runtime mechanics missing.
 
-- <https://docs.agno.com/agent-os/introduction>
-- <https://docs.agno.com/background-execution/overview>
-- <https://docs.agno.com/workflows/hitl/overview>
+## Decision gate
 
-Agno now supports persisted agent/team/workflow sessions, background execution, resumable streams, durable queue workers that can survive process restarts, HITL pause/continue, remote Agent/Team/Workflow execution, and A2A/MCP interfaces.
+A custom mechanism belongs in AgentOS only when:
 
-Important nuance: a database-backed background run alone does **not** imply execution survives process death; Agno explicitly requires its durable queue for accepted runs to survive worker restart.
-
-This distinction mirrors AgentOS's concern that persisted state must not be confused with durable execution.
-
-### Temporal
-
-Official sources:
-
-- <https://docs.temporal.io/>
-- <https://docs.temporal.io/ai>
-- <https://docs.temporal.io/workflow-definition>
-- <https://docs.temporal.io/tasks>
-
-Temporal provides mature crash-recoverable durable execution through event-history replay, Activities for external effects, retries/timeouts, Signals and Updates, timers, child workflows, human approval patterns, worker crash recovery, and workflow versioning.
-
-Temporal increasingly has direct agent-framework integrations.
-
-It is probably **too large a dependency for current AgentOS while DSH already supplies runtime primitives**, but it sets a high bar: AgentOS should not custom-build a general durable execution engine unless the product semantics genuinely require it.
-
-### Inngest
-
-Official sources:
-
-- <https://www.inngest.com/docs/learn/inngest-steps>
-- <https://www.inngest.com/docs/reference/typescript/functions/step-wait-for-event>
-- <https://www.inngest.com/docs/learn/how-functions-are-executed>
-
-Inngest is especially relevant because AgentOS/DSH is TypeScript-oriented.
-
-It provides checkpointed retriable step.run, durable sleeps, event/signal waits, automatic resume from successful checkpoints, function invocation, and concurrency/rate controls.
-
-Again, this suggests that generic wait/retry/checkpoint mechanics should stay below AgentOS semantic workflow policy.
-
-## 7. Workflow Core may need to become thinner
-
-Current architecture says Workflow Core owns generic durable execution semantics.
-
-Research suggests splitting that statement more precisely:
-
-~~~text
-Workflow semantic core
-  = WorkflowRun / WorkItem meaning
-  + exact Definition/input binding
-  + AgentOS completion/effect invariants
-  + recovery policy requirements
-
-Durable runtime adapter
-  = checkpointing
-  + wait/wake
-  + queueing
-  + retries
-  + process crash recovery
-  + timer/event mechanics
-~~~
-
-Today the runtime adapter can be DSH/Cordis.
-
-Future adapters could theoretically be Microsoft Agent Framework, Temporal, Inngest, or another durable runtime if they satisfy the same conformance contract.
-
-This is not yet a canonical change. It should first be tested against current Workflow requirements to ensure no correctness-bearing semantics are accidentally delegated away.
-
-## 8. Canonical protocol selection model
-
-~~~text
-                        AgentOS semantics
-                              |
-                        Worker Contract
-                              |
-             +----------------+----------------+
-             |                |                |
-             v                v                v
-            A2A              ACP              MCP
-      remote agent       coding agent    tool / Website
-             |                |                |
-             +----------------+----------------+
-                              |
-                         provider adapter
-                              |
-                         DSH / external
-~~~
-
-Choose protocol based on the other side's role:
-
-| Boundary | Preferred mechanism |
-|---|---|
-| AgentOS <-> remote autonomous/independent agent service | A2A |
-| AgentOS/DSH <-> local coding agent process | ACP |
-| Agent <-> tool/capability/data service | MCP |
-| Website Agent that only exposes MCP-client integration | MCP Worker bridge |
-| DSH-local Team/Subagent interaction | native DSH service |
-| provider-specific capability unavailable through a standard | narrow provider adapter |
-
-## 9. What still appears AgentOS-specific
-
-After protocol/runtime reuse, the strongest residual semantic delta is narrower:
-
-1. cost/context-aware routing policy;
-2. capability guarantees stronger than descriptive provider metadata;
-3. exact Assignment/input binding independent of provider execution;
-4. attempt fencing and stale result rejection across heterogeneous providers;
-5. Artifact acceptance semantics and reusable evidence;
-6. effect/correctness validation against real environment state;
-7. Team phase policy and typed phase completion;
-8. domain Workflow Profiles spanning software development and scientific research;
-9. composition rules deciding which runtime/protocol/provider owns each boundary.
-
-This is a healthier project boundary than "build an agent runtime, Team engine, Workflow engine, and agent protocol."
-
-## 10. Required pre-implementation spikes
-
-### A2A compatibility spike
-
-Prove whether an AgentOS Worker can be represented as:
-
-~~~text
-A2A AgentCard
-+ AgentOS capability conformance metadata
-+ A2A Task/Message/Artifact
-+ one AgentOS extension
-~~~
-
-without losing exact input binding, attempt fencing, expected output schema, contribution/completion distinction, evidence references, or stale-attempt rejection.
-
-### ACP provider spike
-
-Use DSH subagent-acp with at least two different coding agents from the ACP ecosystem.
-
-Verify that the same AgentOS Assignment can execute through replaceable ACP agents, working directory/tools are scoped correctly, cancellation/continuation capabilities are truthfully advertised, and output maps to the same AgentOS Artifact contract.
-
-### MCP Tasks spike
-
-For the Website bridge, test MCP 2026-07-28 Tasks as the long-running transport projection.
-
-Verify that recovery/cancel semantics reduce custom bridge code without becoming AgentOS semantic identity.
-
-### Workflow runtime conformance spike
-
-Express one minimal durable software WorkItem using current DSH primitives and one external durable runtime reference implementation or executable model.
-
-The purpose is not immediate adoption. It is to prove which responsibilities are generic runtime mechanics versus genuine AgentOS semantics.
-
-## 11. Decision gate
-
-Do not implement a custom mechanism when all three are true:
-
-1. an upstream standard/runtime provides the needed behavior;
-2. a thin adapter can preserve AgentOS semantic invariants;
-3. adopting it reduces total owned complexity.
-
-Only the residual semantic delta belongs in AgentOS.
+1. DSH/upstream protocol/library does not already provide it;
+2. the missing behavior protects a concrete product invariant;
+3. a thinner adapter/configuration cannot preserve that invariant;
+4. owned complexity is lower than the available reuse option.
