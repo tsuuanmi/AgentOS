@@ -12,10 +12,10 @@ This proposal contains only unresolved work needed to move from canonical archit
 Accepted direction lives in:
 
 - [Architecture](../architecture/README.md)
-- [Plugin inventory](../architecture/plugins/inventory.md)
-- [Minimal semantic delta](../architecture/minimal-semantic-delta.md)
+- [Plugin architecture](../architecture/plugins/README.md)
+- [AgentOS semantic delta](../architecture/plugins/agentos/semantic-delta.md)
 - [Protocol stack](../architecture/protocol-stack.md)
-- [Worker model](../architecture/worker-model.md)
+- [Worker plugin](../architecture/plugins/worker/README.md)
 - [Agent Team plugin contract](../architecture/plugins/agent-team/README.md)
 - [Workflow plugin contract](../architecture/plugins/workflow/README.md)
 
