@@ -1,97 +1,101 @@
-# Website Agent over ACP feasibility
+# Website Agent protocol adaptation research
 
-- **Status:** active research
-- **Reviewed:** 2026-09-28
+- **Status:** active proving research
 - **Canonical plugin:** [Website Agent](../architecture/plugins/website-agent/README.md)
-- **Worker dependency:** [Worker](../architecture/plugins/worker/README.md)
-- **Question:** can Website execution reuse the existing DSH ACP provider rather than a bespoke provider runtime?
+- **Core:** [Website Agent core](../architecture/plugins/website-agent/core.md)
+- **Adapters:** [Website Agent adapters](../architecture/plugins/website-agent/adapters.md)
+- **Implementation source:** [`tsuuanmi/internet`](https://github.com/tsuuanmi/internet)
 
 ## Current conclusion
 
-Yes for bounded one-shot work.
+Do not build a Website Agent runtime from scratch.
+
+Use the existing Website participant/browser logic in `@tsuuanmi/internet` as the core and expose that **same core** through ACP and A2A adapters.
 
 ~~~text
-Agent Team / Workflow
-  -> Worker
-      -> DSH ctx.subagents
-          -> DSH ACP provider
-              -> Website ACP bridge
-                  -> Website Agent
+                       Internet-derived Website core
+                     /                              \
+              ACP Agent adapter                A2A Agent adapter
+                    |                                 |
+             DSH ACP client                     A2A remote peer
 ~~~
 
-The bridge is Website-specific.
+## Existing core evidence
 
-Provider selection/result acceptance are Worker-owned.
+Internet already has:
 
-DSH owns provider/process lifecycle.
+- `WebsiteParticipantService`;
+- `BrowserManager`;
+- `ConversationStore`;
+- `ProviderTurnReceiptStore`;
+- `WebsiteParticipantArtifactStore`;
+- ChatGPT/Gemini provider drivers;
+- provider-native Deep Research;
+- account isolation/scheduling.
 
-## Current DSH ACP lifecycle
+The architecture task is extraction/stabilization, not reinvention.
 
-Current `dsh-subagent-acp`:
+## Core API proving question
 
-1. spawns a fresh ACP Agent subprocess;
-2. initializes ACP;
-3. creates a fresh session;
-4. sends one prompt;
-5. folds streamed output;
-6. maps terminal result;
-7. supports cancellation/permission policy;
-8. tears the subprocess down.
+Before adapter implementation, define the smallest supported Internet API that allows an external adapter to:
 
-This is enough for bounded research, literature search, evidence extraction, synthesis, review, critique, and planning.
+1. select an authenticated Website account/provider;
+2. select `chat` or `research`;
+3. provide owner/conversation/logical-request identities;
+4. execute with cancellation;
+5. receive retained result/artifact metadata;
+6. recover/reconcile duplicate or uncertain logical requests.
 
-## Bridge responsibilities
+Avoid exporting BrowserManager internals when `WebsiteParticipantService` or a refined façade is sufficient.
 
-The Website bridge owns only:
+## ACP proving questions
 
-- Website authentication/connectivity;
-- Website conversation creation;
-- ACP <-> Website turn/update translation;
-- cancellation mapping when supported;
-- usage/cost projection when available;
-- optional Website-side MCP/tool integration.
+Current DSH `subagent-acp` creates a fresh process/session per run.
 
-Website ids stay below the plugin boundary.
+Test:
 
-## Scientific use
+1. Website ACP Agent can implement initialize/new/prompt/cancel over the Internet core;
+2. one-shot Worker research works end-to-end through DSH ACP;
+3. ACP session id never becomes native Website conversation identity;
+4. stable ACP v1 `session/load` can restore a core conversation in the Website ACP Agent;
+5. determine the smallest DSH change needed for its ACP client/provider to actually reuse/load that session;
+6. logical request reconciliation does not depend on ephemeral JSON-RPC request ids.
 
-Scientific research needs no special Worker runtime:
+## A2A proving questions
 
-~~~text
-literature-search
-  -> Worker -> Website Agent
+Use official `@a2a-js/sdk`.
 
-analysis
-  -> Worker -> local/tool-enabled provider
+Test:
 
-scientific-review
-  -> Worker -> Website/A2A/DSH provider
-~~~
+1. Website core can be called from a thin `AgentExecutor`;
+2. `contextId` maps safely to continued Website conversation context;
+3. `taskId`/local mapping gives stable logical request reconciliation;
+4. long Website results project into native A2A Artifact/Part;
+5. cancellation reaches the core;
+6. the first integration uses zero AgentOS A2A extensions;
+7. chat/research routing can be configured without inventing a custom A2A skill-selection extension.
 
-## Continuation
+## Core-vs-adapter invariant
 
-Only add continuation after a real workflow demonstrates value from later turns in the same Website context.
+The following behavior must have one implementation only:
 
-Preferred order:
+- browser/auth;
+- native conversation binding;
+- provider completion detection;
+- retry/reconciliation;
+- result retention.
 
-1. upstream generic continuable ACP support to DSH;
-2. otherwise add a narrow continuable provider plugin.
+ACP/A2A adapters may map protocol state into core identities but cannot duplicate those mechanisms.
 
-Do not create Worker Exchange or AgentOS conversation identity.
+## TDD direction
 
-## A2A alternative
+1. characterize current `WebsiteParticipantService` behavior in Internet;
+2. expose/refine the smallest supported core API;
+3. ACP Agent adapter unit tests;
+4. DSH ACP one-shot integration test;
+5. A2A AgentExecutor adapter tests;
+6. A2A client/server integration test;
+7. continuation/load conformance only after one-shot paths work;
+8. scientific literature-search Profile as a second-domain proof.
 
-If the remote Website Agent exposes native A2A, use the [A2A plugin](../architecture/plugins/a2a/README.md) behind Worker instead of wrapping A2A through ACP.
-
-## Conformance tests
-
-1. Website research through Worker + existing DSH ACP provider;
-2. cancellation propagation;
-3. failure/stop mapping;
-4. Website ids hidden from Worker caller result;
-5. non-coding research prompt;
-6. scientific literature-search prompt;
-7. typed Worker result acceptance;
-8. optional MCP tool access;
-9. usage/cost projection when available;
-10. continuation only if a real Profile requires it.
+Once these questions are executable tests, prune this research document and keep the architecture facts in the canonical Website Agent folder.
