@@ -2,89 +2,112 @@
 
 - **Status:** canonical architecture
 - **Owner:** AgentOS
-- **Kind:** Worker provider/protocol adapter plugin
-- **Protocol:** A2A
+- **Kind:** agent-to-agent collaboration adapter
+- **Protocol:** A2A v1
 
-The A2A plugin is the generic **Worker-side A2A provider/client adapter** for independently hosted agents. It does not contain Website execution logic and does not define an AgentOS agent-to-agent wire protocol.
+The A2A plugin standardizes **horizontal collaboration between agents**.
 
-## Preferred composition
+Its primary AgentOS use is:
 
 ~~~text
-Worker plugin
-  -> DSH ctx.subagents
-      -> AgentOS A2A provider/client
-          -> official A2A JavaScript SDK
-              -> remote A2A Agent
+Website Agent
+  <-> A2A
+  <-> Agent Team Member
 ~~~
 
-Registering A2A behind the same provider seam keeps Agent Team and Workflow independent of remote/local provider type.
+This is deliberately different from ACP:
 
-If a technical constraint prevents registration through `ctx.subagents`, the adapter may remain beside that seam temporarily, but the Worker plugin remains the caller boundary.
+~~~text
+ACP = runtime/client <-> Website Agent
+A2A = Website Agent <-> peer agent / Team Member
+~~~
 
-## Reuse
+## Responsibilities
 
-Use native A2A:
+The A2A plugin owns protocol adaptation only:
 
-- AgentCard;
-- AgentSkill;
-- Task;
-- TaskStatus;
-- Message;
-- Artifact;
-- Part;
-- contextId;
-- authentication;
-- streaming/polling/push;
-- extension mechanisms.
+- AgentCard / AgentSkill exposure and discovery;
+- Task / TaskStatus mapping;
+- Message / Part exchange;
+- Artifact / Part exchange;
+- contextId propagation;
+- cancellation/update handling;
+- authentication/transport integration;
+- mapping A2A peer context to AgentOS/Website semantic context.
 
-## AgentOS-owned delta
+It does not own:
 
-The plugin should add only:
+- Website browser/auth/provider logic;
+- Worker provider selection;
+- Team collaboration policy;
+- Workflow sequencing;
+- Website native conversation identity.
 
-- mapping Worker capability requirements to remote AgentSkill/discovery;
-- mapping semantic execution to A2A task/context handles;
-- cancellation/recovery projection;
-- provider capability/conformance projection;
-- result mapping into Worker acceptance.
+## Website Agent side
+
+Website Agent exposes an A2A Agent/Server adapter over the shared Website Core.
+
+~~~text
+Website Agent Core
+  -> Website A2A Agent adapter
+      <-> A2A
+~~~
+
+See [Website Agent adapters](../website-agent/adapters.md).
+
+## Agent Team Member side
+
+Agent Team Members use an A2A peer/client adapter when communicating with Website Agent or another A2A peer.
+
+~~~text
+Agent Team Member
+  -> A2A peer/client adapter
+      <-> A2A
+          <-> remote Agent
+~~~
+
+The Team Member's execution runtime may be DSH, ACP, or something else. A2A should not depend on that runtime.
+
+## Collaboration semantics
+
+A2A already provides the primitives AgentOS needs for peer collaboration:
+
+- AgentCard and AgentSkill for discovery;
+- Task as a stateful unit of peer work;
+- Message for conversational/context exchange;
+- Artifact for task deliverables;
+- contextId for related Tasks/Messages;
+- cancellation and status updates.
+
+AgentOS should reuse those native objects instead of defining WorkerMessage or WorkerArtifact.
 
 ## Zero-extension default
 
-The initial A2A integration uses **zero AgentOS protocol extensions**.
+The initial AgentOS integration uses zero custom A2A extensions.
 
-Keep these local by default:
+Keep these local unless a peer genuinely needs them:
 
-- semantic WorkItem/phase id;
-- exact input snapshot/digest;
-- ExecutionBinding generation/fence;
-- retry/recovery policy;
-- result acceptance state;
-- effect verification state.
+- Workflow WorkItem id;
+- Worker ExecutionBinding generation;
+- exact-input digest;
+- retry policy;
+- Website native conversation id;
+- core artifact id;
+- local acceptance state.
 
-Add an A2A extension only when a failing interoperability test proves the remote peer itself must consume or attest to missing information.
+## Relationship to Worker
 
-## Artifact rule
-
-A2A Artifact/Part is the remote deliverable model.
-
-Do not wrap it in a universal AgentOS Worker Artifact.
-
-The Worker plugin validates/maps it into the caller's domain result contract.
-
-
-## Website Agent relationship
-
-Website Agent has an A2A **server-side adapter** over its protocol-neutral core.
-
-These are complementary sides:
+Worker may create or control a Website Agent through ACP, but A2A peer communication is not modeled as a Worker provider transport.
 
 ~~~text
-Worker
-  -> AgentOS A2A provider/client          # this plugin
-      -> A2A wire
-          -> Website A2A Agent adapter    # Website Agent plugin
-              -> Website Agent core
+Runtime
+  -> ACP
+      -> Website Agent
+          <-> A2A <-> Agent Team Member
 ~~~
 
-Do not move Website browser/auth/conversation/retry logic into this generic A2A plugin.
+Keeping these axes separate prevents runtime lifecycle and peer collaboration from becoming one overloaded abstraction.
 
-See [Website Agent protocol adapters](../website-agent/adapters.md#a2a-adapter).
+## Canonical invariant
+
+> **A2A is the standard horizontal protocol between Website Agent and Agent Team Members/other agents.**
