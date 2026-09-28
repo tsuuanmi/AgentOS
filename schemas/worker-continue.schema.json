@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentos.dev/schemas/worker-continue.schema.json",
+  "title": "AgentOS Worker Continue Request",
+  "description": "Adds structured input to an existing Worker assignment without changing assignment identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "continuationId",
+    "assignmentId",
+    "inputBinding",
+    "kind",
+    "payloadSchemaRef",
+    "payload"
+  ],
+  "properties": {
+    "continuationId": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "assignmentId": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "inputBinding": {
+      "$ref": "worker-common.schema.json#/$defs/inputBinding"
+    },
+    "kind": {
+      "$ref": "worker-common.schema.json#/$defs/semanticName"
+    },
+    "payloadSchemaRef": {
+      "$ref": "worker-common.schema.json#/$defs/schemaRef"
+    },
+    "payload": {
+      "description": "Structured continuation payload validated against payloadSchemaRef."
+    },
+    "context": {
+      "type": "array",
+      "items": {
+        "$ref": "worker-common.schema.json#/$defs/reference"
+      }
+    },
+    "extensions": {
+      "$ref": "worker-common.schema.json#/$defs/extensions"
+    }
+  }
+}
