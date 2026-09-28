@@ -122,7 +122,7 @@ software implementation
   -> Worker -> DSH ACP provider -> coding Agent
 
 web/literature research
-  -> Worker -> DSH ACP provider -> Website Agent bridge
+  -> Worker -> DSH ACP provider -> Website ACP Agent adapter -> shared Website core
 
 remote specialist
   -> Worker -> A2A provider -> remote Agent
