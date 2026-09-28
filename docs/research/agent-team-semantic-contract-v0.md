@@ -7,19 +7,23 @@
 
 ## Executive conclusion
 
-AgentOS should define Agent Team **above** both current implementations/substrates:
+AgentOS should define Agent Team semantics **above DSH Agent Teams**, while using DSH Agent Teams as the default v1 runtime/substrate:
 
 ~~~text
 Agent Team semantic capability
         |
-        +-> Internet-backed provider
-        |      reasoning protocol:
-        |      rounds / peer context / synthesis / provider routing
+        v
+AgentOS Team policy/result adapter
         |
-        +-> DSH Agent Teams-backed provider
-               collaboration substrate:
-               roster / mailbox / task board / continuable teammates
+        v
+DSH Agent Teams
+  roster / mailbox / task board / continuable teammates
+        |
+        +-> DSH/local teammate providers
+        +-> future Internet-backed teammate provider
 ~~~
+
+The current Internet Team is not carried forward as a parallel runtime. Its strongest reasoning behavior is adapted into the AgentOS policy layer.
 
 These are not equivalent implementations internally.
 
@@ -193,7 +197,7 @@ WorkItem
 
 A provider run id is an adapter reference, never the WorkItem id.
 
-## 7. Internet-backed Agent Team mapping
+## 7. Internet Team behavior to adapt
 
 Current Internet Team already contains a useful **reasoning protocol**:
 
@@ -205,7 +209,7 @@ Current Internet Team already contains a useful **reasoning protocol**:
 - structured failures;
 - provider/account routing below semantic member identity.
 
-These are mostly **provider implementation details** for AgentOS.
+These are mostly **reasoning-policy implementation details** to adapt above DSH Agent Teams.
 
 Useful semantic lessons retained:
 
@@ -232,11 +236,13 @@ website progress stage
 
 through the AgentOS Agent Team contract.
 
-### V1 provider candidate
+### V1 adaptation target
 
-The current Internet-backed Team is the strongest candidate for the first Agent Team provider because it already implements the exact research/review reasoning pattern the software Workflow needs.
+Port the useful research/review behavior, not the Internet Team runtime.
 
-## 8. DSH Agent Teams mapping
+The first Agent Team provider should be DSH Agent Teams plus an AgentOS policy/result adapter implementing the proven Internet Team semantics.
+
+## 8. DSH Agent Teams as the v1 runtime
 
 DSH Agent Teams provides a different but valuable layer:
 
@@ -248,9 +254,9 @@ DSH Agent Teams provides a different but valuable layer:
 - Lead authority;
 - crash/reload recovery.
 
-This is a **collaboration substrate**, not yet a semantic research/review provider by itself.
+This is the **default v1 collaboration substrate**.
 
-To implement Agent Team semantics on DSH Agent Teams, a provider would still need policy that:
+It still needs a thin AgentOS policy/result adapter that:
 
 ~~~text
 creates/assigns appropriate teammates
@@ -261,9 +267,9 @@ synthesizes one typed ResearchResult or ReviewResult
 
 Therefore:
 
-> DSH Agent Teams should be evaluated as an implementation substrate, not exposed directly as the AgentOS Agent Team contract.
+> DSH Agent Teams is the first implementation substrate, but it is not the AgentOS public Agent Team contract.
 
-Because DSH Agent Teams is also experimental, it should not become an AgentOS v1 hard dependency.
+Because DSH Agent Teams is experimental, AgentOS should isolate it behind the narrow semantic contract, pin compatibility deliberately, and test the adapter rather than leaking DSH Team types into callers.
 
 ## 9. No Team internals in Workflow
 
@@ -381,8 +387,10 @@ Local Agent
    |
    +-> Agent Team
    |      |
-   |      +-> Internet-backed provider   # likely first
-   |      +-> DSH Agent Teams provider   # later/experimental candidate
+   |      +-> DSH Agent Teams runtime   # v1 default
+   |             +-> AgentOS research/review policy
+   |             +-> local/DSH teammate providers
+   |             +-> future Internet-backed teammate provider
    |
    +-> Workflow
           |
@@ -404,13 +412,14 @@ Do not build a generic Agent Team runtime.
 The smallest path is:
 
 1. define typed ResearchRequest/Result and ReviewRequest/Result from the software vertical slice;
-2. adapt current Internet Team behind those contracts;
-3. make Local call the same Agent Team service directly;
-4. make Workflow call the same service through its WorkItem adapter;
-5. write shared contract tests around semantic outputs/cancellation/stale-input behavior;
-6. only then evaluate a DSH Agent Teams-backed provider against the same tests.
+2. implement them on DSH Agent Teams;
+3. port Internet Team's independent-analysis, peer-evidence, research/review prompt, and strongest-synthesis policies into that adapter;
+4. make Local call the same Agent Team service directly;
+5. make Workflow call the same service through its WorkItem adapter;
+6. write contract tests around semantic outputs, cancellation, recovery, and DSH-type isolation;
+7. later add an Internet-backed continuable teammate provider if website-native capability/token advantages justify it.
 
-This proves the semantic boundary with one real provider before investing in a second implementation.
+This proves the semantic boundary while maximizing immediate DSH reuse.
 
 ## 16. Defer
 
@@ -453,4 +462,4 @@ Local
   -> reattach
 ~~~
 
-At that point further architecture work should stop and implementation can begin with TDD.
+At that point further architecture expansion should stop and implementation can begin with TDD. The next provider-level enhancement after the DSH-native path is an Internet-backed continuable teammate provider, not a second Team runtime.
