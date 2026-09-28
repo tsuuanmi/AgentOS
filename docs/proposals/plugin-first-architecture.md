@@ -290,6 +290,32 @@ team collaboration protocol with runtime-enforced semantics
   -> component/plugin over DSH Agent Teams
 ~~~
 
+## Workflow and Agent Team relationship
+
+Workflow and Agent Team are **peer AgentOS capabilities**.
+
+~~~text
+Local Agent
+  +-> Agent Team
+  +-> Workflow
+        +-> Agent Team
+~~~
+
+The nested call means Workflow consumes Agent Team as a capability for a WorkItem. It does not make Agent Team part of the Workflow runtime.
+
+Ownership boundary:
+
+- Workflow owns WorkflowRun coordination, dependencies, waiting, recovery, authority gates, and durable result binding.
+- Agent Team owns collaborative reasoning, member/provider routing, team interaction strategy, synthesis, and its own provider/runtime lifecycle.
+- Local may call Agent Team without starting a Workflow.
+- When Workflow calls Agent Team, Agent Team returns a typed result; Workflow alone commits WorkflowRun/WorkItem state.
+- Workflow must not mutate Team roster/mailbox/member lifecycle directly.
+- Agent Team must not mutate WorkflowRun/WorkItem state directly.
+
+A durable Agent Team implementation may maintain independent state. Workflow may retain only an opaque execution/provider reference needed for observation/reconciliation.
+
+V1 does not require Agent Team to start Workflows. If that direction is introduced later, it should call the same public Workflow capability contract rather than privileged internals.
+
 ## Workflow reuse rule
 
 Workflow research confirms that AgentOS should **not build another generic workflow engine**.
@@ -370,11 +396,13 @@ Schedule / webhook
   reminders and future external ingress
 ~~~
 
-### V1 runtime constraint
+### V1 provider decisions
 
-The first provider is intentionally **single-Host**.
+The first Workflow provider is intentionally **single-Host**.
 
-DSH Storage Domain is durable but currently has single-process change visibility and no cross-table transaction. Therefore v1 should store each WorkflowRun as one durable aggregate record and serialize semantic transitions through atomic record updates.
+This is an implementation choice, not a permanent AgentOS architecture invariant.
+
+DSH Storage Domain is durable but currently has single-process change visibility and no cross-table transaction. Therefore the first provider should store each WorkflowRun as one durable aggregate record and serialize semantic transitions through atomic record updates.
 
 ~~~text
 WorkflowRun record
@@ -385,7 +413,9 @@ WorkflowRun record
   + Result/Receipt refs
 ~~~
 
-The in-memory scheduler is derived and disposable. On Host restart the plugin scans non-terminal runs, reconciles uncertain execution, rebuilds timers/ready work, and continues without replaying current completed work.
+For this provider, the in-memory scheduler is derived and disposable. On Host restart the plugin scans non-terminal runs, reconciles uncertain execution, rebuilds timers/ready work, and continues without replaying current completed work.
+
+A later Workflow provider may use another durable runtime, storage topology, or scheduler while preserving the same Workflow semantic contract and conformance guarantees.
 
 Long-running v1 means durability across Local/client disconnect and Host restart. It does not require active execution while the machine is powered off.
 
@@ -736,6 +766,7 @@ Before implementation expands beyond the root plugin/profile:
 - Local Agent is the primary v1 user interaction surface.
 - Local remains usable when Agent Team is unavailable; optional reasoning capabilities degrade gracefully.
 - Workflow and Agent Team remain replaceable semantic capabilities rather than provider identities.
+- Workflow and Agent Team are peer capabilities: Workflow may invoke Agent Team, but neither owns the other's internal lifecycle/state.
 - A durable Workflow may outlive the originating Local connection when durability is part of its provider contract.
 - Unknown execution outcomes follow an admitted WorkItem recovery mode; missing live handles never authorize blind retry.
 - User authority resolution and consequential side-effect completion remain separate durable facts.
