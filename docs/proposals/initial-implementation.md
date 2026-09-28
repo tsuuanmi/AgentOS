@@ -16,8 +16,8 @@ Accepted direction lives in:
 - [Minimal semantic delta](../architecture/minimal-semantic-delta.md)
 - [Protocol stack](../architecture/protocol-stack.md)
 - [Worker model](../architecture/worker-model.md)
-- [Agent Team requirements](../requirements/agent-team/README.md)
-- [Workflow requirements](../requirements/workflow/README.md)
+- [Agent Team plugin contract](../architecture/plugins/agent-team/README.md)
+- [Workflow plugin contract](../architecture/plugins/workflow/README.md)
 
 ## Implementation principle
 
