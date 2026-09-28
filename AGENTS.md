@@ -7,7 +7,6 @@ This file routes coding agents to authoritative AgentOS knowledge and records re
 For non-trivial work:
 
 1. Read `README.md` and `docs/README.md`.
-2. Read the relevant `docs/requirements/` document.
 3. Read `docs/architecture/` for ownership and dependency direction.
 4. Read `docs/reference/` when exact protocols, APIs, schemas, MCP mappings, or Exchange invariants matter.
 5. Load the relevant `.agents/skills/` Skill only when procedural agent methodology matters.
@@ -17,7 +16,7 @@ For non-trivial work:
 
 ## Authority
 
-- Requirements, architecture, reference, governance, source, and tests describe current truth within their stated scope.
+- Architecture, reference, governance, source, and tests describe current truth within their stated scope.
 - Agent Skills under `.agents/skills/` are executable procedural guidance; proposals are evolutionary; research is non-normative.
 - Machine-readable JSON shapes are canonical under repository-root `/schemas`.
 - Do not duplicate a fact across documents. Link to its canonical home.
