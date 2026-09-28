@@ -23,7 +23,10 @@ For non-trivial work:
 - Agent Team owns collaborative software work inside Team phases.
 - V1 uses DSH Agent Teams as the Team core.
 - Do not duplicate DSH Team identity, roster, mailbox, Team task DAG, member lifecycle, Team persistence, or cold-resume mechanics.
-- Use stable software Team roles across runs: Lead/Synthesizer, Researcher Primary, Researcher Challenger, Implementer, Reviewer Correctness, Reviewer Architecture. Inputs vary; role responsibilities do not.
+- Do not create permanent semantic personas such as Primary/Challenger or Correctness/Architecture reviewers. Use Worker instances selected by stable capability requirements.
+- Software-v0 capability profiles: research uses two Workers with `research + brainstorm + debate`; implementation uses a Worker with `implement + tdd`; review uses two Workers with `review + debate`; synthesis requires `synthesize`.
+- DSH Worker <-> Website Agent communication must use the versioned JSON-Schema Worker Protocol. Keep the structured control shape stable; objectives/context values vary by run.
+- MCP may transport the Worker Protocol when supported, but MCP is not the semantic contract and direct typed APIs must preserve the same schemas.
 - A semantic DSH Team member is primarily a coordination proxy for one isolated Website Agent/conversation when website-backed work is used.
 - Do not silently share one Website Agent conversation between semantic teammates.
 - Research/review peers may debate directly through DSH `send_message`; Lead does not proxy ordinary peer debate.
