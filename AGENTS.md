@@ -19,6 +19,8 @@ For non-trivial work:
 - Local Agent is directly usable and is the current environment-native/user-facing surface.
 - Workflow is the durable coordination boundary and may outlive the originating Local connection when the provider contract claims durability.
 - Agent Team is the AgentOS semantic capability for collaborative/external reasoning; DSH Agent Teams and Internet-backed teams are implementations/substrates, not the semantic definition.
+- Treat Workflow and Agent Team as peer capabilities: Local can call Agent Team directly; Workflow can invoke Agent Team through its semantic contract.
+- Workflow must not own Team roster/member/provider lifecycle, and Agent Team must not directly mutate WorkflowRun/WorkItem state.
 - A Workflow may compose Agent Team and other capabilities directly; do not force every internal step through the Local Agent.
 - Treat "Local can do almost everything, but should not be forced to do everything" as a design principle.
 - Keep Local, Workflow, and Agent Team as replaceable roles/contracts rather than provider identities.
@@ -30,6 +32,7 @@ For non-trivial work:
 - Keep host task/session/worker handles as adapter-local identities unless the external identity itself is the semantic object.
 - Split a capability into separate contract/provider/consumer packages only when those roles have independent lifecycle, authority, failure, or replacement pressure and the boundary can be conformance-tested.
 - Avoid privileged core behavior that ordinary plugins cannot replace.
+- Keep architecture invariants separate from provider-v1 choices. Single-Host ownership, DSH Storage Domain, one-run aggregate storage, and derived scheduling are implementation decisions until cross-provider evidence promotes them.
 - Keep one canonical home for each fact; link instead of duplicating.
 - Update documentation with architecture, contract, or behavioral changes.
 - Use tests as executable specifications once production behavior is introduced.
