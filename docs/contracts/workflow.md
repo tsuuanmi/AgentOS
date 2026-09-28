@@ -1,6 +1,6 @@
 # Workflow contract
 
-- **Status:** canonical v1 contract
+- **Status:** canonical contract
 - **Owner:** AgentOS Workflow capability
 
 ## Purpose
@@ -158,7 +158,7 @@ WorkItemId    != DSH TeamTaskId
 WorkItemId    != Website Agent conversation id
 ~~~
 
-The first DSH-backed provider may use Storage Domain, single-Host ownership, one aggregate record per run, and a derived scheduler. Those are provider-v1 decisions, not permanent contract requirements.
+The first DSH-backed provider may use Storage Domain, single-Host ownership, one aggregate record per run, and a derived scheduler. Those are current provider decisions, not permanent contract requirements.
 
 ## Correctness authority
 
