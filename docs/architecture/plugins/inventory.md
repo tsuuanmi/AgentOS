@@ -139,31 +139,34 @@ These do not replace DSH as host. If adopted, an AgentOS/Cordis adapter plugin w
 
 **Decision rule:** use an external durable runtime only when it deletes more AgentOS implementation than the adapter adds.
 
-### 4. Website Agent provider plugin
+### 4. Website Agent ACP bridge/provider
 
-**Role:** make a Website Agent look like a normal delegated provider under DSH `ctx.subagents`.
+**Role:** make Website Agent execution enter the same DSH `ctx.subagents` seam as other delegated agents.
 
-This is the most important missing provider plugin for the initial product.
+The first implementation should try to reuse the existing DSH ACP provider rather than implement a new provider lifecycle:
 
 ~~~text
 Agent Team / Workflow
   -> ctx.subagents
-      -> website provider
-          -> Website Agent
+      -> @deepseek-ai/dsh-subagent-acp
+          -> Website ACP bridge
+              -> Website Agent
 ~~~
 
-Once registered, software and scientific workflows use the same provider seam.
+This is sufficient for bounded one-shot Website work.
 
-**Possible implementation substrate:**
+Current DSH `subagent-acp` is explicitly one-shot: one fresh process/session per run. Therefore multi-round Website/scientific collaboration needs either:
 
-1. existing ACP bridge/provider if the Website Agent can expose a clean ACP session lifecycle;
-2. A2A when the remote Website Agent exposes an A2A endpoint;
-3. Website-host connector/API plus MCP tools where the Website surface only supports those mechanisms;
-4. a narrow direct provider adapter when that is simpler than translating through ACP.
+- a small continuable ACP provider plugin on `ctx.subagents`; or
+- continuation support upstreamed into DSH's ACP provider.
 
-The plugin must hide Website conversation/session details behind the DSH provider contract.
+The bridge/provider hides Website conversation/session details from Agent Team and Workflow.
 
-**Important:** ACP is a strong reuse path, but the architectural contract is `ctx.subagents`. Do not distort non-coding agents merely to force every provider through ACP.
+Scientific workflows use the same provider path; the scientific behavior comes from capabilities, Skills, tools, and output contracts rather than a ScientificWorker type.
+
+If a Website/remote Agent exposes A2A directly, prefer the A2A adapter for Agent-to-Agent collaboration instead of forcing it through ACP.
+
+See [Website Agent over ACP feasibility](../../research/website-agent-acp-bridge.md).
 
 ### 5. A2A adapter plugin
 
@@ -291,7 +294,7 @@ provider selection
 | Team roster/tasks/mailbox | DSH `ctx.agentTeams` | future Team provider only if proven necessary | phase/capability policy |
 | Delegated agent registry | DSH `ctx.subagents` | provider plugins | capability selection |
 | Coding/compatible agent execution | DSH `subagent-acp` | native provider when stronger | conformance only |
-| Website Agent execution | new `ctx.subagents` provider | ACP bridge / A2A / host connector | provider mapping |
+| Website Agent execution | DSH ACP provider + Website ACP bridge for one-shot work | continuable ACP provider / A2A / host connector | provider mapping + continuation only if needed |
 | Remote agent collaboration | A2A + official JS SDK | none unless another standard supersedes it | capability mapping + acceptance |
 | Agent tools/data | DSH capabilities + MCP | provider-native tools | policy/scoping only |
 | Durable storage | DSH `ctx.storageDomain` | external store behind plugin | AgentOS record semantics |
