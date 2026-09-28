@@ -148,19 +148,19 @@ Provider output stays provider-native until mapped into the caller's typed resul
 
 ## Website Agent
 
-Website Agent is not a Worker type.
+Website Agent is not a Worker type. It is a protocol-neutral Website execution core exposed through provider adapters.
 
-The preferred bounded execution path is:
+The preferred bounded local path is:
 
 ~~~text
 Worker plugin
   -> ctx.subagents
-      -> DSH ACP provider
-          -> Website ACP bridge
-              -> Website Agent
+      -> DSH ACP provider/client
+          -> Website ACP Agent adapter
+              -> Website Agent core
 ~~~
 
-See [Website Agent plugin](../website-agent/README.md).
+See [Website Agent plugin](../website-agent/README.md) and [Website adapters](../website-agent/adapters.md).
 
 ## A2A
 
