@@ -44,7 +44,7 @@ completion
 
 A contribution Artifact does not terminate the assignment.
 
-A completion Artifact becomes authoritative only after the local Worker server accepts it under the current assignment and execution state.
+A completion Artifact becomes authoritative only after the Worker Exchange Service accepts it under the current assignment and execution state.
 
 ### WorkerState
 
@@ -60,7 +60,7 @@ Provider names, models, sessions, transports, and tool availability are not sema
 
 ## Minimum capability guarantees
 
-These guarantees define what a caller may depend on. Detailed working method belongs to the [software-worker Skill](../../.agents/skills/software-worker/SKILL.md).
+These guarantees define what a caller may depend on. Detailed software-capability procedure currently lives in the [software-worker Skill](../../.agents/skills/software-worker/SKILL.md); other capability packs may be added without changing Worker identity.
 
 ### research
 
@@ -118,9 +118,9 @@ A model response, provider turn, transport response, inactive session, Message d
 
 Successful assignment completion requires a current accepted completion Artifact.
 
-The local Worker server is the authority that decides whether an Artifact is current and acceptable.
+The Worker Exchange authority decides whether an Artifact is current and acceptable.
 
-Authorization, current-state equality, attempt fencing, dynamic schema validation, idempotency, lifecycle transitions, and durable-before-ack rules live in [Worker server invariants](worker-server-invariants.md).
+Authorization, current-state equality, attempt fencing, dynamic schema validation, idempotency, lifecycle transitions, and durable-before-ack rules live in [Worker Exchange invariants](worker-exchange-invariants.md).
 
 ## Layer boundaries
 
@@ -145,13 +145,13 @@ The same WorkerAssignment, Message, Artifact, WorkerState, and WorkerCapabilitie
 
 ## Agent Team relationship
 
-Worker selection, software phase profiles, independent-first barriers, DSH peer routing, and typed phase completion belong to [Agent Team requirements](../requirements/agent-team.md), not Worker Protocol.
+Worker selection, capability profiles, independent-first barriers, Team peer routing, and typed phase completion belong to [Agent Team requirements](../requirements/agent-team/README.md), not Worker Protocol.
 
 ## Related reference
 
 - [Worker boundary model](../architecture/worker-boundaries.md)
 - [Worker API](worker-api.md)
 - [MCP Worker transport](mcp-worker-transport.md)
-- [Worker server invariants](worker-server-invariants.md)
+- [Worker Exchange invariants](worker-exchange-invariants.md)
 - [Schema registry](../../schemas/README.md)
 - [software-worker Skill](../../.agents/skills/software-worker/SKILL.md)
