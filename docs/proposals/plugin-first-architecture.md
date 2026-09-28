@@ -388,6 +388,40 @@ Workflow sees one Agent Team WorkItem result; it does not persist Team member tu
 
 See [Agent Team semantic contract v0](../research/agent-team-semantic-contract-v0.md).
 
+### DSH core reuse boundary
+
+AgentOS v1 should treat DSH Agent Teams as the Team core and avoid introducing a parallel Team runtime.
+
+Reuse directly:
+
+~~~text
+TeamId/root identity
+roster + member lifecycle
+durable mailbox + de-duplication
+Team task DAG + CAS revisions
+wait/change observation
+Lead authority
+interrupt
+continuable teammate cold resume
+Team Session projection/recovery
+~~~
+
+AgentOS adds only:
+
+~~~text
+research/review methodology
+semantic role/task templates
+strongest-supported synthesis policy
+typed ResearchResult / ReviewResult
+minimal Local/Workflow completion bridge
+~~~
+
+The result bridge must not become a second Team state store.
+
+Current DSH Team spawning requires a continuable subagent provider. Today the proven in-process continuable providers are `spawn` and `fork`; one-shot Codex/Claude Code/ACP providers are not direct Team-member transports.
+
+See [DSH Agent Teams core deep dive](../research/agent-team-dsh-core-deep-dive.md).
+
 ## Workflow reuse rule
 
 Workflow research confirms that AgentOS should **not build another generic workflow engine**.
