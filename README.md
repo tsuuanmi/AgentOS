@@ -55,7 +55,7 @@ AgentOS uses the structured [Worker Protocol](docs/contracts/worker-protocol.md)
 
 Canonical machine-readable schemas live at repository root under [`/schemas`](schemas/README.md).
 
-Callable operations are documented separately in the [Worker API](docs/api/worker-api.md), while MCP-specific mapping lives in [MCP Worker transport](docs/mcp/worker-transport.md).
+Callable operations are documented separately in the [Worker API](docs/api/worker-api.md), MCP-specific mapping lives in [MCP Worker transport](docs/mcp/worker-transport.md), and [Worker usage guidance](docs/skills/worker-usage.md) teaches agents how to compose those operations without becoming a correctness boundary.
 
 Website Agent completion is explicit: the Agent Team provider records an assignment result durably, then the DSH TeamTask may complete, then Lead commits the typed phase result. Workflow advances only from that final typed phase completion; it never infers completion from teammate inactivity or message delivery.
 
@@ -80,6 +80,7 @@ research -> implementation -> validation -> review -> remediation
 - **Model output is data/evidence, not correctness authority.**
 - **Validation comes from the real environment.**
 - **Provider/task/conversation handles do not become AgentOS semantic identities.**
+- **Contract defines meaning; Schema validates shape; MCP exposes operations; Skill teaches usage; server/domain logic enforces semantic truth.**
 - **No speculative core.**
 
 ## Documentation
@@ -94,6 +95,7 @@ Canonical:
 - [Worker Protocol](docs/contracts/worker-protocol.md)
 - [Worker API](docs/api/worker-api.md)
 - [MCP Worker transport](docs/mcp/worker-transport.md)
+- [Worker usage guidance](docs/skills/worker-usage.md)
 - [JSON Schemas](schemas/README.md)
 
 Proposal/research documents are lower-authority change context and evidence.
