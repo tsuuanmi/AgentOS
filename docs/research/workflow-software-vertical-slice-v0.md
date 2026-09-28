@@ -166,10 +166,22 @@ inspect W1
   -> show P1
 respond(P1)
   -> validate authority + exact current state
-  -> perform or refuse action
+  -> resolve/invalidate P1
+  -> if approved and current, enable a separate consequential WorkItem
 ~~~
 
-A live ctx.approval request may be used during the immediate sensitive action, but P1 remains the durable Workflow record.
+A live ctx.approval request may be used while resolving the immediate user interaction, but P1 remains the durable Workflow authority record.
+
+The consequential side effect is a separate WorkItem:
+
+~~~text
+id: publish-or-merge
+dependsOn: [review, resolved P1]
+recoveryMode: RECONCILE_BEFORE_RETRY
+input: exact approved subject/head
+~~~
+
+This separates "the user authorized it" from "the side effect actually happened" and makes a crash between those facts recoverable.
 
 ## 4. Dependency shape
 
@@ -209,7 +221,7 @@ No generic DAG subsystem is required to represent this.
 |---|---|---|
 | durable state | ctx.storageDomain | semantic run/work/action state |
 | Local cold resume | ctx.agents.resume | when/why Agent context is needed |
-| worker execution | ctx.subagents | WorkItem identity, input binding, result commit |
+| worker execution | ctx.subagents | WorkItem identity, input binding, recoveryMode, result commit |
 | bounded fan-out inside a step | ctx.workflowEngine | outer durable WorkItem |
 | background progress | ctx.jobs | semantic completion/recovery |
 | live sensitive approval | ctx.approval | durable PendingAction |
@@ -245,13 +257,36 @@ observe repo/workspace
 
 Validation process may be gone. Re-run is safe only if validation is side-effect-free and still bound to the same implementation input.
 
+### Restart during review
+
+Review is safe to retry only for the same exact implementation and validation inputs. If the provider cannot recover the current attempt, fence it before starting a replacement. Late results from the fenced attempt cannot commit.
+
 ### Restart at PendingAction
 
 ~~~text
 P1 persists
-no dependent consequential action proceeds
+no dependent consequential WorkItem proceeds
 new Local can inspect and respond later
 ~~~
+
+### Restart after approval, during consequential action
+
+Authority resolution remains durable, but it is not a ReceiptRef.
+
+The publish/merge WorkItem reconciles the exact approved target:
+
+~~~text
+effect already happened exactly
+  -> persist ReceiptRef and complete
+
+target unchanged
+  -> fence old execution and retry if authority is still current
+
+target changed / outcome ambiguous
+  -> BLOCKED or profile revalidation
+~~~
+
+Never reuse approval for a changed subject.
 
 ## 7. Exact-input rule
 
@@ -271,6 +306,16 @@ review target state
 This preserves the important Internet invariant without importing its full PR/head graph model.
 
 ## 8. Side-effect rule
+
+Each WorkItem declares an admitted recovery mode. For software-v0:
+
+~~~text
+research     -> SAFE_RETRY
+implementation -> RECONCILE_BEFORE_RETRY
+validation   -> SAFE_RETRY (must be non-mutating)
+review       -> SAFE_RETRY
+publish/merge -> RECONCILE_BEFORE_RETRY
+~~~
 
 Before retrying any WorkItem that may have mutated external state:
 
