@@ -8,3 +8,4 @@ MCP is a transport/integration profile, not the AgentOS semantic contract.
 
 Canonical Worker semantics live in [Worker Protocol](../contracts/worker-protocol.md).
 Canonical JSON Schemas live in [schemas](../../schemas/README.md).
+Agent operating methodology lives in [Worker usage guidance](../skills/worker-usage.md), not in MCP tool signatures.
