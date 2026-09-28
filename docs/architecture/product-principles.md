@@ -56,7 +56,7 @@ web research              -> Website Agent provider with research capability
 repository refactor       -> local development-capable provider
 test execution            -> provider with the real execution environment
 independent review        -> separate review-capable provider/context
-literature discovery      -> Website/A2A provider with research capability
+literature discovery      -> Website Agent with research capability
 data/statistical analysis -> analysis-capable provider with the right tools
 ~~~
 
