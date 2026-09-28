@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentos.dev/schemas/worker-assignment.schema.json",
+  "$id": "urn:agentos:schema:worker-assignment",
   "title": "AgentOS Worker Assignment",
   "description": "A self-contained unit of capability-driven work offered to one Worker.",
   "type": "object",
@@ -15,29 +15,29 @@
   ],
   "properties": {
     "workerId": {
-      "$ref": "worker-common.schema.json#/$defs/identifier"
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
     "assignmentId": {
-      "$ref": "worker-common.schema.json#/$defs/identifier"
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
     "requiredCapabilities": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
       "items": {
-        "$ref": "worker-common.schema.json#/$defs/capability"
+        "$ref": "urn:agentos:schema:worker-common#/$defs/capability"
       }
     },
     "objective": {
-      "$ref": "worker-common.schema.json#/$defs/objective"
+      "$ref": "urn:agentos:schema:worker-common#/$defs/objective"
     },
     "inputBinding": {
-      "$ref": "worker-common.schema.json#/$defs/inputBinding"
+      "$ref": "urn:agentos:schema:worker-common#/$defs/inputBinding"
     },
     "context": {
       "type": "array",
       "items": {
-        "$ref": "worker-common.schema.json#/$defs/reference"
+        "$ref": "urn:agentos:schema:worker-common#/$defs/reference"
       }
     },
     "constraints": {
@@ -51,7 +51,7 @@
     "acceptedResults": {
       "type": "array",
       "items": {
-        "$ref": "worker-common.schema.json#/$defs/reference"
+        "$ref": "urn:agentos:schema:worker-common#/$defs/reference"
       }
     },
     "expectedOutput": {
@@ -62,12 +62,12 @@
       ],
       "properties": {
         "schemaRef": {
-          "$ref": "worker-common.schema.json#/$defs/schemaRef"
+          "$ref": "urn:agentos:schema:worker-common#/$defs/schemaRef"
         }
       }
     },
     "extensions": {
-      "$ref": "worker-common.schema.json#/$defs/extensions"
+      "$ref": "urn:agentos:schema:worker-common#/$defs/extensions"
     }
   }
 }
