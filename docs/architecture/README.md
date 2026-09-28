@@ -113,13 +113,13 @@ See [Workflow plugin](plugins/workflow/README.md).
 
 ### Website Agent
 
-Website execution bridge/provider integration, initially ACP-first for bounded work.
+Website Agent Core derived from @tsuuanmi/internet, with ACP as the runtime/control port and A2A as the peer-collaboration port.
 
 See [Website Agent plugin](plugins/website-agent/README.md).
 
 ### A2A
 
-Remote independent-agent provider/protocol adapter using native A2A objects.
+Standard peer-collaboration protocol between Website Agent and Agent Team Members/other agents, using native A2A Task/Message/Artifact/context semantics.
 
 See [A2A plugin](plugins/a2a/README.md).
 
@@ -179,8 +179,8 @@ They do not require new Worker/Agent Team/Workflow engines.
 3. DSH-owned mechanics stay under the DSH ownership folder.
 4. Workflow and Agent Team use Worker rather than branching on concrete providers.
 5. Worker uses DSH `ctx.subagents` as the default provider registry.
-6. ACP is reused for compatible provider execution.
-7. A2A is used for independent remote Agent-to-Agent communication.
+6. ACP is the standard runtime/client <-> Website Agent connection, with DSH as the first runtime integration.
+7. A2A is the standard Website Agent <-> Agent Team Member peer-collaboration protocol.
 8. MCP is used for tools/capabilities/data, not as a universal Worker protocol.
 9. Provider/protocol ids remain implementation handles.
 10. Provider completion is evidence; AgentOS plugins own semantic acceptance.
