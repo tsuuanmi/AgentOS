@@ -15,5 +15,7 @@ Related machine/interface specifications:
 - [JSON Schemas](../../schemas/README.md) — canonical machine-readable data contracts.
 - [Worker API](../api/worker-api.md) — transport-neutral callable interface.
 - [MCP Worker transport](../mcp/worker-transport.md) — MCP-specific mapping.
+- [Worker usage guidance](../skills/worker-usage.md) — agent operating guidance; not a correctness boundary.
+- [Worker boundary model](../architecture/worker-boundaries.md) — classification across Contract / Schema / MCP / Skill / server enforcement.
 
 Provider details belong in research or implementation documentation unless callers must depend on them.
