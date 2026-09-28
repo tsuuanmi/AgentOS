@@ -1,14 +1,12 @@
-# Mastra / Mastra Factory feasibility
+# Mastra / Mastra Factory reference study
 
-- **Status:** active research / direct reuse candidate
+- **Status:** active research / architecture reference
 - **Reviewed:** 2026-09-28
-- **Question:** can Mastra or Mastra Factory satisfy enough of AgentOS that we should configure/fork/reuse it instead of implementing the software-development runtime ourselves?
+- **Constraint:** DeepSeek Harness / Cordis remains the AgentOS Host.
 
-Mastra is currently the strongest reviewed **TypeScript-native** alternative to implementing AgentOS as a DSH-specific product runtime.
+Mastra and Mastra Factory are valuable because they independently validate several architecture choices AgentOS is converging on.
 
-Mastra Factory is even more concrete: it already implements an open-source software-development system with persistent coding-agent sessions, repository workspaces, planning, implementation, review, human gates, sandboxes, GitHub/Linear/Slack intake, and ACP-compatible coding harnesses.
-
-Therefore the software-development use case by itself is **not sufficient justification** for custom AgentOS runtime implementation.
+They are **not** currently candidates to replace the DSH/Cordis Host or to run as a second top-level orchestration framework beside it.
 
 Official sources:
 
@@ -16,194 +14,136 @@ Official sources:
 - <https://mastra.ai/blog/announcing-mastra-factory-beta>
 - <https://mastra.ai/blog/software-factory>
 - <https://mastra.ai/blog/what-is-agent-to-agent-protocol>
-- <https://mastra.ai/blog/introducing-agent-to-agent-support>
+- <https://mastra.ai/blog/introducing-agent-client-protocol>
 - <https://mastra.ai/blog/introducing-temporal-workflows>
 - <https://mastra.ai/blog/introducing-dynamic-workflows>
 - <https://github.com/mastra-ai/softwarefactory-template>
 
-## Direct overlap with AgentOS
+## Why it matters
 
-Mastra already provides or composes:
-
-- TypeScript-native agents;
-- supervisor/subagent routing;
-- A2A remote agents;
-- ACP coding harnesses;
-- MCP tools;
-- typed workflows;
-- dynamic JSON workflow graphs;
-- persistent state/memory;
-- suspend/resume and human input;
-- workspaces/filesystems/sandboxes;
-- schedules;
-- tracing/evals;
-- optional Temporal-backed durable execution.
-
-The architectural split is strikingly close to the AgentOS direction:
+Mastra demonstrates a similar protocol separation:
 
 ~~~text
-A2A
-  = remote Agent <-> Agent
+A2A = remote Agent-to-Agent
+ACP = specialized compatible Agent/harness execution
+MCP = tools
+Workflow = typed orchestration
+Temporal = optional durable execution substrate
+~~~
 
-ACP
-  = specialized coding Worker/harness
+This is strong external evidence for AgentOS's decision to avoid one universal Worker wire protocol.
+
+## Factory overlap
+
+Mastra Factory already provides an open-source software-development product flow around:
+
+~~~text
+Intake -> Triage -> Planning -> Build -> Review -> Done
+~~~
+
+It combines persistent coding-agent sessions, repository workspaces/sandboxes, GitHub/Linear/Slack intake, implementation/review separation, human gates, configurable stages, ACP-compatible coding harnesses, typed handoffs, and observability.
+
+Therefore AgentOS should not treat generic software-factory mechanics as novel infrastructure.
+
+## Lessons to reuse inside DSH
+
+### Typed boundaries
+
+Mastra workflows validate structured input/output at step boundaries.
+
+AgentOS should do the same at Workflow/Agent Team semantic boundaries rather than inventing a universal Worker envelope.
+
+### Protocol specialization
+
+Mastra independently validates:
+
+~~~text
+DSH ctx.subagents + ACP
+  -> compatible Agent execution
+
+A2A
+  -> independent remote Agent collaboration
 
 MCP
-  = tools
-
-Workflow
-  = typed/dynamic orchestration
-
-Temporal
-  = optional durable runtime
+  -> tools
 ~~~
 
-Mastra documentation explicitly teaches A2A and ACP as different complementary protocols: A2A for remote agents and ACP for specialized coding harnesses.
+### Persistent context
 
-## Mastra Factory overlap with the first product workflow
+Factory preserves coding sessions/workspaces when the workflow needs them.
 
-Mastra Factory's default process is:
+AgentOS should preserve provider context only when the selected provider supports continuation and the Workflow benefits from it.
+
+Do not create a generic AgentOS conversation/session system.
+
+### Durable runtime below semantics
+
+Mastra can run substantially the same workflow code on Temporal for durable, restart-safe execution.
+
+This supports:
 
 ~~~text
-Intake
-  -> Triage
-  -> Planning
-  -> Build
-  -> Review
-  -> Done
+Workflow semantic plugin != generic durable runtime mechanics
 ~~~
 
-Its current product already supports:
+### Dynamic configuration
 
-- issue intake from GitHub/Linear/Slack and other systems;
-- investigation and planning;
-- repository workspaces;
-- persistent coding sessions;
-- separate linked implementation/review sessions;
-- sandboxes;
-- human-controlled plan/PR gates;
-- configurable manual/automatic stages;
-- multiple models/providers;
-- alternative coding harnesses through ACP;
-- self-hosted server/storage/auth/sandbox choices.
+Mastra dynamic workflows demonstrate that runtime workflow graphs can be represented as structured configuration referencing registered primitives.
 
-This overlaps directly with the AgentOS software-development profile.
+AgentOS should keep Workflow Definition/Profile declarative and capability-driven.
 
-## What Mastra proves architecturally
+## What not to reuse wholesale
 
-### 1. A2A + ACP + MCP is a viable protocol split
+Given the fixed DSH Host decision, do not:
 
-Mastra already uses the same distinction now adopted by AgentOS:
+- replace Cordis/DSH with Mastra;
+- run a second top-level Mastra provider/runtime registry beside ctx.subagents;
+- adopt Mastra Factory as the AgentOS software-development runtime;
+- create a cross-runtime abstraction merely so DSH and Mastra can coexist.
+
+Those choices duplicate provider, workflow, storage, session, and plugin ownership.
+
+## Narrow reuse rule
+
+A Mastra package or implementation idea may be reused behind an AgentOS/Cordis plugin only when it has a narrow boundary and removes meaningful custom code.
+
+For generic durability, prefer evaluating the underlying runtime directly:
 
 ~~~text
-A2A -> remote agents
-ACP -> coding harnesses
-MCP -> tools
+DSH Host
+  -> AgentOS Workflow plugin
+      -> Temporal adapter
 ~~~
 
-This provides external evidence that AgentOS does not need a custom universal Worker/agent transport.
-
-### 2. Workflow semantics can be separated from durable runtime
-
-Mastra workflows can run using Mastra's normal runtime or the Temporal integration while workflow definitions remain substantially the same.
-
-This supports the AgentOS idea that:
+rather than:
 
 ~~~text
-Workflow semantic/profile layer
-  != durable execution runtime
+DSH Host
+  -> AgentOS Workflow plugin
+      -> Mastra runtime
+          -> Temporal
 ~~~
 
-### 3. Dynamic workflow configuration is already practical
+unless Mastra itself deletes substantial additional complexity.
 
-Mastra dynamic workflows can be stored as JSON graphs referencing registered agents/tools/control-flow primitives.
+## What AgentOS should still prove
 
-Before designing a new AgentOS Workflow Definition schema, compare whether the desired capability-oriented profile can be expressed as a thin extension or compiler into an existing workflow representation.
+Mastra/Factory reinforces that AgentOS's value cannot be "Agents + Teams + Workflows."
 
-### 4. Software Factory should be treated as a reuse problem
+The remaining hypothesis is:
 
-Mastra Factory demonstrates that intake/planning/build/review orchestration, session persistence, workspaces, sandboxes, and human gates are not novel AgentOS infrastructure.
+1. right-agent-right-job capability selection over DSH providers;
+2. cost/context-aware allocation;
+3. Website Agent reuse through the same provider seam;
+4. native A2A remote collaboration without duplicate wire models;
+5. domain-agnostic Workflow Profiles;
+6. thin acceptance/effect semantics above provider completion;
+7. DSH plugin composition that lets each implementation be replaced independently.
 
-AgentOS should not rebuild these mechanics without a concrete semantic requirement.
+## Research use going forward
 
-## What still may justify AgentOS
+Use Mastra/Factory as a comparison fixture for software Profile stages, typed handoffs, context/session reuse, human gates, observability, and durable runtime boundaries.
 
-The remaining hypothesis is narrower than "software factory":
+Do not require a Mastra feasibility spike before implementation.
 
-1. capability-first **right agent, right job** routing independent of concrete registered agents;
-2. explicit cost/context allocation as policy;
-3. provider-neutral exact Assignment/input binding across ACP/A2A/Website providers;
-4. attempt fencing/stale-result rejection across heterogeneous runtimes;
-5. Artifact/evidence acceptance semantics stronger than ordinary provider output;
-6. effect verification against actual environment state;
-7. one semantic layer spanning software-development and scientific-research profiles;
-8. DSH/Cordis composition if DSH remains a better host for the desired local-agent ecosystem.
-
-These are the things a Mastra spike should try to falsify.
-
-## Build-vs-reuse options
-
-### Option A: keep DSH, learn from Mastra
-
-Use Mastra only as a reference.
-
-This has the lowest migration cost but risks rebuilding infrastructure Mastra already has.
-
-### Option B: use Mastra primitives under AgentOS semantics
-
-AgentOS becomes a thin policy/profile layer using Mastra for agents/workflows/A2A/ACP/MCP/workspaces.
-
-This may align strongly with plugin-first goals but would replace DSH as the main host for many capabilities.
-
-### Option C: configure/fork Mastra Factory for software development
-
-Use Mastra Factory as the software-development product profile, adding AgentOS-specific routing/evidence policies only where needed.
-
-This is the strongest reuse option for the first workflow.
-
-### Option D: use AgentOS as a cross-runtime semantic layer
-
-Keep Worker/Workflow semantic contracts independent while allowing DSH, Mastra, or another runtime as adapters.
-
-This is architecturally attractive but must not create abstraction for abstraction's sake. It is justified only if two runtimes are actually needed.
-
-## Required spike
-
-Before implementing the software-development runtime, run one concrete comparison:
-
-~~~text
-same GitHub issue
-  -> research/investigation
-  -> plan
-  -> implementation with TDD
-  -> independent review
-  -> validation
-  -> PR
-~~~
-
-Implement it with Mastra Factory/configuration first.
-
-Measure:
-
-- custom code required;
-- ability to select/replace ACP coding agents;
-- A2A remote-agent integration;
-- context reuse between stages;
-- artifact/evidence structure;
-- human gates;
-- restart/resume behavior;
-- effect verification;
-- token/cost observability;
-- ability to express the same orchestration as a scientific-research profile.
-
-Only implement AgentOS-owned mechanics for gaps that remain after this experiment.
-
-## Current direction
-
-Mastra Factory should be treated as a **direct reuse/fork candidate**, not merely inspiration.
-
-If the spike shows that a thin configuration/plugin layer satisfies the software workflow, prefer reuse.
-
-If AgentOS's residual semantic policies can sit above Mastra cleanly, reconsider whether DSH must remain the primary host.
-
-If Mastra cannot satisfy exact binding/fencing/effect/domain-agnostic requirements without invasive changes, document those gaps and retain only that semantic delta in AgentOS.
+The higher-ROI proof is to build the same flow from DSH plugins + ACP/A2A/Website provider and measure the residual AgentOS code.
