@@ -12,7 +12,6 @@ Prefer native handles directly while the owning runtime/protocol can safely answ
 
 ~~~text
 ACP session
-A2A Task/context
 DSH provider run
   -> use directly
 ~~~
@@ -82,22 +81,6 @@ A result is semantically accepted only when:
 
 No generic normalized WorkerResult is required.
 
-## A2A
-
-For peer collaboration use native:
-
-~~~text
-Task
-TaskStatus
-Message
-Artifact / Part
-contextId
-~~~
-
-A2A task/context identity is not copied into an AgentOS Task model.
-
-AgentOS may locally associate a semantic Team phase with an A2A task/context when recovery requires that relationship.
-
 ## ACP
 
 For runtime/client execution use native ACP session/prompt/update objects.
@@ -129,3 +112,6 @@ Tests should prove residual AgentOS semantics, not protocol mirrors:
 - [Worker contract](contract.md)
 - [Worker boundaries](boundaries.md)
 - [Protocol stack](../../protocol-stack.md)
+
+
+A2A peer-task/context recovery belongs to the A2A/Agent Team collaboration boundary, not Worker ExecutionBinding.
