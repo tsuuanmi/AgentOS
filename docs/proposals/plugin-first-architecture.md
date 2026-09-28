@@ -422,6 +422,42 @@ Current DSH Team spawning requires a continuable subagent provider. Today the pr
 
 See [DSH Agent Teams core deep dive](../research/agent-team-dsh-core-deep-dive.md).
 
+### V1 Agent Team provider isolation
+
+The first DSH-backed Agent Team provider should prefer **one dedicated ordinary root Agent/Team per semantic research/review invocation**.
+
+Reason:
+
+- DSH teammate names are immutable and never reused within one Team;
+- Team member/task history accumulates;
+- the default Team member limit is finite;
+- reusing the user's Local Team for every invocation would pollute long-lived collaboration state and weaken fresh independent reasoning.
+
+DSH already provides the correct isolation seam:
+
+~~~text
+ctx.agents.create(...)
+  parentAgent omitted
+  -> ordinary root Agent
+  -> implicit DSH Team Lead
+~~~
+
+The provider may bind the root Session to the relevant workspace cwd, compose only the required Team policy/tools in scoped setup, and persist the final typed Team result at that Team-root boundary.
+
+Conceptually:
+
+~~~text
+Agent Team request
+  -> dedicated DSH root Lead
+       -> DSH Agent Teams
+       -> fresh/fork continuable teammates
+       -> Lead synthesis
+       -> durable typed completion
+  -> ResearchResult / ReviewResult
+~~~
+
+This is a **provider-v1 implementation decision**, not part of the public Agent Team semantic contract. A future provider may use a different isolation/topology strategy while passing the same conformance tests.
+
 ## Workflow reuse rule
 
 Workflow research confirms that AgentOS should **not build another generic workflow engine**.
