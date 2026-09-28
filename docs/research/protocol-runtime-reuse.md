@@ -10,7 +10,11 @@
 AgentOS
   -> Worker
       -> DSH ctx.subagents
-          -> ACP / A2A / Website / native provider
+          -> ACP / native provider
+
+  -> Website Agent
+      -> ACP runtime port
+      -> A2A peer port
 
   -> Agent Team
       -> DSH ctx.agentTeams
@@ -29,7 +33,7 @@ The practical rule remains:
 
 Native A2A already provides AgentCard/AgentSkill, Task/TaskStatus, Message, Artifact/Part, context, auth, cancellation, update delivery, structured data, metadata, and extension points.
 
-Initial AgentOS A2A provider uses **zero custom protocol extensions**.
+Initial AgentOS A2A peer integration uses **zero custom protocol extensions**.
 
 Keep WorkItem/phase ids, exact-input digests, binding generations, recovery policy, and acceptance state local unless the remote peer genuinely needs them.
 
@@ -67,7 +71,7 @@ See [DSH Workflow/runtime capabilities](../architecture/plugins/dsh/workflow-run
 
 1. Which DSH `ctx.subagents` capabilities must Worker project into semantic capability selection?
 2. Is one-shot ACP sufficient for initial Website/software/scientific Profiles?
-3. Can first A2A execution remain extension-free?
+3. Can Website Agent <-> Agent Team Member A2A collaboration remain extension-free?
 4. Which Agent Team semantics remain after DSH Team + Worker reuse?
 5. Which Workflow semantic records remain after DSH runtime reuse?
 6. Does any implemented workflow justify continuation or an external durable runtime?
