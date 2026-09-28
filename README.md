@@ -42,6 +42,8 @@ Start at [docs/README.md](docs/README.md).
 - [Architecture](docs/architecture/README.md)
 - [Plugin architecture](docs/architecture/plugins/README.md)
 - [Worker plugin](docs/architecture/plugins/worker/README.md)
+  - [Worker contract](docs/architecture/plugins/worker/contract.md)
+  - [Execution binding](docs/architecture/plugins/worker/execution-binding.md)
 - [Agent Team plugin](docs/architecture/plugins/agent-team/README.md)
 - [Workflow plugin](docs/architecture/plugins/workflow/README.md)
 - [Website Agent plugin](docs/architecture/plugins/website-agent/README.md)
@@ -49,7 +51,6 @@ Start at [docs/README.md](docs/README.md).
 - [DSH reused plugins](docs/architecture/plugins/dsh/README.md)
 - [Product principles](docs/architecture/product-principles.md)
 - [Protocol stack](docs/architecture/protocol-stack.md)
-- [Reference](docs/reference/README.md)
 - [JSON Schemas](schemas/README.md)
 - [Initial implementation proposal](docs/proposals/initial-implementation.md)
 
