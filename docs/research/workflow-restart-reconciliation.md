@@ -2,125 +2,137 @@
 
 - **Status:** active proving research
 - **Canonical semantics:** [Workflow plugin contract](../architecture/plugins/workflow/README.md)
-- **Scope:** crash-window evidence for the first Workflow durable semantic layer and its TDD suite.
+- **Scope:** crash-window evidence for the first durable Workflow TDD suite.
 
 ## Core rule
 
 **Restart is reconciliation, not replay.**
 
-For every non-terminal WorkflowRun, the provider reads durable semantic state, reconciles any current execution, preserves completed current work, and only then derives new work.
+For every non-terminal WorkflowRun, load durable semantic state, inspect/reconcile any currently bound execution or effect, preserve already accepted work, and only then derive new work.
 
-A missing live Job, Team, subagent, provider, timer, or transport handle never proves that execution did not happen.
+A missing Job, Team, subagent, ACP session, A2A Task, timer, process, or transport handle never proves that execution did not happen.
 
-## Admission and commit boundaries
+## Admission and binding boundary
 
-Before an adapter may execute a WorkItem, the provider durably admits the current execution attempt and binds it to the exact current input.
+AgentOS does not require a universal attempt id.
 
-After execution, a result becomes Workflow truth only through a fenced durable semantic commit.
+Before dispatching work whose recovery correctness matters, durably record enough state to know:
+
+- which semantic WorkItem is executing;
+- the exact input/Definition when required;
+- which provider/runtime is selected;
+- the provider-native handle once one exists;
+- a binding generation/fence only when an old execution can race with a replacement.
+
+Conceptually:
 
 ~~~text
-durably admit attempt
- -> dispatch adapter
- -> observe/recover result
- -> validate current execution + exact input
- -> atomically commit result/receipt + WorkItem state
+semantic WorkItem
+  -> durable current ExecutionBinding
+  -> provider/runtime dispatch
+  -> observe/reconcile provider/effect state
+  -> validate result/evidence
+  -> semantic completion commit
 ~~~
-
-If the process crashes anywhere between those boundaries, recovery starts from the durable aggregate rather than from conversation or adapter history.
 
 ## Generic crash windows
 
 | Crash window | Durable truth | Recovery |
 |---|---|---|
-| before execution admission | no current execution | derive readiness and admit one new attempt |
-| after admission, before/during dispatch | current attempt exists; execution outcome unknown | reconcile according to the WorkItem recovery policy |
-| after provider handle is saved | current attempt + opaque adapter reference | inspect when possible, otherwise apply recovery policy |
-| after executor finishes, before semantic commit | WorkItem still incomplete | reconcile; transient response is not Workflow truth |
-| after semantic completion commit | WorkItem completed with current result/receipt | never replay it; derive dependent work |
+| before a binding/dispatch record is required | no current execution is known | derive readiness and dispatch according to runtime guarantees |
+| after durable binding intent, before provider handle is known | outcome may be unknown | reconcile according to provider/runtime semantics |
+| after provider handle is saved | current binding + opaque handle | inspect/resume/cancel when supported; otherwise apply product recovery policy |
+| after provider finishes, before AgentOS acceptance | WorkItem still semantically incomplete | inspect provider/effect result; transient response is not Workflow truth |
+| after semantic completion commit | WorkItem complete | never replay merely because live runtime state disappeared |
 
-Replacing execution E1 with E2 fences E1. Any late E1 result must fail current-execution and exact-input commit preconditions.
+If provider replacement can leave the old execution alive, a new binding generation fences the old one. If the runtime guarantees the old execution is gone, no extra generation is needed.
 
-## Software-flow recovery profiles
+## Recovery policy classes
 
-The first software flow gives concrete examples of the canonical recovery modes.
+A WorkItem needs product-level unknown-outcome policy only where provider/runtime guarantees are insufficient.
 
-| Work | Recovery mode | Reason |
-|---|---|---|
-| research | `SAFE_RETRY` | no correctness-bearing external mutation |
-| implementation | `RECONCILE_BEFORE_RETRY` | may mutate repository/workspace state |
-| validation | `SAFE_RETRY` only while non-mutating | repeatable observation of exact implementation input |
-| review | `SAFE_RETRY` | reasoning over exact immutable/bound input |
-| publish/merge or similar final effect | `RECONCILE_BEFORE_RETRY` | consequential external mutation |
-
-If an adapter cannot safely retry or deterministically reconcile an unknown outcome, the WorkItem uses `BLOCK_ON_UNKNOWN`.
-
-## Implementation recovery example
-
-After a crash during an implementation attempt, observe the actual bound repository/workspace state before retrying.
-
-Only three safe dispositions exist:
+Useful semantic classes are:
 
 ~~~text
-unchanged from admitted baseline
-  -> fence old attempt
-  -> admit replacement
+safe to repeat
+reconcile before repeat
+block when outcome cannot be established
+~~~
+
+These are policy meanings, not necessarily public enum/schema names.
+
+## Software-flow examples
+
+| Work | Typical policy | Reason |
+|---|---|---|
+| research | safe to repeat | no correctness-bearing external mutation |
+| implementation | reconcile before repeat | repository/workspace may have changed |
+| validation | safe to repeat while observational | repeatable observation |
+| review | safe to repeat | reasoning over bound input |
+| publish/merge | reconcile before repeat or block | consequential external mutation |
+
+## Effectful implementation example
+
+After a crash during implementation, inspect actual repository/workspace state before retrying.
+
+~~~text
+unchanged from known baseline
+  -> replacement may be safe
 
 provably converged to intended effect
-  -> persist result/receipt
-  -> complete current WorkItem
+  -> accept/persist result/evidence
 
 changed but partial/ambiguous
-  -> BLOCKED or explicit recovery work
+  -> block or explicit recovery
   -> never overwrite blindly
 ~~~
 
-A model/provider response alone is not proof of a real repository effect.
+A model/provider response alone is not proof of repository state.
 
-## PendingAction and consequential effects
+## Durable external decisions
 
-User authority and the effect remain separate durable facts.
+User/external authority and consequential effect remain separate semantic facts.
 
 ~~~text
-PendingAction resolved
+authority granted
   !=
 effect completed
 ~~~
 
-After approval, enable a separate effectful WorkItem bound to the exact approved subject. If the Host crashes during that action, reconcile the target state before retrying and never reuse approval for a changed subject.
+A transient approval UI is presentation.
 
-## Startup reconciliation algorithm
+If the authority must survive disconnect/restart, Workflow stores the exact decision subject/response/status it owns. The later effect is reconciled independently.
+
+## Startup reconciliation
 
 For each non-terminal run:
 
-1. validate the durable aggregate and current invariants;
-2. reconcile every current admitted execution;
-3. reject/fence stale results whose execution or exact input is no longer current;
-4. preserve completed current WorkItems;
-5. keep required blocked work `BLOCKED`;
-6. keep unresolved authority/input gates `WAITING`;
-7. otherwise derive the next ready WorkItem;
-8. atomically admit a new attempt before dispatch;
-9. commit results only through the fenced durable update path.
+1. validate durable semantic Workflow state;
+2. inspect/reconcile every current ExecutionBinding or outstanding effect;
+3. preserve already accepted completed WorkItems;
+4. reject stale provider results only when a replacement/fence exists;
+5. preserve unresolved waiting/blocking decisions;
+6. derive readiness after reconciliation;
+7. create/update durable binding state only when the selected execution path needs it;
+8. accept results only after output/effect validation.
 
-The first software provider can remain mostly sequential at the Workflow level while Agent Team or bounded DSH execution parallelizes internally.
+The first software Profile may remain mostly sequential at Workflow level while Agent Team or DSH provider/runtime mechanics parallelize internally.
 
 ## TDD scenarios
 
-The first Red tests should cover:
+Initial Red tests should cover:
 
-1. crash before dispatch admission creates only one current execution after recovery;
-2. an admitted attempt with no adapter reference is treated as potentially executed;
-3. safe-retry work fences the old attempt before retry;
+1. completed WorkItem is never replayed because a provider handle disappeared;
+2. a bound provider execution with unknown outcome is not treated as never-started;
+3. safe observational work can repeat under the declared policy;
 4. implementation never retries before repository reconciliation;
-5. converged implementation state can be accepted through a durable receipt;
-6. ambiguous partial implementation blocks instead of being overwritten;
-7. validation restart never replays implementation;
-8. a result bound to stale input cannot commit;
-9. PendingAction is not duplicated after restart;
-10. approval cannot authorize a changed subject;
-11. consequential action is reconciled independently from approval;
-12. completed current WorkItems are never replayed;
-13. late superseded results are rejected;
-14. repeated reconciliation is idempotent when external state is unchanged.
+5. converged external state can be accepted after restart;
+6. ambiguous partial effect blocks instead of being overwritten;
+7. stale result is rejected when a replacement race exists;
+8. no extra generation/fence is created when the provider guarantees old execution termination;
+9. exact Definition/input for an admitted run survives restart;
+10. a durable external decision is not duplicated after restart;
+11. authority does not prove the subsequent effect completed;
+12. repeated reconciliation is idempotent while provider/external state is unchanged.
 
-When these scenarios become executable tests, the tests replace this document as the most precise proving artifact.
+When these scenarios become executable tests, tests become the most precise proving artifact and this research doc can be pruned.
