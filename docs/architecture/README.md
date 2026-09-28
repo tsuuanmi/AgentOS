@@ -73,33 +73,35 @@ The semantic surface may initially be extremely small. It grows only when a conc
 
 ## Interaction model
 
-AgentOS uses **role-optimized capability planes** rather than one mandatory super-agent.
+AgentOS v1 focuses on **Local Agent + Workflow + Agent Team**.
 
-- **Controller** optimizes ubiquitous user interaction, remote access, web/cloud-native capabilities, and pre-local research.
-- **Local Agent** optimizes environment-native execution over repository, files, shell, local data, services, and hardware.
-- **Internet Team** optimizes external reasoning, research, critique, synthesis, and provider-native ecosystems.
-- **Workflow** optimizes durable deterministic coordination, recovery, pending actions, and authority gates.
-
-Controller and Local are both valid user entry points. Local can perform work that would otherwise be delegated, so Controller/Internet Team are optimizations rather than hard dependencies.
+- **Local Agent** is the current user-facing and environment-native execution surface.
+- **Workflow** is the durable coordination boundary for long-running, multi-step, recoverable work.
+- **Agent Team** is the replaceable collaborative/external-reasoning capability for research, critique, review, and synthesis.
+- **Controller** remains a future/optional interaction surface and is not a v1 prerequisite.
 
 ```text
 User
-  +-> Controller
-  |     +-> cloud/public capabilities
-  |     +-> Local Agent when environment execution is needed
-  |
-  +-> Local Agent directly
-          +-> local tools
-          +-> Internet Team
-          +-> Workflow
-                 +-> Internet Team / Research
-                 +-> Local / external workers
-                 +-> Validation / Review
+  <-> Local Agent
+        |
+        +-> direct tools/capabilities
+        +-> Agent Team
+        +-> Workflow
+              |
+              +-> Agent Team
+              +-> Local/external workers
+              +-> Validation / Review
 ```
 
-A durable Workflow must not depend on the originating Local Agent staying connected when the workflow provider claims durable execution; another Controller or Local client may later reattach through durable state.
+A durable Workflow must not depend on the originating Local Agent remaining connected when the workflow provider claims durable execution. A new Local client may later reattach through durable state.
 
-See [Controller, Local Agent, Internet Team, and Workflow interaction model](interaction-model.md) for the complete rationale and flow.
+Terminology is intentional:
+
+- **Agent Team** = AgentOS semantic capability.
+- **DSH Agent Teams** = one possible DSH substrate/runtime.
+- **Internet-backed Agent Team** = one implementation/provider using `internet` and website-native capabilities.
+
+See [Local Agent, Workflow, and Agent Team interaction model](interaction-model.md) for the complete rationale and flow.
 
 ## Ownership
 
