@@ -60,7 +60,7 @@ Prove a Team phase can request semantic capabilities from Worker without knowing
 - DSH-native provider;
 - ACP provider;
 - Website Agent plugin;
-- A2A provider.
+- Website Agent collaborating through A2A with the Team Member.
 
 ### 3. Independent-first barrier
 
