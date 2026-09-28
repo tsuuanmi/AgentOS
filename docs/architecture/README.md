@@ -151,6 +151,8 @@ The Workflow capability should own **durable coordination semantics**, not gener
 
 Prefer existing DSH plugins for:
 
+- durable host-side state: `ctx.storageDomain` with JSON/SQLite backends;
+- cold Session/Agent resume: `ctx.agents.resume`;
 - bounded orchestration: `ctx.workflowEngine`;
 - background Local work and output: `ctx.jobs`;
 - durable Local objective: `ctx.goals`;
@@ -162,9 +164,11 @@ Prefer existing DSH plugins for:
 
 None of these ids or state machines should automatically become WorkflowRun/WorkItem identity.
 
-Current DSH Workflow is a live, holder-owned orchestration primitive; shipped Jobs are process-local; Goal is state rather than scheduling; Schedule is reminder delivery; Approval is in-turn only. A durable Workflow provider therefore still needs to own the semantics required for restart-safe run state, dependencies, pending actions, execution reconciliation, result binding, and reattachment.
+Current DSH Workflow is a live, holder-owned orchestration primitive; shipped Jobs are process-local; Goal is state rather than scheduling; Schedule is reminder delivery; Approval is in-turn only. However, DSH Storage Domain already solves the durable persistence substrate and DSH can cold-resume persisted Sessions.
 
-See [Workflow DSH reuse](../research/workflow-dsh-reuse.md).
+AgentOS therefore does **not** need a custom storage backend or second Session runtime. The v1 Workflow provider should be a thin single-Host durable coordination layer over DSH Storage Domain, rebuilding only its derived scheduler/live handles after Host restart and reconciling before resubmitting uncertain work.
+
+See [Workflow DSH reuse](../research/workflow-dsh-reuse.md) and [Durable long-running Workflow over DSH](../research/workflow-long-running-dsh-runtime.md).
 
 ## Core invariants
 
