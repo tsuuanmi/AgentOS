@@ -4,7 +4,7 @@ Research is temporary, exploratory, and non-normative.
 
 Use this directory only for unresolved proving questions. Accepted conclusions are promoted into requirements, architecture, reference, schemas, source/tests, or another canonical home; then redundant research is deleted.
 
-Canonical truth lives in [requirements](../requirements/README.md), [architecture](../architecture/README.md), [reference](../reference/README.md), [schemas](../../schemas/README.md), source, and tests.
+Canonical truth lives in [architecture](../architecture/README.md), [reference](../reference/README.md), [schemas](../../schemas/README.md), source, and tests. Behavioral invariants for AgentOS capabilities live with their canonical plugin architecture.
 
 ## Active research
 
