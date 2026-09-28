@@ -91,9 +91,61 @@ Workflow owns:
 - authority gates;
 - terminal convergence.
 
-Agent Team owns collaboration inside the phase.
+Agent Team owns collaboration inside the phase, including determining when required Website Agent assignments and DSH TeamTasks have completed sufficiently for Lead synthesis.
 
 Workflow does not own Team members, TeamTasks, mailbox, debate rounds, Website Agent conversations, or Team provider lifecycle.
+
+## Agent Team phase completion protocol
+
+Workflow does **not** determine whether an individual Website Agent is done.
+
+That responsibility belongs to the Agent Team provider.
+
+The completion chain is:
+
+~~~text
+Website Agent assignment completion
+        |
+        v
+DSH member TeamTask completion
+        |
+        v
+Lead typed phase completion
+        |
+        v
+Workflow WorkItem completion
+~~~
+
+Workflow advances only when the Agent Team provider durably returns the typed phase result for the current exact input:
+
+~~~text
+ResearchResult
+ImplementationReport
+ReviewResult
+~~~
+
+Workflow must not advance from:
+
+- DSH member `inactive` status;
+- `send_message` accepted/queued status;
+- DSH TeamTask completion alone;
+- Website Agent UI inactivity;
+- elapsed time/no new messages.
+
+If Workflow restarts while an Agent Team phase is in progress, it asks the Agent Team provider to inspect/reconcile the existing Team/phase execution. The provider may recover durable Website assignment/member/Lead completion state. Workflow still observes only provider phase state/result, not each Website Agent directly.
+
+This preserves ownership:
+
+~~~text
+Workflow
+  owns outer durable phase lifecycle
+
+Agent Team provider
+  owns Website/member collaboration completion
+
+DSH Agent Teams
+  owns Team runtime mechanics
+~~~
 
 ## Provider independence
 
@@ -118,6 +170,9 @@ Correctness-bearing completion requires typed durable semantic facts and, where 
 
 Implementation tests should prove at least:
 
+- Workflow never polls Website Agents directly;
+- Workflow does not treat DSH member inactivity/message delivery/TeamTask completion alone as semantic phase completion;
+- Workflow advances only from a current exact-input typed Agent Team phase result;
 - WorkflowRun survives Host restart;
 - completed current work is not replayed;
 - PendingAction survives restart;
