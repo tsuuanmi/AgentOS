@@ -22,6 +22,25 @@ For AgentOS this means:
 
 AgentOS should therefore be **smaller than Internet**, while following the same ownership discipline more strictly.
 
+## Terminology bridge
+
+AgentOS now uses **Agent Team** as the semantic capability name.
+
+When this research note discusses **Internet Team**, it refers to the concrete/source architecture in `tsuuanmi/internet`. In AgentOS terminology:
+
+~~~text
+Agent Team
+  = semantic collaborative/external-reasoning capability
+
+Internet-backed Agent Team
+  = one implementation using internet + website-native capabilities
+
+DSH Agent Teams
+  = one possible substrate/runtime for some implementations
+~~~
+
+This distinction prevents a current implementation name from becoming the architecture.
+
 ## 1. Internet's architecture separates semantics from mechanics
 
 The current production architecture separates:
