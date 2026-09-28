@@ -122,10 +122,10 @@ software implementation
   -> Worker -> DSH ACP provider -> coding Agent
 
 web/literature research
-  -> Worker -> DSH ACP provider -> Website ACP Agent adapter -> shared Website core
+  -> Worker -> DSH ACP Client -> ACP -> Website ACP Agent adapter -> Website Core
 
-remote specialist
-  -> Worker -> A2A provider -> remote Agent
+peer collaboration
+  -> Agent Team Member <-> A2A <-> Website Agent
 
 local continuable specialist
   -> Worker -> DSH continuable provider
@@ -169,3 +169,22 @@ Durable authorization and verified external effect are separate semantic facts.
 | ACP | compatible Agent execution protocol |
 | A2A | remote Agent Task/Message/Artifact protocol |
 | MCP | tool/capability/data protocol |
+
+
+## Website Agent dual-port interaction
+
+~~~text
+DSH / ACP-compatible runtime
+  -> ACP
+      -> Website Agent
+
+Agent Team Member
+  <-> A2A
+      <-> Website Agent
+
+Website Agent
+  -> shared Core from @tsuuanmi/internet
+      -> account / provider / browser / conversation / reconciliation
+~~~
+
+ACP controls runtime execution. A2A carries peer collaboration. The two lifecycles remain separate even when one Website Agent instance exposes both ports.
