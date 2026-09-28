@@ -3,171 +3,180 @@
 - **Status:** canonical architecture
 - **Scope:** DSH/Cordis capabilities composed by AgentOS
 
-AgentOS should be implemented as a **thin semantic/composition layer over DSH plugins**, not as a parallel agent runtime.
+DeepSeek Harness/Cordis remains the AgentOS Host.
 
-> **Reuse DSH mechanics; implement only the AgentOS semantic delta.**
+> **Reuse DSH capability seams first; wrap external implementations as plugins when they are a net simplification; own only the residual AgentOS semantics.**
 
 ## Composition model
 
 ~~~text
-AgentOS composition
-  -> AgentOS capability composition
-      -> DSH capability seam
-          -> configured DSH provider/plugin
+DSH / Cordis Host
+  -> AgentOS plugin
+      -> DSH service/provider
+      -> protocol SDK
+      -> external runtime/service when justified
 ~~~
 
-Prefer service definitions and capability seams over concrete implementation internals.
+The external dependency never replaces DSH as the Host.
 
 ## Canonical capability inventory
 
-| DSH capability/package family | AgentOS use | Consumer | Status in AgentOS |
-|---|---|---|---|
-| Cordis | plugin lifecycle, DI, composition | all | foundation |
-| experimental Agent Team / `ctx.agentTeams` | durable roster, mailbox, task board, teammate lifecycle/recovery | Agent Team | primary Team runtime candidate; experimental |
-| experimental Agent Team profile/tools/UI | ready-made Team composition and presentation | Agent Team / AgentOS bundle | optional composition |
-| `subagent` / `ctx.subagents` | provider registry, one-shot/continuable delegated agents | Agent Team, Workflow | primary execution seam |
-| spawn/fork subagents | continuable local Workers through DSH providers | Agent Team | provider option |
-| Codex subagent | Codex Worker execution | Agent Team / Workflow | provider option; currently one-shot |
-| Claude Code subagent | Claude Worker execution | Agent Team / Workflow | provider option; currently one-shot |
-| ACP subagent / DSH ACP server | standard interchangeable coding-Worker execution/control; persistent DSH automation | Agent Team / Worker binding | **preferred standard coding-Worker seam** |
-| DSH SDK subagent | alternate out-of-process Harness execution | Agent Team / Workflow | provider option |
-| `storage-domain` / `ctx.storageDomain` | durable schema-validated AgentOS-owned records | Workflow; Agent Team only for semantic delta | primary durable state seam |
-| `jobs` / `ctx.jobs` | process-local background work/progress | Workflow | optional WorkItem adapter |
-| `workflow` / `ctx.workflowEngine` | bounded live fan-out/pipeline execution | Workflow | optional WorkItem adapter |
-| Schedule | persistent reminder/message delivery | Workflow | optional wake/presentation adapter |
-| `approval` / `ctx.approval` | immediate approval UX | Workflow | PendingAction presentation only |
-| `userQuestions` / `ctx.userQuestions` | human input UX | Workflow | PendingAction/input presentation only |
-| Session persistence/projection | durable conversations, Team truth/projection, UI state | Agent Team / Local | reuse; never duplicate |
-| Agent preset/bundle/profile | declarative composition of tools/prompts/providers/plugins | AgentOS packaging | likely packaging mechanism |
-| `skill` | procedural capability guidance | Worker providers | optional guidance delivery |
-| fs/shell/terminal/LSP/web/browser/etc. | Worker tools/effect capabilities | Worker providers | capability-dependent |
-| workspace | workspace context and observed-state validation | Agent Team / Workflow | integration dependency |
-| attachment/spill/deliverables | large output/deliverable handling | Agent Team / Workflow | optional |
+| DSH capability | AgentOS use | Direction |
+|---|---|---|
+| Cordis | plugin lifecycle, DI, composition | fixed foundation |
+| ctx.agentTeams | roster, task board, peer mailbox, teammate lifecycle/recovery | reuse; experimental adapter/conformance boundary |
+| ctx.subagents | named delegated-execution provider registry | **canonical Worker execution seam** |
+| DSH spawn/fork | continuable local agents | reuse |
+| DSH ACP provider | isolated ACP-compatible agents | reuse for one-shot ACP work |
+| DSH ACP server | persistent DSH agent automation over ACP | reuse when DSH itself is the ACP Agent |
+| product-native Codex/Claude providers | provider-specific execution | optional only when stronger than ACP |
+| DSH SDK provider | out-of-process DSH execution | reuse when useful |
+| ctx.storageDomain | durable AgentOS-owned semantic records | default persistence seam |
+| ctx.jobs | background work/progress | optional runtime mechanic |
+| ctx.workflowEngine | bounded live orchestration | optional runtime mechanic |
+| Schedule | persistent wake/reminder delivery | optional |
+| ctx.approval / ctx.userQuestions | human interaction presentation | reuse |
+| Session persistence/projection | Team/session durability and UI projection | reuse; do not mirror |
+| skills | procedural capability guidance | reuse |
+| workspace/fs/shell/web/browser/etc. | execution/tools/effect observation | reuse |
 
-## Agent Team composition
+## Agent Team
 
-DSH now has a real experimental Team service:
+DSH ctx.agentTeams already owns generic Team mechanics.
 
-~~~text
-@deepseek-ai/dsh-experimental-agent-team
-  -> ctx.agentTeams
-  -> durable Lead Session log
-  -> roster
-  -> peer mailbox
-  -> shared task board
-  -> continuable subagents
-  -> recovery/projection
-~~~
+AgentOS Agent Team should add only:
 
-The DSH experimental Agent Team profile further composes:
+- capability requirements;
+- right-agent-right-job selection;
+- collaboration policy/barriers;
+- provider capability conformance;
+- typed phase result acceptance;
+- effect/evidence validation;
+- small ExecutionBinding/fence state only where retry/replacement races require it.
+
+Do not build another roster, task board, mailbox, or Team persistence system.
+
+## Worker execution
+
+Worker is a semantic role over ctx.subagents.
 
 ~~~text
-dsh-base
-  + experimental-agent-team
-  + experimental-tool-agent-team
-  + client UI
-  + existing Subagent providers
+capability requirement
+  -> provider selection
+  -> ctx.subagents
+      -> selected provider
 ~~~
 
-Therefore AgentOS Agent Team should **not** build a second Team engine.
+The provider may be DSH-native, ACP, Website, SDK, or another plugin.
 
-AgentOS adds only the missing layer:
+### ACP
 
-- agnostic Worker capability selection;
-- provider-neutral Worker protocol/exchange semantics where DSH's native Team/Subagent vocabulary is insufficient;
-- remote Website Worker adapter;
-- independent-first/domain phase policy;
-- typed phase result;
-- exact-input/result binding;
-- effect validation.
+Current @deepseek-ai/dsh-subagent-acp:
 
-Because `ctx.agentTeams` is experimental, isolate it behind one AgentOS adapter and conformance suite.
+- registers on ctx.subagents;
+- launches one isolated ACP Agent process per run;
+- creates a fresh ACP session;
+- returns the final assistant result;
+- is currently **one-shot**;
+- does not currently support continuable ACP children.
 
-See [Agent Team composition](plugins/agent-team/composition.md).
+Therefore:
 
-## Workflow composition
+~~~text
+bounded one-shot ACP work
+  -> reuse dsh-subagent-acp directly
 
-No single DSH plugin needs to become AgentOS Workflow.
+continuable ACP work
+  -> add/upstream continuable ACP provider support only when required
+~~~
 
-Instead Workflow composes:
+Do not create a parallel AgentOS execution protocol.
+
+### Website Agent
+
+The preferred first path is to expose Website Agent through ACP and reuse the existing DSH ACP provider:
+
+~~~text
+ctx.subagents
+  -> dsh-subagent-acp
+      -> AgentOS Website ACP bridge
+          -> Website Agent
+~~~
+
+This works immediately for bounded one-shot research/review/synthesis work.
+
+For multi-round continuation, implement a continuable ACP provider/bridge or upstream that capability into DSH.
+
+If the remote Website Agent speaks A2A directly, A2A is the more natural Agent-to-Agent path.
+
+See [Website Agent ACP feasibility](../research/website-agent-acp-bridge.md).
+
+### Scientific Worker
+
+Scientific work requires no new execution architecture.
+
+~~~text
+scientific Workflow/Profile
+  -> scientific capability requirements
+  -> same ctx.subagents registry
+  -> Website/ACP/DSH/A2A provider
+~~~
+
+Domain behavior comes from Skills, tools, capability policy, and result schemas.
+
+## A2A
+
+Current DSH repository research has not identified a first-class A2A service/provider.
+
+AgentOS may add a thin A2A adapter plugin using the official TypeScript SDK.
+
+Reuse A2A AgentCard, AgentSkill, Task, TaskStatus, Message, Artifact, Part, authentication, streaming/polling/push, and extensions.
+
+AgentOS adds only capability mapping, ExecutionBinding when needed, and result/effect acceptance.
+
+## Workflow mechanics
+
+Use DSH runtime primitives first:
 
 ~~~text
 ctx.storageDomain
   + Agent Team
-  + optional ctx.subagents
   + optional ctx.jobs
   + optional ctx.workflowEngine
   + optional Schedule
-  + optional ctx.approval / ctx.userQuestions
-  + local effect/validation tools
+  + optional approval/questions
+  + effect/environment capabilities
 ~~~
 
-AgentOS supplies the durable semantic gap:
+If a concrete durability requirement would otherwise force AgentOS to build generic checkpoint/retry/wait infrastructure, an external implementation may be wrapped as a Cordis plugin.
 
-- WorkflowRun and WorkItem identity;
-- exact-input admission;
-- attempt fencing;
-- unknown-outcome policy;
-- restart reconciliation;
-- durable PendingAction;
-- result/receipt binding;
-- reattachment;
-- terminal convergence.
+Candidates include:
 
-DSH `ctx.workflowEngine` is still useful: it is bounded live orchestration inside one WorkItem, not the durable outer WorkflowRun.
+- Inngest for TypeScript-native checkpointed steps, retries, sleeps, and event waits;
+- Temporal for stronger long-lived crash-recoverable execution;
+- Mastra/Temporal patterns as reusable implementation/reference material.
 
-See [Workflow composition](plugins/workflow/composition.md).
+This is implementation substitution beneath the Workflow plugin, not runtime-host substitution.
 
-## Worker composition
+## MCP
 
-Worker is agnostic.
+MCP remains the Agent-to-Tool/Capability/Data protocol.
 
-DSH's `ctx.subagents` is the primary provider registry. For software-development Workers, its **ACP provider should be preferred as the generic interchange seam** when the selected coding agent supports ACP and the provider exposes the required lifecycle/tool guarantees.
+Use DSH MCP/tool capabilities to equip Workers.
 
-~~~text
-AgentOS Worker
-  -> ctx.subagents
-      -> ACP provider
-          -> Codex / Claude Agent / Gemini CLI / Cursor / OpenCode / ...
-~~~
+Do not build a generic MCP Worker protocol.
 
-DSH also exposes product-native Codex/Claude/DSH providers; retain them only when their native integration provides a materially stronger guarantee than the generic ACP path.
-
-Current DSH documentation/repository inventory does not expose a first-class A2A provider/service. AgentOS therefore treats **A2A remote-agent integration as a thin adapter/plugin gap**, not as a reason to define a custom agent-to-agent protocol.
-
-Website Agent remains an MCP compatibility provider when the host does not expose A2A.
-
-Provider limitations propagate into semantic capability advertisement. Installed provider != guaranteed capability.
-
-See [Protocol stack](protocol-stack.md).
-
-## Protocol direction
-
-Canonical protocol roles are defined in [Protocol stack](protocol-stack.md): ACP for interchangeable coding Workers, A2A for independent agent-to-agent communication, and MCP for tools/capabilities.
-
-DSH already provides ACP client/provider and ACP server seams, so AgentOS should reuse them rather than create coding-agent-specific adapters by default.
-
-DSH's MCP package makes a DSH agent an MCP **client** of external servers.
-
-The Website Worker boundary requires:
-
-~~~text
-Website Agent = MCP client
-AgentOS Worker bridge = MCP server
-~~~
-
-These are different roles. DSH MCP-client packages may still be Worker tools, but they are not the Website Worker Exchange MCP-server adapter.
-
-When remote independent agents support A2A, prefer A2A over extending MCP into a general agent collaboration protocol.
+A Website ACP bridge may attach MCP tools to the Website Agent when the ACP/Website host supports them.
 
 ## Dependency rules
 
-1. Reuse an existing DSH service before introducing AgentOS state.
-2. Do not mirror Session, Team, Subagent, Job, or provider state merely for convenience.
-3. Keep experimental DSH services behind an adapter/conformance boundary.
-4. Add only semantic state that DSH does not already own.
-5. Concrete provider plugins are composition choices, not AgentOS identities.
-6. Capability limitations must be visible to Worker selection and Workflow recovery.
-7. Optional DSH adapters land only when a concrete requirement needs them.
-8. Prefer the generic DSH ACP provider for interchangeable coding Workers before adding provider-specific AgentOS integrations.
-9. Add an A2A adapter as a protocol integration gap if required; do not implement a competing horizontal agent protocol.
+1. DSH/Cordis remains the Host.
+2. Reuse an existing DSH service before adding AgentOS state.
+3. Reuse ctx.subagents as the delegated-execution seam.
+4. Reuse DSH ACP for bounded ACP work before building provider-specific integrations.
+5. Add/upstream continuable ACP only when a real workflow requires it.
+6. Use A2A for independent remote-agent communication rather than inventing a horizontal protocol.
+7. Do not mirror Session, Team, Subagent, A2A, or ACP state for convenience.
+8. Wrap external runtimes as optional Cordis plugins only when they reduce total owned complexity.
+9. Capability limitations must be visible to selection/recovery.
+10. New AgentOS state requires a demonstrated semantic/correctness gap.
