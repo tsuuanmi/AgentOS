@@ -145,6 +145,27 @@ AgentOS may own a contract when the behavior:
 
 Implementation is not automatically ownership.
 
+## Workflow and DSH reuse
+
+The Workflow capability should own **durable coordination semantics**, not generic execution mechanics.
+
+Prefer existing DSH plugins for:
+
+- bounded orchestration: `ctx.workflowEngine`;
+- background Local work and output: `ctx.jobs`;
+- durable Local objective: `ctx.goals`;
+- worker delegation: `ctx.subagents`;
+- local Team substrate: `ctx.agentTeams`;
+- immediate in-turn approval: `ctx.approval`;
+- reminders: Schedule;
+- Local projections: Session events/projections.
+
+None of these ids or state machines should automatically become WorkflowRun/WorkItem identity.
+
+Current DSH Workflow is a live, holder-owned orchestration primitive; shipped Jobs are process-local; Goal is state rather than scheduling; Schedule is reminder delivery; Approval is in-turn only. A durable Workflow provider therefore still needs to own the semantics required for restart-safe run state, dependencies, pending actions, execution reconciliation, result binding, and reattachment.
+
+See [Workflow DSH reuse](../research/workflow-dsh-reuse.md).
+
 ## Core invariants
 
 ### 1. Own semantics; compose implementations
