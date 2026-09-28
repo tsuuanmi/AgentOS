@@ -1,59 +1,57 @@
 # Agent Team composition map
 
-This document maps Agent Team semantic needs to existing DSH plugins and the remaining AgentOS-owned delta.
+This document maps Agent Team needs to reusable plugins/protocols and the remaining AgentOS policy layer.
 
-## DSH composition
+## Composition inventory
 
-| Need | Reuse | Notes |
+| Need | Reuse | AgentOS responsibility |
 |---|---|---|
-| plugin/service runtime | Cordis | base composition/lifecycle |
-| Team domain | `@deepseek-ai/dsh-experimental-agent-team` / `ctx.agentTeams` | experimental but real programmatic service |
-| Team tools | `@deepseek-ai/dsh-experimental-tool-agent-team` | optional model-facing surface |
-| Team UI | experimental client UI Agent Team | optional presentation |
-| Team bundle | experimental agent-team-profile | composition convenience over dsh-base |
-| durable Team source of truth | DSH Session log + session persistence | owned by DSH Team implementation |
-| teammate execution | `ctx.subagents` | shared provider registry/service |
-| DSH teammate providers | spawn/fork in-process | continuable local providers |
-| external providers | Codex / Claude Code / ACP / DSH SDK | provider-specific capability limits |
-| Worker tools | fs/shell/LSP/web/browser/skill/etc. | provider/composition dependent |
-| AgentOS-specific records if needed | `ctx.storageDomain` | only for state not already in Team/Session |
-| Website Worker transport | AgentOS MCP server adapter | DSH MCP client is the opposite direction |
+| plugin/service runtime | Cordis | composition only |
+| Team domain | DSH experimental ctx.agentTeams | conformance adapter + phase policy |
+| roster/tasks/mailbox | ctx.agentTeams + Session persistence | none unless a proven gap |
+| delegated provider registry | DSH ctx.subagents | capability selection |
+| local continuable agents | DSH spawn/fork providers | provider choice |
+| ACP-compatible agents | DSH ACP provider | provider conformance |
+| Website bounded work | DSH ACP provider + Website ACP bridge | bridge mapping only |
+| Website/remote A2A agent | official A2A SDK adapter | capability mapping + acceptance |
+| tools | DSH tools / MCP | scoping/policy |
+| AgentOS semantic records | ctx.storageDomain | only state uniquely owned by AgentOS |
 
 ## What not to rebuild
 
-With current DSH Agent Team available, AgentOS should not independently implement another:
+AgentOS should not independently implement:
 
-- TeamId/roster system;
-- durable Team mailbox;
-- generic Team task DAG;
-- teammate spawn/resume mechanism;
-- Team wait/interrupt service;
-- Team session projection;
-- Team event journal.
+- Team roster/identity;
+- Team task DAG;
+- peer mailbox;
+- teammate spawn/resume/wait/interrupt;
+- Team event journal/projection;
+- generic delegated-agent registry;
+- generic Worker Message/Artifact/State protocol;
+- generic Worker Exchange.
 
-Any AgentOS state that duplicates these needs an explicit proof that the upstream contract cannot satisfy the required semantic invariant.
+## Thin AgentOS modules
 
-## Remaining AgentOS modules
-
-Likely thin modules are:
+A likely implementation is:
 
 ~~~text
 agent-team/
-  semantic-service
+  service
   phase-policy
-  worker-capability-selector
-  worker-provider-adapters/
-  worker-exchange/        # only missing semantics
+  capability-selector
+  provider-conformance
+  execution-binding?   # only for demonstrated retry/replacement race
   phase-result
   validation
+  adapters/
+    dsh-agent-team
+    a2a?                # only when remote Agent-to-Agent is needed
 ~~~
 
-This is intentionally much smaller than a standalone Team implementation.
+Website-over-ACP normally does not need a second Agent Team adapter because it appears through ctx.subagents.
 
 ## Experimental dependency boundary
 
-DSH `ctx.agentTeams` is currently experimental.
+DSH ctx.agentTeams is experimental.
 
-Therefore AgentOS should isolate it behind one adapter/service boundary and maintain conformance tests for the behaviors AgentOS depends on.
-
-Promotion or contract changes upstream should require changing the adapter, not Agent Team callers.
+Keep its concrete API behind one AgentOS adapter/conformance suite so upstream changes affect the adapter rather than Agent Team callers.
