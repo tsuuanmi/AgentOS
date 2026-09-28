@@ -86,6 +86,23 @@ Local/Workflow invocation bridge
 
 Canonical semantics: [Agent Team contract](../contracts/agent-team.md).
 
+### Stable member roles
+
+Software Team roles are stable product contracts, not generated ad hoc per run:
+
+~~~text
+Lead / Synthesizer
+Researcher Primary
+Researcher Challenger
+Implementer
+Reviewer Correctness
+Reviewer Architecture
+~~~
+
+Objectives and exact inputs vary by run. Role mission, responsibilities, peer relationships, and expected output schema do not.
+
+This makes Team behavior predictable and testable while still allowing Website Agent/provider choice below each role.
+
 ### Website Agent topology
 
 A dedicated DSH Team member is primarily a **coordination proxy for one isolated Website Agent/conversation**.
@@ -113,6 +130,23 @@ DSH reviewer B
 Not every member is active in every phase.
 
 The Website Agent performs the substantive provider-native reasoning/work. The DSH member participates in Team tasks/mailbox/lifecycle and bridges Team evidence to/from its Website Agent.
+
+### Completion ownership
+
+Workflow never decides that an individual Website Agent is done.
+
+Completion is layered:
+
+~~~text
+Website Agent assignment completed durably
+  -> DSH TeamTask completed
+  -> Lead typed phase result completed durably
+  -> Workflow WorkItem may complete
+~~~
+
+DSH member inactivity, message delivery, Website UI inactivity, or TeamTask completion alone are insufficient for AgentOS phase completion.
+
+The Agent Team provider owns the Website assignment/binding/completion protocol. Workflow sees only the typed phase result.
 
 ### Peer debate
 
@@ -281,15 +315,17 @@ DSH Agent Teams is experimental today, so DSH-specific public types should stay 
 3. Workflow and Agent Team are peer capabilities.
 4. DSH Agent Teams is the practical v1 Team core; no second Team runtime is built.
 5. Team members may debate peer-to-peer; Lead is synthesis/coordination authority, not a message proxy.
-6. Each semantic DSH Team member has an isolated Website Agent binding when website-backed work is used.
-7. Local receives synthesis/results by default rather than internal Team transcript.
-8. Workflow owns durable lifecycle; Agent Team owns collaborative work inside phases.
-9. Validation/effects are established from the real environment, not model claims.
-10. Provider/transport identities stay below semantic identities.
-11. Unknown execution outcomes reconcile according to an admitted policy; missing handles never authorize blind retry.
-12. Authority and effect completion are distinct.
-13. Provider-v1 choices do not become permanent contract requirements without evidence.
-14. New abstractions require a real semantic/lifecycle/authority/replacement boundary.
+6. Software Team roles are stable across runs; task inputs change, role responsibilities do not.
+7. Each semantic DSH Team member has an isolated Website Agent binding when website-backed work is used.
+8. Website Agent completion is explicit/durable and owned by the Agent Team provider; Workflow never infers it from DSH activity.
+9. Local receives synthesis/results by default rather than internal Team transcript.
+10. Workflow owns durable lifecycle; Agent Team owns collaborative work inside phases.
+11. Validation/effects are established from the real environment, not model claims.
+12. Provider/transport identities stay below semantic identities.
+13. Unknown execution outcomes reconcile according to an admitted policy; missing handles never authorize blind retry.
+14. Authority and effect completion are distinct.
+15. Provider-v1 choices do not become permanent contract requirements without evidence.
+16. New abstractions require a real semantic/lifecycle/authority/replacement boundary.
 
 ## Documentation authority
 
