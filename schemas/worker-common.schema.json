@@ -2,20 +2,20 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentos.dev/schemas/worker-common.schema.json",
   "title": "AgentOS Worker Common Definitions",
-  "description": "Reusable definitions shared by AgentOS Worker Protocol schemas.",
+  "description": "Reusable definitions shared by the AgentOS Worker Protocol schemas.",
   "$defs": {
     "identifier": {
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Opaque stable identifier within its owning domain."
+      "description": "Opaque identifier owned by its application domain."
     },
     "capability": {
       "type": "string",
       "minLength": 1,
       "maxLength": 128,
       "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
-      "description": "Capability name used for Worker selection. Names may be namespaced with dots, hyphens, or underscores."
+      "description": "Capability name used for Worker selection. Namespaced names are allowed."
     },
     "semanticName": {
       "type": "string",
@@ -34,7 +34,7 @@
       "type": "string",
       "minLength": 1,
       "format": "uri-reference",
-      "description": "URI reference identifying a JSON Schema."
+      "description": "URI reference identifying the JSON Schema used to validate a payload."
     },
     "reference": {
       "type": "object",
@@ -47,7 +47,7 @@
           "type": "string",
           "minLength": 1,
           "format": "uri-reference",
-          "description": "Resolvable or opaque URI reference to context, evidence, or another durable resource."
+          "description": "Reference to context, evidence, or another durable resource."
         },
         "label": {
           "type": "string",
@@ -57,7 +57,7 @@
         "mediaType": {
           "type": "string",
           "minLength": 1,
-          "description": "Optional media type describing the referenced resource."
+          "description": "Optional media type of the referenced resource."
         },
         "digest": {
           "type": "object",
@@ -69,11 +69,13 @@
           "properties": {
             "algorithm": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 64
             },
             "value": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 512
             }
           }
         }
@@ -88,8 +90,7 @@
       "properties": {
         "goal": {
           "type": "string",
-          "minLength": 1,
-          "description": "The run-specific outcome the Worker should pursue."
+          "minLength": 1
         },
         "acceptanceCriteria": {
           "type": "array",
@@ -109,9 +110,25 @@
         }
       }
     },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/semanticName"
+        },
+        "id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "description": "Logical source of structured input or evidence."
+    },
     "extensions": {
       "type": "object",
-      "description": "Plugin-owned non-core extension data. Correctness-bearing core semantics should use first-class fields instead.",
+      "description": "Plugin-owned extension data. Core correctness semantics should use first-class fields.",
       "additionalProperties": true
     },
     "error": {
