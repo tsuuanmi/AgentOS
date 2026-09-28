@@ -2,29 +2,37 @@
 
 Research is temporary, exploratory, and non-normative.
 
-Use this directory only for unresolved proving questions. Accepted conclusions are promoted into requirements, architecture, reference, schemas, source/tests, or another canonical home; then redundant research is deleted.
+Use this directory only for unresolved proving questions. Accepted conclusions are promoted into architecture, reference, schemas, source/tests, or another canonical home; redundant research is then deleted.
 
 Canonical truth lives in [architecture](../architecture/README.md), [reference](../reference/README.md), [schemas](../../schemas/README.md), source, and tests. Behavioral invariants for AgentOS capabilities live with their canonical plugin architecture.
 
 ## Active research
 
-- [DSH Agent Team conformance](agent-team-dsh-conformance.md) — prove the smallest AgentOS semantic delta over current experimental `ctx.agentTeams` + `ctx.subagents`.
-- [Workflow restart/reconciliation](workflow-restart-reconciliation.md) — crash-window evidence and recovery scenarios for the first durable Workflow TDD suite.
-- [Ecosystem reuse evaluation](ecosystem-reuse-evaluation.md) — build-vs-reuse comparison across DSH, Agno AgentOS, Microsoft Agent Framework, Google ADK, LangGraph, CrewAI, and OpenAI Agents SDK.
-- [Protocol and runtime reuse](protocol-runtime-reuse.md) — conformance research for the now-canonical A2A/ACP/MCP protocol split and durable runtime reuse.
-- [Mastra / Mastra Factory feasibility](mastra-factory-feasibility.md) — direct TypeScript-native reuse/fork candidate for the software-development workflow.
+- [DSH Agent Team conformance](agent-team-dsh-conformance.md) — prove the smallest AgentOS policy delta over current experimental ctx.agentTeams + ctx.subagents.
+- [Workflow restart/reconciliation](workflow-restart-reconciliation.md) — crash/recovery evidence for the first durable Workflow TDD suite.
+- [Protocol and runtime reuse](protocol-runtime-reuse.md) — remaining ACP/A2A/Workflow conformance after protocol/schema pruning.
+- [Website Agent over ACP](website-agent-acp-bridge.md) — prove bounded Website/scientific execution through the existing DSH ACP provider and identify whether continuation is actually needed.
+- [Ecosystem reuse evaluation](ecosystem-reuse-evaluation.md) — identify protocols/libraries/runtimes that can sit behind Cordis plugins without replacing DSH.
+- [Mastra / Factory reference study](mastra-factory-feasibility.md) — external comparison for typed handoffs, software-factory stages, ACP/A2A separation, and durable runtime layering.
 
 ## Current open questions
 
-1. Which Worker Protocol facts still require AgentOS-owned Worker Exchange state after reusing DSH Team/Subagent durability?
-2. How should Website Worker bindings integrate with DSH Team collaboration without making Worker equal DSH teammate?
-3. Which provider capabilities can honestly advertise continuation-dependent capabilities?
-4. What minimal WorkflowRun aggregate is required over `ctx.storageDomain` to make restart reconciliation correct?
-5. Can an existing orchestration/runtime system satisfy enough AgentOS semantics that we should adopt it instead of implementing the remaining delta?
-6. Does the existing Agno AgentOS product create enough naming ambiguity that this project should be renamed before wider distribution?
-7. Can native A2A Task/Message/Artifact plus an AgentOS extension replace parallel remote Worker Message/Artifact/State wire schemas?
-8. Which existing Worker Message/Artifact/State schemas can be deleted or reduced after mapping to A2A core objects and extensions?
-9. Which Workflow Core responsibilities are AgentOS semantics versus generic durable-runtime mechanics that should remain behind an adapter?
-10. Can Mastra Factory satisfy the complete software-development profile with only configuration/plugins and a thin AgentOS policy layer?
+1. Which ctx.agentTeams behaviors need an AgentOS conformance adapter or semantic policy above DSH?
+2. How much Website/scientific work is covered by one-shot ACP before continuation becomes necessary?
+3. Can the first A2A integration remain completely extension-free?
+4. What is the minimal durable WorkflowRun/WorkItem state AgentOS itself must own over ctx.storageDomain?
+5. Does any concrete Workflow durability requirement justify an Inngest/Temporal adapter?
+6. Does the existing Agno AgentOS product name create enough ambiguity to justify renaming this project?
 
-The earlier Workflow DSH reuse inventory has been promoted into [Workflow composition architecture](../architecture/plugins/workflow/composition.md) and [DSH capability reuse](../architecture/dsh-reuse.md).
+## Promoted conclusions
+
+The following are no longer open research questions:
+
+- DSH/Cordis remains the Host.
+- ACP/A2A/MCP have distinct boundaries.
+- Worker is a capability-driven role, not a runtime identity.
+- Website Agent should enter through the DSH provider seam, ACP first for bounded work.
+- custom Worker Message/Artifact/State/Assignment and MCP Worker envelopes are not needed and have been pruned.
+- A2A should start with zero AgentOS extensions.
+- external runtimes are optional implementations behind Cordis plugins, not alternate Hosts.
+- behavioral invariants live with canonical plugin architecture rather than a duplicate requirements tree.
