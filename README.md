@@ -2,14 +2,16 @@
 
 AgentOS is a lightweight, plugin-first agent capability layer designed to run inside [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-The project is intentionally small. AgentOS should not become a second harness, runtime, plugin manager, or orchestration kernel. DSH owns composition and plugin lifecycle; AgentOS owns a focused set of agent-oriented contracts and replaceable capability plugins.
+The project is intentionally small. AgentOS should not become a second harness, runtime, plugin manager, lifecycle engine, or orchestration kernel. DSH owns composition and plugin lifecycle; AgentOS composes existing DSH capabilities and public tools into a focused agent experience, adding AgentOS-specific plugins only where a real missing capability exists.
 
 ## Direction
 
 - **AgentOS itself is a DSH plugin/bundle**, not a standalone runtime.
-- **Capabilities are plugins** when they need independent ownership, replacement, configuration, or lifecycle.
-- **DSH/Cordis remains the composition kernel**; AgentOS does not introduce a parallel plugin system.
-- **Contracts stay smaller than implementations** so providers can be swapped without changing consumers.
+- **DSH/Cordis is the core** for boot, lifecycle, composition, configuration, loading, and disposal.
+- **Reuse before ownership**: prefer an existing DSH plugin/service or public tool over implementing an AgentOS subsystem.
+- **AgentOS plugins fill real gaps**: create a new plugin only when the capability is AgentOS-specific or cannot be expressed cleanly through existing DSH/public surfaces.
+- **No wrapper-for-wrapper's-sake**: consume DSH contracts and public tools directly when their semantics already fit.
+- **Capabilities remain replaceable** when they need independent ownership, configuration, lifecycle, or provider choice.
 - **Composition is explicit**: a default AgentOS experience may bundle plugins, but the bundle is not the architecture.
 - **No speculative core**: shared code belongs in a minimal library only when multiple plugins require the same invariant or contract.
 
