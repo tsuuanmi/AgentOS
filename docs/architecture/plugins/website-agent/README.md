@@ -2,195 +2,148 @@
 
 - **Status:** canonical architecture
 - **Owner:** AgentOS
-- **Kind:** Website execution core + protocol adapters
-- **Initial core implementation:** [`@tsuuanmi/internet`](https://github.com/tsuuanmi/internet)
-- **Host:** DSH / Cordis
+- **Kind:** protocol-neutral Website Agent core + protocol adapters
+- **Initial core implementation source:** @tsuuanmi/internet
 
-Website Agent is one reusable **protocol-neutral core** with multiple adapters.
+Website Agent has three clearly separated layers:
 
 ~~~text
-                    Website Agent plugin
+                    Website Agent
 
-        +--------------------------------------+
-        | Website Agent core                  |
-        |                                      |
-        | internet-derived browser runtime     |
-        | auth/accounts                        |
-        | conversation binding                 |
-        | reconcile-before-resubmit            |
-        | result artifact retention            |
-        +------------------+-------------------+
-                           |
-              +------------+------------+
-              |                         |
-              v                         v
-        ACP Agent adapter          A2A Agent adapter
-              |                         |
-              v                         v
-        DSH ACP client/provider    A2A remote clients
+        Runtime/control port        Peer collaboration port
+               ACP                         A2A
+                |                           |
+                v                           v
+        +-------------------------------------------+
+        |            Website Agent Core             |
+        |                                           |
+        | account / auth                            |
+        | provider drivers                          |
+        | browser runtime                           |
+        | conversation continuity                   |
+        | retry / reconciliation                    |
+        | result / artifact retention               |
+        +-------------------------------------------+
 ~~~
 
-The core is not ACP-specific and not A2A-specific.
+These layers solve different problems:
+
+- **Website Agent Core** makes the Website Agent actually work.
+- **ACP** standardizes how DSH or another ACP-compatible runtime connects to and controls that Agent.
+- **A2A** standardizes how the Website Agent communicates and collaborates with Agent Team Members or other agents.
+
+ACP and A2A are therefore not alternative implementations of the same boundary.
 
 See:
 
-- [Core architecture](core.md)
+- [Website Agent core](core.md)
 - [ACP and A2A adapters](adapters.md)
 
-## Why reuse `@tsuuanmi/internet`
+## Website Agent Core
 
-The existing Internet plugin already solves the difficult Website-specific problems:
+The core reuses/extracts the Website execution logic already implemented in @tsuuanmi/internet.
 
-- authenticated ChatGPT Web and Gemini Web sessions;
-- stable native conversation continuity;
+It owns:
+
+- authenticated accounts;
+- provider selection/configuration;
+- browser/runtime state;
+- ChatGPT Web / Gemini Web provider drivers;
+- native Website conversations;
 - provider-native Deep Research;
-- isolated semantic accounts;
-- provider-specific completion detection;
+- completion detection;
 - scheduling/concurrency;
-- retry reconciliation after uncertain submissions;
-- durable result artifacts;
-- compact long-result projection.
+- reconcile-before-resubmit;
+- cancellation;
+- durable Website result artifacts.
 
-AgentOS should extract/reuse that logic rather than create another browser automation subsystem.
+It does not own AgentOS Team or Workflow semantics.
 
-## What changes from Internet
+## ACP: runtime connection
 
-AgentOS does **not** adopt Internet's existing Team/Workflow architecture as Website Agent core.
-
-Reuse:
+ACP is the **runtime-facing protocol**.
 
 ~~~text
-participant/
-browser/
-core account/provider logic
-host-neutral application behavior
+DSH / another ACP-compatible runtime
+  -> ACP Client
+      -> Website ACP Agent adapter
+          -> Website Agent Core
 ~~~
 
-Do not promote:
+The goal is portability:
+
+> A Website Agent that implements ACP can connect to DSH today and another ACP-compatible runtime later without changing the Website core.
+
+DSH is the first runtime integration, not part of the Website core contract.
+
+## A2A: agent collaboration
+
+A2A is the **peer-facing protocol**.
 
 ~~~text
-internet_team
-Internet workflow engine
-Internet Writer policy
-Internet Team orchestration
+Agent Team Member
+  <-> A2A
+  <-> Website A2A Agent adapter
+  <-> Website Agent Core
 ~~~
 
-Those responsibilities now belong to AgentOS Worker, Agent Team, Workflow, and Profiles.
+This allows a Website Agent and a Team Member to exchange standard A2A Task/TaskStatus, Message, Artifact/Part, context, cancellation, and updates.
 
-## Core contract
+A2A is horizontal collaboration. It is not how AgentOS boots or controls the Website Agent runtime.
 
-Conceptually the core executes:
+## Combined lifecycle
+
+A Website Agent may expose both ports at once:
 
 ~~~text
-owner key
-conversation key
-logical request key
-account/provider
-mode: chat | research
-prompt
-cancellation
-  -> Website result + retained artifact
+                    DSH / runtime
+                         |
+                        ACP
+                         |
+                         v
+                 Website Agent
+                 /           \
+              Core           A2A
+                              |
+                              v
+                     Agent Team Member
 ~~~
 
-The public API should remain protocol-neutral.
+ACP answers:
 
-Current `WebsiteParticipantService` in Internet is the closest implementation to this boundary.
+> **Who is controlling this Website Agent execution?**
 
-## ACP composition
+A2A answers:
 
-For local DSH bounded execution:
+> **How does this Website Agent collaborate with peer agents?**
 
-~~~text
-Worker
-  -> DSH ctx.subagents
-      -> DSH ACP provider/client
-          -> Website ACP Agent adapter
-              -> Website Agent core
-                  -> ChatGPT Web / Gemini Web
-~~~
+The core answers:
 
-Current DSH ACP provider is one-shot, so this path initially covers bounded tasks.
-
-The core already supports stable Website conversation bindings; generic multi-run continuation requires the ACP client/provider layer to reuse/load the corresponding ACP session.
-
-See [ACP adapter details](adapters.md#acp-adapter).
-
-## A2A composition
-
-For independently hosted/remote Website Agent:
-
-~~~text
-Worker
-  -> AgentOS A2A provider/client
-      -> A2A
-          -> Website A2A Agent adapter/server
-              -> Website Agent core
-                  -> ChatGPT Web / Gemini Web
-~~~
-
-A2A `contextId` naturally represents continued interaction context, while private native Website conversation ids remain hidden inside the core.
-
-See [A2A adapter details](adapters.md#a2a-adapter).
-
-## Protocol independence
-
-ACP and A2A are adapters, not competing Website implementations.
-
-The following must exist only once in the core:
-
-- authenticated account state;
-- browser/provider driver;
-- conversation binding;
-- turn receipt/reconciliation;
-- Website completion semantics;
-- Website result artifacts.
+> **How does the Website Agent actually operate Website accounts/providers/browser state?**
 
 ## Domain independence
 
-Software and scientific Profiles use the same Website Agent plugin.
+Software-development and scientific-research Profiles use the same Website Agent core and protocol ports.
 
-Examples:
-
-~~~text
-software research
-  -> Worker capability: research
-  -> Website research adapter/core
-
-literature search
-  -> Worker capability: literature-search
-  -> Website research adapter/core
-
-independent review
-  -> Worker capability: review
-  -> Website chat adapter/core
-~~~
-
-No WebsiteWorker or ScientificWorker runtime type is needed.
+Domain-specific behavior comes from capabilities, Skills, prompts/tools, and typed result contracts rather than a new Website Agent implementation.
 
 ## Package direction
 
-Initial direction:
-
 ~~~text
 @tsuuanmi/internet
-  -> implementation source for Website core
-  -> existing direct DSH tools
+  -> implementation source for Website Agent Core
+  -> existing DSH tools may continue to coexist
 
-AgentOS
-  -> Website Agent plugin
-      -> supported Internet core API
-      -> ACP adapter
-      -> A2A adapter
+AgentOS Website Agent plugin
+  -> supported Internet core API
+  -> ACP Agent adapter
+  -> A2A Agent adapter
 ~~~
 
-Do not copy Internet source into AgentOS.
+Do not copy the Internet implementation into AgentOS.
 
-First expose/refine a supported core API from Internet, then build adapters over it.
+Extract/refine a supported protocol-neutral core API first.
 
-A separate package should be extracted only when lifecycle/release ownership later justifies it.
+## Canonical invariant
 
-## Invariant
-
-> **One Website Agent core, many protocol adapters.**
-
-ACP, A2A, and any future direct DSH adapter must all drive the same core behavior.
+> **One Website Agent Core. ACP connects runtimes to it. A2A connects peer agents to it.**
