@@ -67,7 +67,7 @@ In particular, current custom Message/Artifact/WorkerState and MCP Worker envelo
 
 ## Related reference
 
-- [Worker Contract](../docs/reference/worker-protocol.md)
-- [Execution binding invariants](../docs/reference/worker-exchange-invariants.md)
+- [Worker Contract](../docs/reference/worker-contract.md)
+- [Execution binding](../docs/reference/execution-binding.md)
 - [Minimal semantic delta](../docs/architecture/minimal-semantic-delta.md)
 - [Protocol stack](../docs/architecture/protocol-stack.md)
