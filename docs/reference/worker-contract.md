@@ -30,7 +30,7 @@ See [Protocol stack](../architecture/protocol-stack.md) and [Minimal semantic de
 
 ## Worker
 
-A Worker is a capability-driven execution role.
+A Worker invocation is a capability-driven execution role provided through the canonical [Worker plugin](../architecture/plugins/worker/README.md).
 
 It does not require a globally stable AgentOS Worker identity.
 
@@ -190,7 +190,7 @@ Any of these may be introduced later only if a failing conformance/behavioral te
 
 - [Protocol stack](../architecture/protocol-stack.md)
 - [Minimal semantic delta](../architecture/minimal-semantic-delta.md)
-- [Worker model](../architecture/worker-model.md)
-- [Worker boundary model](../architecture/worker-boundaries.md)
-- [Plugin inventory](../architecture/plugins/inventory.md)
+- [Worker plugin](../architecture/plugins/worker/README.md)
+- [Worker boundaries](../architecture/plugins/worker/boundaries.md)
+- [Plugin architecture](../architecture/plugins/README.md)
 - [Schema registry](../../schemas/README.md)
