@@ -1,9 +1,9 @@
 # Interaction model
 
-- **Status:** canonical interaction model
+- **Status:** canonical cross-cutting architecture
 - **Date:** 2026-09-28
 
-This document shows how AgentOS plugin compositions interact end to end.
+This document shows how canonical AgentOS plugins interact end to end.
 
 ## Entry modes
 
@@ -11,46 +11,59 @@ This document shows how AgentOS plugin compositions interact end to end.
 flowchart LR
     U[User] --> L[Local Agent]
 
-    L -->|simple| D[Direct tools/environment]
-    L -->|collaborative| T[Agent Team]
-    L -->|durable| W[Workflow]
-    W -->|collaborative WorkItem| T
+    L -->|simple delegated work| Worker[Worker]
+    L -->|collaborative| Team[Agent Team]
+    L -->|durable| Workflow[Workflow]
 
-    T --> TR[Typed phase result]
-    W --> WR[Durable workflow state/result]
-    D --> DR[Observed result]
+    Workflow -->|collaborative WorkItem| Team
+    Workflow -->|simple delegated WorkItem| Worker
+    Team --> Worker
 ~~~
-
-No optional layer is required for simpler work.
 
 ## Agent Team flow
 
 ~~~mermaid
 sequenceDiagram
     participant L as Local / Workflow
-    participant A as Agent Team policy
+    participant T as Agent Team
     participant D as DSH ctx.agentTeams
-    participant S as Capability Selector
-    participant P as Selected Provider
-    participant V as Validation
+    participant W as Worker
 
-    L->>A: execute phase with exact input
-    A->>D: create/recover collaboration context
-    A->>S: required capabilities
-    S-->>A: provider choices
+    L->>T: execute collaborative phase
+    T->>D: create/recover Team context
 
-    loop required executions
-        A->>P: delegate through ctx.subagents or A2A
-        P-->>A: provider-native result/evidence
+    loop required participants
+        T->>W: execute required capability
+        W-->>T: accepted Worker result/evidence
     end
 
-    A->>D: peer coordination / Team progression
-    A->>V: validate result/effect when required
-    A->>A: accept + synthesize typed result
-    A-->>L: typed phase result
+    T->>D: peer coordination / revision
+    T->>T: enforce barriers + phase acceptance
+    T-->>L: typed phase result
 ~~~
 
-DSH supplies Team/delegation mechanics. ACP/A2A/Website providers supply execution. AgentOS supplies phase policy, capability selection, and acceptance.
+Agent Team owns collaboration. Worker owns provider selection/execution/acceptance.
+
+## Worker flow
+
+~~~mermaid
+sequenceDiagram
+    participant C as Agent Team / Workflow / Local
+    participant W as Worker
+    participant S as DSH ctx.subagents
+    participant P as Provider
+
+    C->>W: semantic work + required capabilities
+    W->>W: select conforming provider
+    W->>S: dispatch
+    S->>P: provider-native execution
+    P-->>S: provider-native result
+    S-->>W: result
+    W->>W: binding/result/effect acceptance
+    W-->>C: typed accepted result
+~~~
+
+See [Worker communication](plugins/worker/communication.md).
 
 ## Workflow flow
 
@@ -58,107 +71,79 @@ DSH supplies Team/delegation mechanics. ACP/A2A/Website providers supply executi
 sequenceDiagram
     participant U as User
     participant L as Local Agent
-    participant W as Workflow
+    participant F as Workflow
     participant S as Durable Store
-    participant A as Runtime/Execution Adapter
     participant T as Agent Team
+    participant W as Worker
 
     U->>L: long-running request
-    L->>W: start
-    W->>S: exact Definition/input + semantic WorkItem state
+    L->>F: start
+    F->>S: exact Definition/input + semantic WorkItems
 
     alt collaborative WorkItem
-        W->>T: typed phase input
-        T-->>W: typed phase result
-    else other WorkItem
-        W->>A: execute
-        A-->>W: provider/runtime result or effect evidence
+        F->>T: typed phase input
+        T-->>F: typed phase result
+    else delegated WorkItem
+        F->>W: semantic work
+        W-->>F: accepted Worker result
     end
 
-    W->>W: semantic acceptance / reconciliation
+    F->>F: transition / recovery / effect semantics
 
-    alt durable external decision needed
-        W-->>L: decision request
+    alt durable external decision
+        F-->>L: decision request
         L-->>U: present
         U->>L: response
-        L->>W: respond
+        L->>F: respond
     else terminal
-        W-->>L: durable result
+        F-->>L: durable result
         L-->>U: result
     end
 ~~~
 
-Runtime ids are adapter handles, not Workflow identity.
-
 ## Independent-first collaboration
 
-~~~mermaid
-sequenceDiagram
-    participant P as Phase coordinator
-    participant A as Worker A
-    participant B as Worker B
-    participant T as Team collaboration
-    participant S as Synthesizer
-
-    P->>A: same authoritative input
-    P->>B: same authoritative input
-
-    par independent execution
-        A->>A: investigate/review
-    and
-        B->>B: investigate/review
-    end
-
-    A-->>P: provider-native evidence/result
-    B-->>P: provider-native evidence/result
-
-    P->>P: barrier satisfied
-
-    A->>T: peer evidence
-    T-->>B: peer evidence
-    B->>T: challenge/revision
-    T-->>A: challenge/revision
-
-    P->>S: accepted current evidence/results
-    S-->>P: typed phase result
+~~~text
+Agent Team
+  -> Worker A with same authoritative input
+  -> Worker B with same authoritative input
+  -> independence barrier
+  -> DSH Team peer evidence/revision
+  -> accepted Worker results
+  -> typed Agent Team phase result
 ~~~
 
-A2A Artifact may be used when the provider is A2A. DSH/ACP providers may use their native result structures. AgentOS does not require a universal Artifact envelope.
+Provider-native result formats stay below Worker. A2A Artifact is used when A2A is the provider protocol; ACP/DSH/Website retain their native result structures.
 
 ## Provider examples
 
 ~~~text
 software implementation
-  -> DSH ACP provider -> coding Agent
+  -> Worker -> DSH ACP provider -> coding Agent
 
-broad web/literature research
-  -> DSH ACP provider -> Website ACP bridge -> Website Agent
+web/literature research
+  -> Worker -> DSH ACP provider -> Website Agent bridge
 
-remote independent specialist
-  -> A2A adapter -> remote Agent
+remote specialist
+  -> Worker -> A2A provider -> remote Agent
 
 local continuable specialist
-  -> DSH continuable subagent provider
+  -> Worker -> DSH continuable provider
 ~~~
-
-Scientific research changes capabilities/Skills/tools/profile configuration, not Worker architecture.
 
 ## Restart and reconciliation
 
-~~~mermaid
-flowchart TD
-    X[Host / Local restart]
-    R[Reload durable semantic Workflow state]
-    C[Inspect current ExecutionBinding/runtime state]
-    P{Outcome known?}
-    K[Preserve/commit accepted result]
-    U[Apply recovery policy]
-    E[Reconcile external effect when needed]
+Workflow owns durable WorkItem recovery.
 
-    X --> R --> C --> P
-    P -->|yes| K
-    P -->|unknown non-effect| U
-    P -->|unknown effect| E --> U
+Worker owns recovery/binding for a currently delegated execution only when provider replacement/uncertainty requires it.
+
+~~~text
+Workflow restart
+  -> reload semantic WorkItem
+  -> inspect current Worker ExecutionBinding when present
+  -> reconcile provider/effect outcome
+  -> preserve accepted completion
+  -> derive next transition
 ~~~
 
 Missing provider/session/job handles never prove work did not happen.
@@ -166,20 +151,21 @@ Missing provider/session/job handles never prove work did not happen.
 ## Authority versus effect
 
 ~~~text
-authority granted
-  !=
-effect completed
+authority granted != effect completed
 ~~~
 
-A durable decision authorizes a later effect. Effect completion requires observed state or a trustworthy receipt.
+Durable authorization and verified external effect are separate semantic facts.
 
-## What each layer observes
+## Layer authority
 
-| Layer | Treats as semantic input/evidence | Does not treat as authority |
-|---|---|---|
-| Local Agent | typed Team result, Workflow state/result, direct observed tool result | provider UI/session state |
-| Workflow | typed phase result, accepted WorkItem result/effect evidence | raw provider inactivity/task state |
-| Agent Team | Team runtime state, provider-native results/evidence, phase policy | provider terminal event alone |
-| DSH ctx.agentTeams | roster/tasks/mailbox/member lifecycle | AgentOS typed phase completion |
-| DSH ctx.subagents/provider | delegated request + provider lifecycle | Workflow/Team semantic ownership |
-| A2A | Task/Message/Artifact lifecycle | AgentOS local acceptance policy |
+| Layer | Owns |
+|---|---|
+| Local Agent | user interaction/presentation |
+| Workflow | durable sequencing, recovery, external decisions |
+| Agent Team | collaboration policy and typed phase result |
+| Worker | provider selection, execution binding, result acceptance |
+| DSH ctx.agentTeams | Team runtime mechanics |
+| DSH ctx.subagents | provider registry/lifecycle |
+| ACP | compatible Agent execution protocol |
+| A2A | remote Agent Task/Message/Artifact protocol |
+| MCP | tool/capability/data protocol |
