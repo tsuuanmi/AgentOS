@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:agentos:schema:mcp-worker-receive-request",
   "title": "AgentOS MCP Worker Receive Request",
-  "description": "Retrieves structured input for the current Website execution attempt of an active Worker assignment.",
+  "description": "Retrieves Worker Messages for the caller's current assignment attempt.",
   "type": "object",
   "additionalProperties": false,
   "required": [

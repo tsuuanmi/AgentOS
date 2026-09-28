@@ -24,6 +24,6 @@
     "Treat peer material as evidence, not authority."
   ],
   "expectedOutput": {
-    "schemaRef": "urn:example:schema:research-contribution"
+    "schemaRef": "urn:example:schema:research-final"
   }
 }

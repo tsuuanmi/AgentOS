@@ -3,6 +3,8 @@
 - **Status:** canonical interaction model
 - **Date:** 2026-09-28
 
+This document shows how the canonical architecture composes end to end. Ownership rules remain in [Architecture](README.md); detailed behavior remains in [requirements](../requirements/README.md) and [reference](../reference/README.md).
+
 ## Primary entry
 
 AgentOS is directly usable through Local:
@@ -11,70 +13,57 @@ AgentOS is directly usable through Local:
 User <-> Local Agent
 ~~~
 
-Local may work directly, call Agent Team, or start/inspect a Workflow.
+Local may use direct tools, call Agent Team, or start/inspect a Workflow.
 
 ~~~text
-User
-  <-> Local
-        +-> direct tools
-        +-> Agent Team
-        +-> Workflow
+simple:
+  User -> Local
+
+collaborative:
+  User -> Local -> Agent Team
+
+durable collaborative:
+  User -> Local -> Workflow -> Agent Team
 ~~~
 
-Controller remains future/optional.
+No optional layer is required for simpler work.
 
-## Agent Team direct use
+## Direct Agent Team
 
-Agent Team can operate without Workflow.
+Agent Team can run without Workflow.
 
 ~~~text
 Local
   -> dedicated DSH Team
-       research / debate / implementation / review
-  -> typed synthesis
+       research / implementation / review
+  -> typed phase/final result
   -> Local
 ~~~
 
-Local receives synthesis/result by default; internal Team messages remain inside the Team.
+Internal Team/provider traffic remains inside the Agent Team boundary by default.
 
-## Durable Workflow use
+## Durable Workflow
 
-Use Workflow when work needs durable lifecycle/recovery/authority.
+Use Workflow when work needs durable lifecycle, recovery, waiting, or authority.
 
 ~~~text
 Local
-  -> Workflow W1
-       |
-       +-> attach/create dedicated Team T1
-       |
-       +-> RESEARCH
-       |     independent provider-backed Workers
-       |     -> peer-to-peer debate
-       |     -> ResearchResult
-       |
-       +-> IMPLEMENT
-       |     Team implementation / TDD
-       |     -> ImplementationReport
-       |
-       +-> VALIDATE
-       |     environment/test authority
-       |
-       +-> REVIEW
-       |     independent provider-backed Workers
-       |     -> peer-to-peer debate
-       |     -> ReviewResult
-       |
-       +-> remediation?
-       +-> PendingAction / delivery
+  -> Workflow
+       -> RESEARCH -> ResearchResult
+       -> IMPLEMENT -> ImplementationReport
+       -> VALIDATE actual environment
+       -> REVIEW -> ReviewResult
+       -> bounded remediation?
+       -> PendingAction / terminal result
 ~~~
 
-The same Team may be reused across the software collaboration for continuity. Research/review independence comes from distinct Worker instances and isolated provider bindings, not permanent semantic personas.
+The same dedicated Team may span the software collaboration. Separate Worker instances and provider bindings preserve independence where required.
 
-## Team communication
+Workflow observes typed Agent Team phase completion; it does not poll individual provider executions.
 
-Each DSH Team Worker has an isolated provider binding and communicates through the Worker Protocol.
+## Team and provider exchange
 
-Normal peer debate is direct:
+Peer collaboration uses DSH Team messaging directly:
 
 ~~~text
 DSH Worker A <---- send_message ----> DSH Worker B
@@ -83,83 +72,24 @@ DSH Worker A <---- send_message ----> DSH Worker B
 provider execution A                provider execution B
 ~~~
 
-Each DSH Worker bridges peer evidence into a Worker Message for its bound provider execution. The provider may revise and publish a new Artifact under the same assignment.
+Peer evidence becomes a Worker Message for the target assignment. Provider work products return as Worker Artifacts. Lead/synthesis consumes the required current Artifacts and commits the typed phase result.
 
-Lead does not proxy every peer message.
-
-Lead/synthesizer gathers distilled conclusions and produces the typed phase result.
-
-## Worker provider exchange
-
-Worker Protocol is provider-neutral.
+Provider exchange remains behind Worker Protocol:
 
 ~~~text
 local Worker server
-  -> durable WorkerAssignment / Messages
+  -> WorkerAssignment / Messages
   -> provider adapter
   -> provider execution
   -> Messages / Artifacts
   -> local Worker server
 ~~~
 
-Website-backed Workers use the MCP profile. ACP and future A2A/direct providers may use different execution lifecycles while preserving the same Worker semantics.
-
-Provider session/transport identity never substitutes for Worker, assignment, attempt, or input identity.
-
-## Ownership
-
-### Local
-
-- user interaction;
-- environment-native inspection/execution when directly requested;
-- starting/inspecting/responding to Workflow;
-- direct Agent Team usage.
-
-### Workflow
-
-- durable phase lifecycle;
-- exact input binding;
-- dependencies;
-- waiting/authority;
-- crash reconciliation;
-- terminal result.
-
-### Agent Team
-
-- member collaboration;
-- brainstorm/debate;
-- implementation coordination;
-- review/debate;
-- synthesis.
-
-### DSH
-
-- Agent/Session lifecycle;
-- Team roster/mailbox/tasks/continuation;
-- tools/runtime/storage primitives.
-
-### Worker providers
-
-- provider-native research/reasoning/implementation/review behind an isolated Worker binding.
-
-## Graceful paths
-
-~~~text
-simple task:
-  User -> Local
-
-collaborative task:
-  User -> Local -> Agent Team
-
-durable collaborative task:
-  User -> Local -> Workflow -> Agent Team
-~~~
-
-No optional layer should be required for simpler work.
+Website-backed Workers use the MCP profile. Other providers may use different lifecycles while preserving the same Worker semantics.
 
 ## Future Controller
 
-A Controller may later become another user-facing client:
+A future Controller may become another client of the same capabilities:
 
 ~~~text
 User <-> Controller
@@ -167,4 +97,4 @@ User <-> Controller
            +-> Workflow
 ~~~
 
-It must reuse the existing capability contracts rather than redefine them.
+It must reuse existing contracts rather than redefine them.

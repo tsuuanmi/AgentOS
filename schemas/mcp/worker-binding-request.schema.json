@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:agentos:schema:mcp-worker-capabilities-request",
-  "title": "AgentOS MCP Worker Capabilities Request",
-  "description": "Requests capabilities for one explicit Worker binding.",
+  "$id": "urn:agentos:schema:mcp-worker-binding-request",
+  "title": "AgentOS MCP Worker Binding Request",
+  "description": "Identifies one Worker binding for an authorized Website-facing Worker operation.",
   "type": "object",
   "additionalProperties": false,
   "required": [

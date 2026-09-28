@@ -213,7 +213,7 @@ Reusable agent operating methodology belongs in repository-root `.agents/skills/
 
 Agent Skills are executable procedural guidance, not current semantic/reference authority. They may teach how to perform a capability or compose tools, but they must not redefine canonical schemas, protocol identity, transport signatures, authorization, lifecycle truth, or server invariants.
 
-A documentation area such as `docs/skills/` may route readers to executable Skills, but it should not maintain a second copy of Skill instructions.
+Link directly to executable Skills from the relevant canonical router. Do not create a `docs/skills/` shadow tree or router that exists only to repeat or redirect Skill content.
 
 Runtime rules that require current durable state—authorization, cross-object equality, attempt fencing, idempotency, dynamic schema resolution, durable-before-ack, and state transitions—belong in canonical reference/design plus source/tests, not in Skills.
 
