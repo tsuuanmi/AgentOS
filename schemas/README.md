@@ -11,6 +11,9 @@ Schemas are repository-level contracts and intentionally live outside `docs/`.
 - [worker-assignment.schema.json](worker-assignment.schema.json)
 - [worker-input.schema.json](worker-input.schema.json)
 - [worker-submission.schema.json](worker-submission.schema.json)
+- [worker-state.schema.json](worker-state.schema.json)
+
+MCP tool-envelope schemas live under [`schemas/mcp/`](mcp/README.md).
 
 All Worker Protocol schemas declare JSON Schema Draft 2020-12 through `$schema`.
 
@@ -32,3 +35,25 @@ Human-readable semantics:
 - Plugin-specific optional data belongs under `extensions`; correctness-bearing shared semantics should graduate to first-class fields.
 - Transport adapters must preserve these schemas and semantics.
 - MCP adapters should advertise self-contained/bundled tool schemas when a host cannot resolve external `$ref` resources.
+
+
+## Interoperability decisions
+
+- Schema resources use stable `urn:agentos:schema:...` identifiers rather than a network domain.
+- Plugin extension keys must be absolute URI namespaces to avoid collisions.
+- `format` annotations such as `uri-reference` are not treated as security boundaries by themselves; the conformance validator/application must perform any required URI checks.
+- Dynamic payloads are paired with an explicit `schemaRef`; runtime code validates the payload against the referenced registered schema.
+- MCP adapters bundle/dereference shared schemas into self-contained tool schemas for hosts that do not resolve external resources.
+- Intermediate `contribution` and terminal `completion` are distinct WorkerSubmission kinds.
+- Explicit application ids are authoritative; MCP sessions/tunnels are never semantic identity.
+
+## Validation expectation
+
+A plugin consuming these schemas should:
+
+1. load the Draft 2020-12 dialect;
+2. register all referenced `urn:agentos:schema:...` resources;
+3. reject unresolved references;
+4. validate dynamic `payload`/`output` against their declared `schemaRef`;
+5. enable application-level URI/media-type/digest validation where correctness or security depends on it;
+6. run the AgentOS conformance fixtures/tests rather than relying only on schema parsing.
