@@ -95,6 +95,23 @@ research -> implementation -> review
 
 This is a provider-v1 choice, not public Agent Team semantics.
 
+## Fixed role registry
+
+Do not generate member responsibilities ad hoc per run.
+
+The provider should instantiate a fixed software role registry:
+
+~~~text
+Lead / Synthesizer
+Researcher Primary
+Researcher Challenger
+Implementer
+Reviewer Correctness
+Reviewer Architecture
+~~~
+
+Run-specific objectives and exact inputs vary; mission/output schema/peer relationships remain stable.
+
 ## Suggested Team topology
 
 Not every run needs every member, but the software profile may use:
@@ -178,6 +195,19 @@ Current DSH-native `spawn`/`fork` support that seam.
 One-shot product subagent providers should not be assumed directly rosterable unless they gain compatible continuation.
 
 For v1, Website Agents are therefore modeled as **bindings owned by DSH teammates**, not as direct replacements for DSH teammate identity.
+
+## Completion ladder
+
+Do not collapse provider/Team/AgentOS completion into one flag.
+
+~~~text
+Website assignment durable completion
+  -> DSH TeamTask completed
+  -> Lead typed phase result durable
+  -> Workflow may complete its WorkItem
+~~~
+
+DSH `inactive`, `send_message` success, and TeamTask completion alone are not sufficient semantic completion.
 
 ## Typed completion is the real semantic gap
 
