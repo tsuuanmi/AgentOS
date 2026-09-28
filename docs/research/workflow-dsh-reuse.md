@@ -13,6 +13,8 @@ AgentOS should **reuse them aggressively**, but should not mistake any one of th
 
 Current DSH provides:
 
+- `ctx.storageDomain` for durable schema-validated host-side state over JSON/SQLite;
+- `ctx.agents.resume` for cold-resuming persisted Sessions;
 - `ctx.workflowEngine` for bounded live orchestration scripts;
 - `ctx.jobs` for background job lifecycle/output/cancellation;
 - `ctx.goals` for one durable same-session objective;
@@ -37,7 +39,30 @@ The target principle is:
 
 > **Workflow owns durable coordination semantics; DSH plugins provide reusable execution, interaction, observation, and scheduling mechanics.**
 
-## 1. What DSH `ctx.workflowEngine` already solves
+## 1. What DSH Storage Domain already solves
+
+DSH Storage Domain is a strong v1 persistence substrate:
+
+- schema-validated durable records;
+- ordered per-domain writes;
+- atomic record update;
+- JSON and SQLite backends;
+- post-commit change events;
+- zero model-context/token impact.
+
+AgentOS should reuse this instead of creating its own Workflow file/SQLite store.
+
+Because Storage Domain currently has no cross-table transaction and change visibility is single-process, the simplest safe v1 design is one Host owner plus one aggregate record per WorkflowRun. One semantic transition updates one run record atomically.
+
+## 2. What DSH `ctx.agents.resume` already solves
+
+DSH can resume persisted Sessions through `ctx.agents.resume`, and the Host Session controller deduplicates concurrent cold resumes for ordinary Sessions.
+
+A durable Workflow therefore does not require the Local UI/client to remain connected. Where an Agent step is required, an adapter may cold-resume the persisted Session, execute bounded work, persist the semantic result, and let the Agent become cold again.
+
+> **Client connectivity is not Workflow durability.**
+
+## 3. What DSH `ctx.workflowEngine` already solves
 
 DSH Workflow is a real capability seam with:
 
@@ -94,7 +119,7 @@ AgentOS durable WorkflowRun
 
 It is best treated as an **execution primitive/provider** beneath a durable Workflow when appropriate.
 
-## 2. What DSH `ctx.jobs` already solves
+## 4. What DSH `ctx.jobs` already solves
 
 DSH Jobs provides a strong generic background-work contract:
 
@@ -151,7 +176,7 @@ Because `ctx.jobs` is already a seam, a future durable Jobs provider may become 
 
 Even then, Workflow semantic IDs and correctness state remain independent.
 
-## 3. What DSH `ctx.goals` already solves
+## 5. What DSH `ctx.goals` already solves
 
 The Goal service provides:
 
@@ -198,7 +223,7 @@ Local Goal != WorkflowRun
 
 AgentOS should avoid storing a Workflow graph inside Goal metadata or treating Goal revision as Workflow revision.
 
-## 4. What DSH Schedule already solves
+## 6. What DSH Schedule already solves
 
 DSH Schedule provides durable host-owned time records across Host restarts:
 
@@ -243,7 +268,7 @@ So v1 should **not** use Schedule as authoritative Workflow Timer state unless a
 
 This may become a useful adapter later, but is not a direct semantic fit today.
 
-## 5. What DSH `ctx.subagents` already solves
+## 7. What DSH `ctx.subagents` already solves
 
 The subagent seam is one of the most reusable execution primitives.
 
@@ -285,7 +310,7 @@ Continuable children have durable Sessions, but current runtime limitations incl
 
 Therefore subagent continuity is useful **inside** Workflow execution, but does not replace durable Workflow coordination/recovery.
 
-## 6. What DSH Agent Teams already solves
+## 8. What DSH Agent Teams already solves
 
 Experimental DSH Agent Teams provides:
 
@@ -325,7 +350,7 @@ by default.
 
 A Workflow may choose to materialize some WorkItems into Agent Team tasks through an adapter, but their identities and lifecycle semantics remain separate.
 
-## 7. What DSH user approval already solves
+## 9. What DSH user approval already solves
 
 `ctx.approval` provides a strong one-shot sensitive-action approval seam:
 
@@ -365,7 +390,7 @@ That requires durable Workflow-owned PendingAction semantics or a provider that 
 
 Do not emulate this with a live `ctx.approval.request()` held open across disconnects.
 
-## 8. Session events and projections: reuse for projection, not Workflow authority
+## 10. Session events and projections: reuse for projection, not Workflow authority
 
 DSH has strong Session/event/projection infrastructure.
 
@@ -397,11 +422,13 @@ Workflow provider state
 independently mutable Local Session copy
 ~~~
 
-## 9. Reuse matrix
+## 11. Reuse matrix
 
 | Concern | DSH capability | V1 decision | Why |
 |---|---|---|---|
 | plugin lifecycle / DI / composition | Cordis / DSH | **use directly** | Host concern |
+| durable Workflow persistence | `ctx.storageDomain` + JSON/SQLite | **use directly as substrate** | Durable schema-validated records already solved |
+| cold Local/Session resume | `ctx.agents.resume` / Host Session controller | **reuse through adapter** | UI connection is not Session durability |
 | bounded fan-out/fan-in | `ctx.workflowEngine` | **use directly / adapter** | Strong live orchestration primitive |
 | fixed live workflow recipe | tool plugin over Workflow + subagents | **use directly as pattern** | Ralph proves composition model |
 | background local execution | `ctx.jobs` | **use directly / adapter** | Progress/output/cancel already solved |
@@ -420,7 +447,7 @@ independently mutable Local Session copy
 | artifact/receipt currentness | none identified generically | **Workflow/profile responsibility** | Correctness-bearing semantics |
 | convergence | none identified generically | **Workflow/profile responsibility** | Domain semantic success |
 
-## 10. What the Workflow semantic contract should probably own
+## 12. What the Workflow semantic contract should probably own
 
 The DSH review narrows the AgentOS/Workflow-owned surface considerably.
 
@@ -504,7 +531,7 @@ external worker id
 
 These are **references**, never canonical WorkItem or WorkflowRun identities.
 
-## 11. What AgentOS should NOT build in the Workflow layer
+## 13. What AgentOS should NOT build in the Workflow layer
 
 Do not rebuild:
 
@@ -521,7 +548,7 @@ Do not rebuild:
 
 Build/adapt only the missing durable semantics.
 
-## 12. Recommended v1 composition
+## 14. Recommended v1 composition
 
 The smallest useful composition is:
 
@@ -551,7 +578,7 @@ A Workflow implementation may use only a subset of these.
 
 No DSH primitive becomes mandatory merely because it exists.
 
-## 13. Recommended first vertical slice
+## 15. Recommended first vertical slice
 
 Do not begin with a generic DAG engine.
 
@@ -581,7 +608,7 @@ Use existing DSH plugins for each mechanic wherever possible.
 
 Only after this slice passes should AgentOS generalize more Workflow component ports.
 
-## 14. TDD/conformance implications
+## 16. TDD/conformance implications
 
 Before implementation, Workflow contract tests should be written around externally observable semantics rather than one backend.
 
@@ -610,7 +637,7 @@ immediate approval -> ctx.approval
 Agent Team provider -> ctx.agentTeams / internet
 ~~~
 
-## 15. Research priority after this inventory
+## 17. Research priority after this inventory
 
 The next Workflow research should now focus on **the durable semantic kernel**, not on implementing execution mechanics.
 
