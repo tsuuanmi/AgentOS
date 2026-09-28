@@ -43,7 +43,7 @@ sequenceDiagram
     W-->>C: typed accepted result
 ~~~
 
-Agent Team and Workflow do not branch on ACP, Website, A2A, or local provider types.
+Agent Team and Workflow do not branch on concrete runtime/provider types. A2A peer communication is handled by Agent Team/Website adapters rather than by Worker dispatch.
 
 ## ACP path
 
@@ -75,26 +75,19 @@ Website conversation/session ids remain hidden below the Website Agent plugin bo
 
 See [Website Agent plugin](../website-agent/README.md).
 
-## A2A path
+## A2A peer path
+
+A2A is horizontal collaboration, not Worker dispatch:
 
 ~~~text
-Worker
-  -> ctx.subagents
-      -> A2A provider
-          -> remote A2A Agent
+Worker/runtime
+  -> ACP -> Website Agent
+               <-> A2A <-> Agent Team Member
 ~~~
 
-Use native A2A:
+Use native A2A AgentCard/AgentSkill, Task/TaskStatus, Message, Artifact/Part, context, auth, and update mechanisms.
 
-- AgentCard / AgentSkill;
-- Task / TaskStatus;
-- Message;
-- Artifact / Part;
-- context/auth/update mechanisms.
-
-The initial adapter uses zero AgentOS A2A extensions.
-
-Local exact-input, recovery, binding-generation, and acceptance state remain local unless the remote peer genuinely needs them.
+The initial adapter uses zero AgentOS extensions.
 
 See [A2A plugin](../a2a/README.md).
 
@@ -132,8 +125,8 @@ Provider terminal state alone is not semantic completion.
 
 1. Worker owns provider-neutral dispatch/acceptance.
 2. DSH owns provider registry/lifecycle.
-3. ACP owns compatible Agent execution/control.
-4. A2A owns remote Agent-to-Agent communication.
+3. ACP owns runtime/client <-> Agent execution/control.
+4. A2A owns Website Agent <-> Agent Team Member peer collaboration.
 5. MCP owns tools/capabilities/data.
 6. Website-specific transport stays inside Website Agent plugin.
 7. Provider/protocol ids remain implementation handles.
