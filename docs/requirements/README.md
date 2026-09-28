@@ -1,12 +1,14 @@
 # Requirements
 
-Requirements own normative AgentOS behavior: **what must remain true** independently of provider or transport mechanics.
+Requirements own normative AgentOS behavior: **what must remain true** independently of provider, package layout, or transport mechanics.
 
-Current canonical requirements:
+## Capability requirement modules
 
-- [Workflow](workflow.md) — durable lifecycle, recovery, waiting, authority, and semantic completion.
-- [Agent Team](agent-team.md) — collaborative software work, Worker isolation, typed phase completion, and DSH ownership boundaries.
+- [Agent Team](agent-team/README.md) — agnostic Worker selection, collaboration, completion, and Team/Worker provider boundaries.
+- [Workflow](workflow/README.md) — durable lifecycle, execution, recovery, human/external interaction, and Agent Team integration.
 
-Exact protocol/API/transport shapes belong in [reference](../reference/README.md). Current system placement belongs in [architecture](../architecture/README.md).
+Each major AgentOS capability has its own requirements folder because its contract is larger than one document.
+
+Architecture describes how those requirements are composed from AgentOS and DSH plugins. Exact protocol/API/transport shapes belong in [reference](../reference/README.md).
 
 Research and proposals may motivate changes to requirements but do not override them.
