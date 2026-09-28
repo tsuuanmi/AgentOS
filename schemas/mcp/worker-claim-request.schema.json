@@ -3,5 +3,14 @@
   "$id": "urn:agentos:schema:mcp-worker-claim-request",
   "title": "AgentOS MCP Worker Claim Request",
   "description": "Requests the current or next queued assignment for one explicit Worker.",
-  "$ref": "urn:agentos:schema:mcp-worker-common#/$defs/workerLookup"
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workerId"
+  ],
+  "properties": {
+    "workerId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    }
+  }
 }
