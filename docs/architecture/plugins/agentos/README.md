@@ -17,12 +17,16 @@ flowchart TB
 
     Team[Agent Team capability composition]
     Workflow[Workflow capability composition\nCore + Definitions/Profiles]
-    Worker[Worker capability / protocol]
+    Worker[Worker capability policy / provider bindings]
+    Website[Website Agent provider]
+    A2A[A2A adapter]
 
     Host --> AgentOS
     AgentOS --> Team
     AgentOS --> Workflow
     AgentOS --> Worker
+    AgentOS -. optional .-> Website
+    AgentOS -. optional .-> A2A
 
     subgraph DSH["DSH capability plugins"]
         AT[experimental agent-team / ctx.agentTeams]
@@ -49,6 +53,8 @@ flowchart TB
 
     Worker --> Sub
     Worker --> Tools
+    Website --> Sub
+    A2A --> Worker
 ~~~
 
 AgentOS therefore adds the smallest missing semantic layer and configuration/composition needed to make these capabilities behave as one product.
@@ -60,56 +66,31 @@ A component in AgentOS docs can be one of three things:
 | Kind | Meaning | Example |
 |---|---|---|
 | composition/bundle | mounts and configures existing plugins together | AgentOS, much of Agent Team |
-| semantic plugin/module | implements AgentOS-owned state/invariants not supplied upstream | Workflow durable reconciler, Worker Exchange extensions |
-| adapter | maps one existing capability/provider into an AgentOS semantic boundary | Website MCP Worker provider, Agent Team execution adapter |
+| semantic plugin/module | implements AgentOS-owned policy/invariants not supplied upstream | Agent Team capability policy, Workflow semantic policy |
+| provider plugin | registers an implementation into an existing DSH seam | Website Agent provider on `ctx.subagents` |
+| adapter plugin | maps a protocol/runtime/library into a DSH/AgentOS boundary | A2A adapter, optional Inngest/Temporal Workflow runtime adapter |
 
 Do not assume every box in an AgentOS architecture diagram implies a new package containing a full implementation.
 
 ## AgentOS-owned semantic delta
 
-AgentOS should implement only semantics not already guaranteed by its dependencies.
+AgentOS should implement only semantics not already guaranteed by DSH, A2A, ACP, MCP, or a selected plugin implementation.
 
-Current examples:
+The current minimal delta is:
 
-- agnostic Worker Protocol and capability selection;
-- provider-neutral Worker Assignment / Message / Artifact exchange where upstream provider seams do not already satisfy it;
-- collaboration phase policy and typed phase results above generic Team mechanics;
-- domain-agnostic WorkflowRun/WorkItem semantics and exact Workflow Definition binding above DSH's live workflow/jobs/subagent primitives;
-- exact-input fencing and unknown-outcome reconciliation;
-- durable PendingAction semantics;
-- effect evidence/receipt binding;
-- cross-plugin composition and provider adapters.
+- capability requirements and **right-agent-right-job** selection policy;
+- current semantic-work -> provider **ExecutionBinding** only when durable/retriable correctness needs it;
+- exact Definition/input binding at the Workflow/phase owner, not repeated across generic Worker wire objects;
+- result acceptance against the caller's declared output contract;
+- stale-binding fencing only where provider replacement can race with old results/effects;
+- collaboration phase policy and typed phase outcome;
+- Workflow Definition/Profile semantics and product-level recovery policy;
+- effect evidence/actual-state validation where side effects matter;
+- cross-plugin composition and provider limitation projection.
 
-## What AgentOS reuses
+AgentOS does **not** assume it needs its own universal WorkerAssignment, Message, Artifact, WorkerState, stable Worker identity, or generic Worker Exchange service.
 
-AgentOS should reuse DSH implementations for:
+See [Minimal semantic delta](../../minimal-semantic-delta.md).
 
-- Cordis plugin lifecycle and dependency injection;
-- Agent/session runtime;
-- durable session persistence/projection;
-- `ctx.agentTeams` roster, durable mailbox, task board and teammate mechanics when suitable;
-- `ctx.subagents` and its DSH/Codex/Claude/ACP/SDK providers;
-- `ctx.storageDomain`;
-- Jobs;
-- bounded workflow engine;
-- approval/questions presentation;
-- workspace/tool/provider capabilities;
-- plugin/profile bundle composition.
 
-See [DSH capability reuse](../../dsh-reuse.md).
-
-## Packaging direction
-
-The final package layout may use DSH profile bundles/patch layers rather than one monolithic npm plugin.
-
-Conceptually:
-
-~~~text
-AgentOS bundle
-  + Agent Team composition
-  + Workflow Core + Definitions/Profiles composition
-  + Worker contracts/adapters
-  + selected DSH provider plugins
-~~~
-
-The exact packaging is an implementation decision. The architecture requirement is dependency/composition ownership, not one package per semantic box.
+See [Plugin inventory and reuse map](../inventory.md) for the canonical plugin list and substitution candidates.
