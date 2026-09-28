@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentos:schema:mcp-worker-inspect-request",
+  "title": "AgentOS MCP Worker Inspect Request",
+  "$ref": "urn:agentos:schema:mcp-worker-common#/$defs/assignmentLookup"
+}
