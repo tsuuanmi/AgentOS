@@ -2,19 +2,26 @@
 
 - **Status:** canonical / living requirements
 - **Owner:** AgentOS Agent Team capability
-- **Runtime core:** DSH Agent Teams
+- **Runtime:** AgentOS Cordis plugin with replaceable Team Runtime and Worker Providers
 
 ## Purpose
 
 Agent Team owns collaborative software work.
 
-DSH Agent Teams owns Team identity, roster, durable mailbox, Team tasks, teammate authority, continuation, cold resume, and Team recovery.
+It adds:
 
-AgentOS adds capability-driven Worker selection, provider-backed Worker bindings, Worker Protocol exchange, collaboration phase policy, and typed phase completion.
+- semantic phase policy;
+- capability-driven Worker selection;
+- isolated Worker bindings;
+- Worker Protocol exchange;
+- collaboration barriers and peer exchange;
+- typed phase completion.
+
+A concrete Team Runtime may provide roster/task/mailbox/member mechanics, but those mechanics are not themselves AgentOS phase semantics.
 
 ## Capability-driven Workers
 
-A DSH teammate is a Worker instance selected by semantic capabilities, not a permanent persona.
+A Worker is an AgentOS semantic execution participant selected by capabilities, not a DSH-specific teammate type or a permanent persona.
 
 Current software profiles:
 
@@ -29,36 +36,56 @@ REVIEW
   2 Workers requiring review + debate
 
 SYNTHESIS
-  Lead or Worker requiring synthesize
+  1 Worker/lead requiring synthesize
 ~~~
 
-Worker instances, providers, models, and objectives may vary.
+A Worker Binding may use:
 
-Minimum capability guarantees live in [Worker Protocol](../reference/worker-protocol.md). Detailed working method lives in the [software-worker Skill](../../.agents/skills/software-worker/SKILL.md).
+~~~text
+DSH subagent
+Codex
+Claude Code
+Website Agent over MCP
+ACP / DSH SDK
+future A2A/direct provider
+~~~
 
-## Dedicated Team
+Provider capability advertisement must reflect real guarantees. A one-shot provider cannot silently advertise a continuation-dependent capability such as multi-round debate unless an adapter safely provides that guarantee.
 
-One software collaboration uses a dedicated DSH root Team.
+See [Worker model](../architecture/worker-model.md).
 
-The same Team may continue across research -> implementation -> review.
+## Dedicated collaboration
 
-Separate Worker instances/provider bindings preserve independent execution where required.
+One software collaboration uses one recoverable Agent Team phase context.
+
+A Team Runtime provider may map that context to a dedicated DSH Team or another runtime-specific collaboration object.
+
+The same collaboration may continue across research -> implementation -> review where the runtime/provider can preserve the required semantics.
+
+Separate Worker instances and bindings preserve independence where required.
 
 ## Worker boundary
 
-A provider-backed DSH Worker owns Team participation and local coordination while delegating substantive work through a Worker provider.
+Agent Team coordinates Workers through the Worker Exchange Service.
 
 ~~~text
-DSH Worker
-  Team membership / TeamTask / mailbox
-  local authority mediation
-  Worker Assignment / Message / Artifact bridge
+Agent Team phase
+  -> Worker Binding
+      -> Worker Provider
+          -> DSH / Codex / Claude / Website / future runtime
 
-Provider execution
-  Website MCP / ACP / future A2A / direct
+Worker Exchange Service
+  -> Assignment
+  -> Message
+  -> Artifact
+  -> WorkerState
+  -> attempt/input fencing
+  -> completion acceptance
 ~~~
 
-Each Worker binding is isolated.
+Worker Exchange Service is an AgentOS service, not another Agent.
+
+It may be embedded inside the Agent Team plugin. A local Worker provider may call it directly; Website Agent uses the MCP transport adapter.
 
 Provider execution/session ids remain implementation-local and are never Worker identity.
 
@@ -70,17 +97,24 @@ Both receive the same authoritative objective/input and work independently befor
 
 Each may produce a contribution Artifact for the independent-work barrier.
 
-After the barrier, peer evidence travels directly through DSH Team messaging and becomes a Worker Message for the target Worker.
+After the barrier, peer evidence is routed through the Agent Team's collaboration channel and becomes a Worker Message for the target Worker.
 
-Lead does not proxy ordinary peer debate.
+When the Team Runtime is DSH-based, its native Team mailbox / `send_message` may implement the local peer-routing mechanic.
 
-Required current completion Artifacts feed a Worker/Lead satisfying `synthesize`, which produces the typed ResearchResult.
+Lead does not proxy ordinary peer debate unless the selected Team Runtime requires a relay and the adapter preserves the same semantics.
+
+Required current completion Artifacts feed a Worker satisfying `synthesize`, which produces the typed ResearchResult.
 
 ## Implementation policy
 
 Implementation requires a Worker satisfying `implement + tdd`.
 
-The assignment includes accepted research context, exact workspace/base binding, constraints, and validation expectations.
+The assignment includes:
+
+- accepted research context;
+- exact workspace/base binding;
+- constraints;
+- validation expectations.
 
 Actual repository/workspace/test state remains correctness authority for real effects.
 
@@ -100,25 +134,28 @@ A CHANGES_REQUIRED result may route back through implementation, real validation
 
 Reuse of an existing Worker/provider binding is allowed only when current recovery policy says execution can safely continue.
 
-Remediation remains bounded by Team/Workflow policy.
+Remediation remains bounded by Agent Team or outer Workflow policy.
 
 ## Completion layers
 
 ~~~text
-current accepted completion Artifact
-  -> relevant DSH TeamTask may complete
+provider output
+  -> current completion Artifact accepted
+  -> Team collaboration/runtime conditions satisfied
   -> typed AgentOS phase result commits
   -> Workflow WorkItem may complete
 ~~~
 
-Workflow never determines individual provider completion directly.
+A Team Runtime may internally complete a task or member assignment between the second and third steps. That runtime transition is not AgentOS phase completion authority by itself.
+
+Workflow never determines individual Worker/provider completion directly.
 
 A phase is complete only when its typed result is durable and bound to the exact current phase input.
 
 ## Communication versus result
 
 ~~~text
-DSH mailbox / Worker Message
+peer message / Worker Message
   = communication
 
 Worker Artifact
@@ -130,20 +167,44 @@ typed phase result
 
 Critical result authority never depends only on transient message delivery.
 
-## DSH ownership
+## Team Runtime ownership
 
-AgentOS must not introduce a second TeamId, roster/member store, mailbox, Team task DAG, teammate lifecycle/resume manager, Team event journal, or Team persistence layer.
+When Agent Team uses a Team Runtime provider, AgentOS must not mirror runtime-owned state merely for convenience.
 
-DSH-specific types remain behind the Team provider boundary.
+For example, if the provider already owns:
+
+- roster/member identity;
+- task DAG;
+- mailbox;
+- member lifecycle;
+- task attempts;
+- recovery/projection;
+
+AgentOS stores only the semantic phase/binding/exchange state it uniquely owns.
+
+The current community DSH AgentTeams plugin is a possible Team Runtime provider candidate, but implementation must first prove a stable callable adapter boundary. Architecture does not assume an undocumented `ctx.agentTeams` service.
 
 ## Replaceability
 
-DSH Agent Teams is the current Team runtime.
+Worker and Team Runtime providers are replaceable independently.
 
-A future Team runtime may replace it if these requirements and Worker Protocol remain satisfied.
+~~~text
+Agent Team semantics
+  -> Team Runtime Adapter
+      -> DSH AgentTeams / future runtime
 
-## Related reference
+Agent Team semantics
+  -> Worker Provider Registry
+      -> DSH / Codex / Claude / Website / future provider
+~~~
 
+Changing either provider family must not change Agent Team caller semantics.
+
+## Related architecture/reference
+
+- [Agent Team plugin architecture](../architecture/plugins/agent-team.md)
+- [Worker model](../architecture/worker-model.md)
+- [DSH capability reuse](../architecture/dsh-reuse.md)
 - [Worker Protocol](../reference/worker-protocol.md)
 - [Worker API](../reference/worker-api.md)
 - [Worker server invariants](../reference/worker-server-invariants.md)
