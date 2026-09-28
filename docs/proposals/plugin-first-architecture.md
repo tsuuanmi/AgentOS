@@ -125,8 +125,9 @@ A durable Workflow may outlive the Local Agent session that started it. A new Lo
 Terminology is explicit:
 
 - **Agent Team** = AgentOS semantic capability.
-- **DSH Agent Teams** = one possible DSH substrate/runtime.
-- **Internet-backed Agent Team** = one provider/implementation using `internet` and website-native capabilities.
+- **DSH Agent Teams** = the default v1 Team runtime/substrate.
+- **Internet Team** = the source of reasoning policies/behavior to adapt, not a second v1 Team runtime.
+- **Internet-backed teammate provider** = a future provider bridge for website-native teammates behind DSH Agent Teams.
 
 Controller remains a future/optional interaction surface. It should reuse the same Local, Workflow, and Agent Team semantic boundaries when introduced rather than driving the v1 architecture.
 
@@ -350,7 +351,38 @@ continuable teammates
 
 Therefore neither implementation shape should define the AgentOS semantic contract.
 
-V1 should first adapt the current Internet-backed Team behind typed research/review request-result contracts. DSH Agent Teams can later be evaluated as an alternative implementation substrate against the same conformance tests.
+V1 should start with **DSH Agent Teams as the runtime**, then adapt the useful Internet Team reasoning behavior on top.
+
+### DSH-first Agent Team provider
+
+~~~text
+Agent Team semantic contract
+        |
+        v
+AgentOS research/review policy adapter
+        |
+        v
+ctx.agentTeams
+        |
+        +-> durable roster/mailbox/tasks
+        +-> continuable teammates
+        +-> configured subagent providers
+~~~
+
+Port from Internet Team:
+
+- independent member analysis;
+- peer analysis treated as evidence;
+- research-specific and review-specific policies;
+- strongest-supported synthesis;
+- provider identity below semantic roles;
+- typed final result contracts.
+
+Do not port Internet's Team runtime, TeamPlan persistence, account scheduler, or website-session identity into AgentOS Team semantics.
+
+A later Internet-backed continuable subagent provider can let DSH Agent Teams host website-native teammates without creating a second Team engine.
+
+See [DSH Agent Teams first adaptation](../research/agent-team-dsh-first-adaptation.md).
 
 Workflow sees one Agent Team WorkItem result; it does not persist Team member turns/tasks as Workflow nodes by default.
 
@@ -781,13 +813,14 @@ Open questions are now:
 2. Validate the single-Host DSH Storage Domain provider: one aggregate WorkflowRun record, restart reconstruction, reconciliation, and backend-independent semantics.
 3. Which Workflow semantics must remain provider-independent if the durable runtime is later replaced?
 4. What is the minimal Agent Team semantic contract for research, critique, review, synthesis, and artifact/result projection?
-5. Which parts of the current `internet` Team behavior are semantic Agent Team responsibilities versus implementation details?
-6. Can DSH Agent Teams serve as an implementation substrate for some Agent Team semantics without becoming the semantic definition?
-7. How should Workflow call Agent Team and workers without coupling to one provider/runtime?
-8. Does AgentOS need any durable identity/state independent of DSH and delegated Workflow providers?
-9. Use the software vertical slice v0 and restart crash matrix to prove Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end and promote only semantics that are actually required.
-10. Which long-running operations need MCP Tasks or another transport projection after the Workflow contract is clear?
-11. What compatibility/version contract should AgentOS declare against DSH?
+5. Which Internet Team reasoning policies should be ported onto DSH Agent Teams, and which runtime mechanics should be deleted rather than copied?
+6. Which DSH Agent Teams operations are needed by the AgentOS policy adapter, and which must remain hidden provider details?
+7. What is the smallest future Internet-backed continuable teammate provider seam for website-native members?
+8. How should Workflow call Agent Team and workers without coupling to one provider/runtime?
+9. Does AgentOS need any durable identity/state independent of DSH and delegated Workflow providers?
+10. Use the software vertical slice v0 and restart crash matrix to prove Local -> Workflow -> Agent Team -> Worker -> Validation/Review end-to-end and promote only semantics that are actually required.
+11. Which long-running operations need MCP Tasks or another transport projection after the Workflow contract is clear?
+12. What compatibility/version contract should AgentOS declare against DSH?
 
 ## Acceptance criteria
 
