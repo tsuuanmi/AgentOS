@@ -8,6 +8,30 @@
 
 A Team member is a **Worker**, not a hard-coded persona.
 
+Worker integration is split into five responsibility layers:
+
+~~~text
+Contract
+  shared semantic meaning and minimum guarantees
+
+Schema
+  machine-checkable structural shape
+
+MCP
+  Website-facing callable transport operations
+
+Skill
+  agent guidance for when/how to compose operations
+
+Server/domain logic
+  current identity, authorization, lifecycle, fencing,
+  idempotency, durability, and semantic completion
+~~~
+
+No layer substitutes for another. MCP does not define Worker semantics. Skills are guidance, not correctness/security boundaries. JSON Schema proves structural validity, not current application truth. Server/domain enforcement remains authoritative for current state.
+
+See [Worker boundary model](../architecture/worker-boundaries.md) and [Worker usage guidance](../skills/worker-usage.md).
+
 Workers are selected by capabilities.
 
 ~~~text
@@ -166,66 +190,47 @@ Canonical schema:
 
 Provider/model names are not capabilities.
 
-## Structured prompt rule
+## Operating-guidance boundary
 
-Do not invent a materially different control prompt for every run.
+The contract defines stable Worker semantics and minimum capability guarantees.
 
-The Website Agent receives:
+Detailed agent operating methodology belongs in [Worker usage guidance](../skills/worker-usage.md) or an equivalent provider-native Skill/instruction surface. That guidance may teach sequencing, independent-first work, debate, TDD, review, and synthesis methodology.
 
-1. one stable operating contract derived from its required capabilities;
-2. one structured WorkerAssignment;
-3. later Message objects when new evidence/context arrives.
+A Skill must not redefine Worker object semantics, MCP tool signatures, canonical schema fields, identity/authorization rules, or lifecycle/fencing/idempotency/completion rules.
 
-Provider adapters may render structured JSON into host-friendly prompt text, but they must preserve the fields and semantics.
+A host without Agent Skills must still be able to use the Worker interface correctly through the contract, schemas, MCP tool descriptions, and server validation alone.
 
-The objective/context change; the control protocol does not.
+Provider adapters may render structured assignments/Messages into host-friendly prompt text, but they must preserve canonical fields and semantics. The objective/context change; the control protocol does not.
 
-## Capability semantics
+## Minimum capability guarantees
 
 ### research
 
-- gather relevant evidence;
-- distinguish observations from inference;
-- return implementation-relevant findings.
+A Worker advertising `research` must produce evidence-grounded findings and distinguish observed evidence from inference where that distinction affects the result.
 
 ### brainstorm
 
-- explore multiple viable approaches;
-- identify tradeoffs;
-- avoid premature convergence.
+A Worker advertising `brainstorm` must produce multiple viable approaches or hypotheses with material tradeoffs when meaningful alternatives exist.
 
 ### debate
 
-- treat peer material as evidence, not authority;
-- challenge unsupported claims;
-- revise when stronger evidence appears;
-- return a stronger final position.
+A Worker advertising `debate` must consume structured peer evidence, evaluate it rather than treat it as authority, and revise its current position when warranted.
 
 ### implement
 
-- convert accepted objective/context into concrete changes;
-- use authorized environment actions through the local bridge;
-- report actual attempted work and blockers.
+A Worker advertising `implement` must produce concrete changes or a precise blocker report against the accepted objective/context and must not represent unverified intended effects as completed effects.
 
 ### tdd
 
-- behavioral changes follow Red -> Green -> Refactor;
-- tests are executable specification;
-- never claim Green without real test evidence.
+A Worker advertising `tdd` must perform behavioral changes through Red -> Green -> Refactor and must not claim Green without real test evidence.
 
 ### review
 
-- inspect exact current input;
-- find material defects/regressions/spec violations;
-- challenge false positives;
-- return evidence-bound findings.
+A Worker advertising `review` must evaluate the exact current input and return evidence-bound material findings rather than generic advice.
 
 ### synthesize
 
-- combine required current Worker Artifacts;
-- prefer strongest-supported conclusions;
-- preserve unresolved disagreement when evidence does not converge;
-- emit the expected phase output schema.
+A Worker advertising `synthesize` must consume the required current Worker Artifacts, preserve material unresolved disagreement, and emit the declared output schema.
 
 ## Identity
 
@@ -265,20 +270,31 @@ If execution is superseded or rebound, the provider rotates `attemptId`. Late in
 
 Do not derive `attemptId` from an MCP session, tunnel, browser tab, conversation id, model, or provider.
 
-## Completion
+## Completion semantics
 
 A Website response is not automatically assignment completion.
 
-A terminal completion Artifact is current only when:
+- a `contribution` Artifact is durable work product but non-terminal;
+- a `completion` Artifact is a candidate terminal work product;
+- a phase or Workflow item does not complete merely because a Website response or Team message exists.
 
-1. `workerId` and `assignmentId` match the active assignment;
-2. `attemptId` matches the current Website execution attempt;
-3. `inputBinding` is current;
-4. required capabilities are satisfied;
-5. output validates against the declared schema;
-6. the submission is durably persisted.
+## Server-enforced invariants
 
-Intermediate `contribution` does not terminate the assignment.
+The Worker server/provider is authoritative for current application truth. Before accepting a current Artifact or lifecycle transition it must enforce, as applicable:
+
+1. the caller is authorized for the addressed Worker/assignment;
+2. `workerId` and `assignmentId` identify the active assignment;
+3. `attemptId` identifies the current provider execution attempt;
+4. `inputBinding` matches the exact current correctness-bearing input;
+5. the operation is valid in the current WorkerState;
+6. output validates structurally against the declared schema and dynamic `schemaRef`;
+7. idempotency keys have not been reused with conflicting content;
+8. stale, superseded, or cancelled attempts cannot commit;
+9. accepted state/result changes are durably persisted before acknowledgement.
+
+These checks are not delegated to Skills, MCP session identity, or JSON Schema. Schema validation can reject malformed data; it cannot prove that an otherwise well-shaped handle is current or authorized.
+
+Intermediate `contribution` Artifacts do not terminate the assignment.
 
 ## Peer communication
 
