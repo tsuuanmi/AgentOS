@@ -4,6 +4,7 @@ Research is exploratory and non-normative. It collects evidence needed to decide
 
 ## Current research
 
+- [Durable long-running Workflow over DSH](workflow-long-running-dsh-runtime.md) — define the single-Host v1 runtime that survives Local/client disconnect and Host restart by combining DSH Storage Domain, cold Session resume, reconciliation, and existing execution plugins.
 - [Internet Workflow concept classification](workflow-internet-concept-classification.md) — classify current/vNext Internet concepts into v1 core, DSH reuse, Agent Team, software profile, adapter detail, defer, or do-not-adopt.
 - [Workflow semantic contract v0](workflow-semantic-contract-v0.md) — provisional minimal durable WorkflowRun/WorkItem/PendingAction/Result semantics after DSH reuse; deliberately avoids inventing a new engine.
 - [Workflow DSH reuse](workflow-dsh-reuse.md) — map durable Workflow semantics against existing DSH workflow/jobs/goals/schedule/subagent/Agent Teams/approval primitives and identify the remaining semantic gap.
