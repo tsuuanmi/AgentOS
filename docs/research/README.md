@@ -10,7 +10,6 @@ These still contain unresolved provider/implementation questions:
 
 - [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) — DSH Team authority/reuse map, teammate continuation limits, dedicated-root strategy, result bridging.
 - [Agent Team software flow v0](agent-team-software-flow-v0.md) — research/brainstorm/debate -> implementation -> review flow.
-- [DSH Agent Teams first adaptation](agent-team-dsh-first-adaptation.md) — transition from Internet Team behavior onto DSH Agent Teams.
 - [Workflow restart and reconciliation v0](workflow-restart-reconciliation-v0.md) — crash matrix and unknown-outcome recovery.
 - [Software Workflow vertical slice v0](workflow-software-vertical-slice-v0.md) — proving software flow.
 - [Durable long-running Workflow over DSH](workflow-long-running-dsh-runtime.md) — first DSH-backed Workflow provider.
@@ -20,6 +19,7 @@ These still contain unresolved provider/implementation questions:
 
 These explain how the current contracts were derived but are no longer canonical specifications:
 
+- [DSH Agent Teams first adaptation](agent-team-dsh-first-adaptation.md) — historical decision path; superseded where it conflicts with the current per-member Website Agent binding model.
 - [Agent Team semantic contract v0](agent-team-semantic-contract-v0.md) — superseded by [canonical Agent Team contract](../contracts/agent-team.md) where overlapping.
 - [Workflow semantic contract v0](workflow-semantic-contract-v0.md) — superseded by [canonical Workflow contract](../contracts/workflow.md) where overlapping.
 - [Internet Workflow concept classification](workflow-internet-concept-classification.md) — pruning/classification evidence.
