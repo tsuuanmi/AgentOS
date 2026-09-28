@@ -26,6 +26,22 @@ DSH Agent Team / local runtime
 
 MCP transports Worker semantics; it does not redefine them.
 
+## Responsibility boundary
+
+~~~text
+MCP      = callable transport operations
+Skill    = agent usage guidance
+Schema   = structural shape
+Contract = shared semantic meaning
+Server   = current application truth
+~~~
+
+Tool descriptions stay concise and operation-local. Do not embed full research/debate/TDD/review methodology in MCP descriptions, and do not duplicate canonical schema definitions in prose.
+
+Skills are optional guidance; correctness must not depend on a host loading one.
+
+See [Worker boundary model](../architecture/worker-boundaries.md) and [Worker usage guidance](../skills/worker-usage.md).
+
 ## Reachability
 
 For OpenAI-hosted Website Agents, Secure MCP Tunnel is a strong default:
@@ -263,15 +279,15 @@ Sampling is deprecated in current MCP for new integrations.
 
 Website reasoning should occur in the Website Agent that is already acting as the MCP client.
 
-## Delivery and idempotency semantics
+## Delivery projection
 
-`claim` is atomic for one Worker assignment and returns the current `attemptId`.
+The MCP adapter projects the Worker contract's delivery model without owning it.
 
-`receive` requires that current attempt and is at-least-once. The Website client de-duplicates by `inputId`. The returned `nextCursor` is presented on the next receive call to advance the read position; repeating an older cursor may replay already-seen inputs safely.
+- `claim` returns the application `attemptId` produced by the Worker provider;
+- `receive` may use at-least-once delivery with a cursor, so replay-safe clients de-duplicate Messages by application id;
+- `submit` carries the application artifact/submission id used by server-side idempotency enforcement.
 
-`submit` requires the current `attemptId` in the WorkerSubmission and is idempotent by `submissionId`. Repeating the same current submission returns `duplicate`; reusing an id with different content is a protocol error. A submission from a superseded attempt is rejected even when `assignmentId` and `inputBinding` still match.
-
-These are application semantics and must be tested; JSON Schema alone cannot enforce them.
+Atomic claim, stale-attempt rejection, conflicting-id rejection, assignment/current-input checks, and durable commit-before-ack are server/domain invariants defined by the Worker contract rather than MCP-specific semantics.
 
 ## MCP schemas
 
@@ -324,17 +340,16 @@ Do not let connector-global mutable state decide which assignment a tool call be
 
 ## Conformance
 
-Tests should prove:
+MCP adapter tests should prove:
 
 - Website Agent is treated as MCP client and local bridge as server;
-- one MCP server/tunnel may host several explicit Workers without identity collision;
-- MCP session/tunnel identity never substitutes for workerId/assignmentId;
-- claim is atomic;
-- receive returns only current assignment input;
-- receive and submit reject stale worker/assignment/attempt/input bindings;
-- contributions do not terminate an assignment;
-- completion is durable before acknowledgement;
-- inactive Website conversations leave work queued rather than falsely failed;
+- tool discovery exposes the intended small Website-facing surface;
+- MCP session/tunnel identity is never substituted for application handles;
+- tool envelopes preserve canonical Worker data semantics;
+- cursor/replay behavior is transported consistently;
+- inactive Website conversations leave durable work queued rather than being projected as transport failure;
 - MCP Task id never becomes assignment id;
-- MCP and direct/local API preserve the same canonical data semantics;
-- advertised MCP schemas are generated from canonical repository schemas.
+- MCP and direct/local API preserve the same canonical semantic objects;
+- advertised MCP schemas are deterministically generated/bundled from canonical repository schemas.
+
+Contract/server conformance separately proves atomic claim, authorization, stale-attempt/input fencing, idempotency conflict handling, and durable completion.
