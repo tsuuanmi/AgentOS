@@ -38,7 +38,7 @@ Accepted conclusions must be promoted into architecture/contracts/source/tests.
 
 When a lower-authority document overlaps canonical architecture/contracts, the canonical document wins.
 
-## Current v1 contracts
+## Current contracts
 
 - [Workflow](contracts/workflow.md)
 - [Agent Team](contracts/agent-team.md)
@@ -49,6 +49,8 @@ When a lower-authority document overlaps canonical architecture/contracts, the c
 
 Canonical JSON Schemas live at repository root under [`/schemas`](../schemas/README.md), not under `docs/`.
 
-- [Worker request](../schemas/worker-request.schema.json)
-- [Worker result](../schemas/worker-result.schema.json)
-- [Worker message](../schemas/worker-message.schema.json)
+- [Worker common definitions](../schemas/worker-common.schema.json)
+- [Worker capabilities](../schemas/worker-capabilities.schema.json)
+- [Worker assignment](../schemas/worker-assignment.schema.json)
+- [Worker input](../schemas/worker-input.schema.json)
+- [Worker submission](../schemas/worker-submission.schema.json)
