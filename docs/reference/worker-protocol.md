@@ -1,8 +1,8 @@
 # Worker Protocol
 
-- **Status:** canonical contract
+- **Status:** canonical / living reference
 - **Owner:** AgentOS Agent Team capability
-- **Purpose:** define the stable, capability-driven data protocol between local Team Workers and Website Agents.
+- **Purpose:** define the exact, stable, capability-driven protocol between local Team Workers and Website Agents.
 
 ## Principle
 
@@ -360,8 +360,8 @@ The Agent Team provider owns Worker selection, queueing, Website exchange, peer 
 
 ## Related specifications
 
-- [Worker API](../api/worker-api.md) — local application interface.
-- [MCP Worker transport](../mcp/worker-transport.md) — Website-facing MCP profile.
+- [Worker API](worker-api.md) — local application interface.
+- [MCP Worker transport](mcp-worker-transport.md) — Website-facing MCP profile.
 - [Schema registry](../../schemas/README.md) — canonical machine-readable contracts.
 
 ## Conformance direction

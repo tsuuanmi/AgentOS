@@ -1,9 +1,9 @@
 # Website Agent bridge protocol 
 
 - **Status:** active provider research
-- **Canonical semantics:** [Worker Protocol](../contracts/worker-protocol.md), [Agent Team contract](../contracts/agent-team.md)
-- **API:** [Worker API](../api/worker-api.md)
-- **MCP mapping:** [MCP Worker transport](../mcp/worker-transport.md)
+- **Canonical semantics:** [Worker Protocol](../reference/worker-protocol.md), [Agent Team contract](../requirements/agent-team.md)
+- **API:** [Worker API](../reference/worker-api.md)
+- **MCP mapping:** [MCP Worker transport](../reference/mcp-worker-transport.md)
 - **Schemas:** [repository `/schemas`](../../schemas/README.md)
 - **Goal:** implement a capability-driven Worker bridge from DSH Team members to Website Agents without inventing role-specific prompts or a second Team runtime.
 
@@ -238,7 +238,7 @@ The phase result is durably committed before the Agent Team provider reports com
 
 The provider research remains transport-neutral.
 
-Use [Worker API](../api/worker-api.md) for callable operations and [MCP Worker transport](../mcp/worker-transport.md) only when MCP is the selected transport.
+Use [Worker API](../reference/worker-api.md) for callable operations and [MCP Worker transport](../reference/mcp-worker-transport.md) only when MCP is the selected transport.
 
 Canonical request/result/message validation comes from repository-root [`/schemas`](../../schemas/README.md).
 

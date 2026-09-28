@@ -2,7 +2,7 @@
 
 - **Status:** active implementation research
 - **Date:** 2026-09-28
-- **Canonical contracts:** [Agent Team](../contracts/agent-team.md), [Worker Protocol](../contracts/worker-protocol.md)
+- **Canonical contracts:** [Agent Team](../requirements/agent-team.md), [Worker Protocol](../reference/worker-protocol.md)
 - **Goal:** verify that the current API/MCP layering can support end-to-end communication between Local Agent, DSH Agent Team members, and Website Agents without collapsing all three boundaries into one protocol.
 
 ## Executive conclusion

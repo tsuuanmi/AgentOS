@@ -1,7 +1,7 @@
 # Agent Team software flow 
 
 - **Status:** active vertical-slice research
-- **Canonical semantics:** [Agent Team contract](../contracts/agent-team.md), [Worker Protocol](../contracts/worker-protocol.md)
+- **Canonical semantics:** [Agent Team contract](../requirements/agent-team.md), [Worker Protocol](../reference/worker-protocol.md)
 - **Goal:** prove one DSH Team + capability-driven Website Workers through research -> implementation -> review.
 
 ## Team run

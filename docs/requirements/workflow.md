@@ -1,6 +1,6 @@
-# Workflow contract
+# Workflow requirements
 
-- **Status:** canonical contract
+- **Status:** canonical / living requirements
 - **Owner:** AgentOS Workflow capability
 
 ## Purpose

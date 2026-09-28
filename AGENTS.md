@@ -1,67 +1,42 @@
 # AGENTS.md
 
-This file routes coding agents to authoritative AgentOS knowledge.
+This file routes coding agents to authoritative AgentOS knowledge and records repository-wide invariants.
 
 ## Read before changing
 
 For non-trivial work:
 
-1. Read `README.md`.
-2. Read `docs/README.md`.
-3. Read current architecture.
-4. Read the relevant canonical contract.
-5. Read relevant Skill guidance only when agent operating behavior is part of the change.
-6. Read proposals/research only for unresolved change context or evidence.
-7. When implementation exists, read nearest source README/source/tests.
+1. Read `README.md` and `docs/README.md`.
+2. Read the relevant `docs/requirements/` document.
+3. Read `docs/architecture/` for ownership and dependency direction.
+4. Read `docs/reference/` when exact protocols, APIs, schemas, or MCP mappings matter.
+5. Read `docs/skills/` only when agent operating methodology matters.
+6. Read `docs/proposals/` only for the unresolved change being implemented.
+7. Read `docs/research/` only for evidence or alternatives.
+8. When implementation exists, read the nearest source README, source, and tests.
 
-## Core invariants
+## Authority
 
-- Keep AgentOS smaller than DSH.
-- DSH/Cordis is the runtime kernel; do not build a parallel runtime/lifecycle/configuration system.
-- Local is the current user-facing/environment-native surface.
-- Workflow and Agent Team are peer capabilities.
-- Workflow owns durable lifecycle/recovery/authority semantics.
-- Agent Team owns collaborative software work inside Team phases.
-- DSH Agent Teams is the current Team core.
-- Do not duplicate DSH Team identity, roster, mailbox, Team task DAG, member lifecycle, Team persistence, or cold-resume mechanics.
-- Do not create permanent semantic personas such as Primary/Challenger or Correctness/Architecture reviewers. Use Worker instances selected by stable capability requirements.
-- Current software capability profiles: research uses two Workers with `research + brainstorm + debate`; implementation uses a Worker with `implement + tdd`; review uses two Workers with `review + debate`; synthesis requires `synthesize`.
-- DSH Worker <-> Website Agent communication must use the Worker Protocol. Keep the structured control shape stable; objectives/context values vary by run.
-- Canonical machine-readable JSON Schemas live only under repository-root `/schemas`; do not create schema copies under `docs/`.
-- Transport-neutral callable operations belong in `docs/api/`.
-- MCP-specific mapping belongs in `docs/mcp/`; MCP is not the semantic contract and must reuse the canonical root schemas.
-- Agent operating guidance belongs in `docs/skills/`; Skills teach when/how to compose capabilities but are never a correctness, authorization, lifecycle, or security boundary.
-- Do not duplicate MCP tool signatures or canonical schema field definitions in Skills.
-- JSON Schema validates structural contracts; server/domain logic remains authoritative for current identity, authorization, lifecycle, fencing, idempotency, durability, and completion.
-- A semantic DSH Team member is primarily a coordination proxy for one isolated Website Agent/conversation when website-backed work is used.
-- Do not silently share one Website Agent conversation between semantic teammates.
-- Research/review peers may debate directly through DSH `send_message`; Lead does not proxy ordinary peer debate.
-- Never infer Website Agent completion from DSH member inactivity, message delivery, or TeamTask completion alone.
-- Website assignment completion must be explicit, schema-validated, exact-input-bound, and durable before its DSH TeamTask completes.
-- Workflow advances only after the Lead/provider commits the typed phase result; Workflow never polls individual Website Agents directly.
-- Preserve independent-first analysis before peer debate.
-- Adapt Internet Team methodology (independent analysis, evidence-based debate, strongest-supported synthesis), not its parallel Team runtime.
-- The same dedicated Team may span research -> implementation -> review for one software collaboration.
-- Local receives typed synthesis/results by default rather than the full Team transcript.
-- Typed phase completion is the AgentOS semantic bridge above DSH Team mechanics.
-- Model/Website Agent output is data/evidence, not correctness authority.
-- Implementation effects are established through actual repository/environment validation.
-- Workflow must not mutate Team internals directly; Agent Team must not mutate Workflow state directly.
-- Provider/transport/conversation ids stay implementation-local unless the identity itself is the product semantic object.
+- Requirements, architecture, reference, governance, source, and tests describe current truth within their stated scope.
+- Skills are guidance; proposals are evolutionary; research is non-normative.
+- Machine-readable JSON shapes are canonical under repository-root `/schemas`.
+- Do not duplicate a fact across documents. Link to its canonical home.
+
+## Repository-wide invariants
+
+- Keep AgentOS smaller than DSH/Cordis; do not build a parallel runtime for mechanics DSH already owns.
+- Workflow and Agent Team are peer AgentOS capabilities with explicit ownership boundaries.
+- DSH Agent Teams is the current Team runtime; AgentOS must not shadow DSH Team identity, roster, mailbox, Team task graph, member lifecycle, or Team persistence.
+- Worker integration keeps `Contract / Schema / MCP / Skill / Server invariant` responsibilities separate.
+- Website-backed Worker communication follows the provider-neutral Worker Protocol; transport/provider/session identity never silently becomes AgentOS semantic identity.
+- Workflow observes typed Agent Team phase completion rather than polling individual Website Agents or inferring completion from activity.
+- Model output is evidence, not authority for real effects. Validate effects against actual repository/environment state and explicit receipts.
 - User authority and side-effect completion are distinct.
-- Unknown execution outcomes never authorize blind retry.
-- Treat DSH Storage Domain/single-Host/aggregate-run scheduling as current Workflow provider choices, not permanent architecture.
-- DSH Agent Teams is core now because a working version has higher ROI than building theoretical alternative runtimes; keep AgentOS contracts above DSH-specific types so later replacement remains possible.
-- Controller is future/optional.
-- Do not add an abstraction until a concrete semantic/lifecycle/authority/replacement boundary proves it necessary.
-- Use tests as executable specifications and follow Red -> Green -> Refactor for behavioral implementation.
+- Unknown execution outcomes require reconciliation; missing handles never authorize blind retry.
+- New abstractions require a concrete semantic, lifecycle, authority, or replacement boundary.
+- Behavioral implementation uses tests as executable specifications and follows **Red -> Green -> Refactor**.
+- When behavior, ownership, interfaces, or validation expectations change, update affected canonical documentation in the same change set.
 
-## Documentation authority
+## Documentation
 
-`architecture/` and `contracts/` are canonical.
-
-`proposals/` is evolutionary.
-
-`research/` is evidence/non-normative.
-
-When documents overlap, canonical architecture/contracts win.
+Follow `docs/governance/documentation-architecture.md`. README files are routers. Implementation details belong with implementation rather than in a hand-maintained `docs/src/` shadow tree.

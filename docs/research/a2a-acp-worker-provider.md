@@ -2,7 +2,7 @@
 
 - **Status:** active implementation research
 - **Date:** 2026-09-28
-- **Canonical semantics:** [Worker Protocol](../contracts/worker-protocol.md), [Agent Team](../contracts/agent-team.md)
+- **Canonical semantics:** [Worker Protocol](../reference/worker-protocol.md), [Agent Team](../requirements/agent-team.md)
 - **Goal:** reuse established agent-interoperability concepts without replacing AgentOS semantics or DSH Team runtime.
 
 ## Executive conclusion

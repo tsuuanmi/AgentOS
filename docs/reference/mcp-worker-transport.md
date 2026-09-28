@@ -1,8 +1,8 @@
 # MCP Worker transport
 
-- **Status:** canonical Website interoperability profile
-- **Worker semantics:** [Worker Protocol](../contracts/worker-protocol.md)
-- **Local API:** [Worker API](../api/worker-api.md)
+- **Status:** canonical / living integration reference
+- **Worker semantics:** [Worker Protocol](worker-protocol.md)
+- **Local API:** [Worker API](worker-api.md)
 - **Schemas:** [repository schemas](../../schemas/README.md)
 
 ## Purpose
@@ -96,7 +96,7 @@ Authentication principal may authorize access to a Worker, but does not become W
 
 Prefer a small Website-oriented surface.
 
-Canonical MCP tool-envelope schemas live under [`/schemas/mcp`](../../schemas/mcp/README.md).
+Canonical MCP tool-envelope schemas live under [`/schemas/mcp`](../../schemas/reference/README.md).
 
 ### agentos.worker.capabilities
 

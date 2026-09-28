@@ -2,7 +2,7 @@
 
 Research is exploratory and non-normative.
 
-Accepted conclusions live in [architecture](../architecture/README.md), [contracts](../contracts/README.md), [API](../api/README.md), [MCP](../mcp/README.md), and the root [schema registry](../../schemas/README.md). When research overlaps canonical documents, canonical documents win.
+Accepted conclusions live in [requirements](../requirements/README.md), [architecture](../architecture/README.md), [reference](../reference/README.md), source/tests, and the root [schema registry](../../schemas/README.md). When research overlaps canonical documents, canonical documents win.
 
 ## Active implementation research
 
@@ -20,8 +20,8 @@ Accepted conclusions live in [architecture](../architecture/README.md), [contrac
 ## Supporting evidence
 
 - [DSH Agent Teams first adaptation](agent-team-dsh-first-adaptation.md) — historical decision path; superseded where it conflicts with current Worker/MCP semantics.
-- [Agent Team semantic contract](agent-team-semantic-contract.md) — superseded by the [canonical Agent Team contract](../contracts/agent-team.md) where overlapping.
-- [Workflow semantic contract](workflow-semantic-contract.md) — superseded by the [canonical Workflow contract](../contracts/workflow.md) where overlapping.
+- [Agent Team semantic contract](agent-team-semantic-contract.md) — superseded by the [canonical Agent Team requirements](../requirements/agent-team.md) where overlapping.
+- [Workflow semantic contract](workflow-semantic-contract.md) — superseded by the [canonical Workflow requirements](../requirements/workflow.md) where overlapping.
 - [Internet Workflow concept classification](workflow-internet-concept-classification.md) — pruning/classification evidence.
 - [Internet architecture review](internet-architecture-review.md) — ownership/replaceability lessons.
 - [Plugin boundary inventory](plugin-boundary-inventory.md) — early hypotheses; not a package plan.

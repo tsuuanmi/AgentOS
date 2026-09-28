@@ -1,7 +1,7 @@
 # DSH Agent Teams core deep dive
 
 - **Status:** active provider research
-- **Canonical semantics:** [Agent Team contract](../contracts/agent-team.md)
+- **Canonical semantics:** [Agent Team contract](../requirements/agent-team.md)
 - **Goal:** identify the smallest DSH-backed implementation needed without duplicating DSH Team mechanics.
 
 ## Confirmed DSH ownership

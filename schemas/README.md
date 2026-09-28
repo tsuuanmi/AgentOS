@@ -2,7 +2,7 @@
 
 This directory contains canonical machine-readable JSON Schemas.
 
-Schemas are repository-level contracts and intentionally live outside `docs/`.
+Schemas are repository-level machine-readable reference contracts and intentionally live outside `docs/`.
 
 ## Worker Protocol
 
@@ -30,7 +30,7 @@ WorkerState
 
 Do not mechanically rename WorkerSubmission to Artifact because its current `input_required`, `failure`, and `cancelled` variants are lifecycle/control concerns rather than durable deliverables.
 
-MCP tool-envelope schemas live under [`schemas/mcp/`](mcp/README.md).
+MCP tool-envelope schemas live under [`schemas/mcp/`](reference/README.md).
 
 Portable payload examples live under [`schemas/examples/`](examples/README.md).
 
@@ -38,11 +38,11 @@ All Worker Protocol schemas declare JSON Schema Draft 2020-12 through `$schema`.
 
 That declaration identifies the JSON Schema dialect; it is not AgentOS product versioning.
 
-Human-readable semantics:
+Human-readable reference:
 
-- [Worker Protocol](../docs/contracts/worker-protocol.md)
-- [Worker API](../docs/api/worker-api.md)
-- [MCP Worker transport](../docs/mcp/worker-transport.md)
+- [Worker Protocol](../docs/reference/worker-protocol.md)
+- [Worker API](../docs/reference/worker-api.md)
+- [MCP Worker transport](../docs/reference/mcp-worker-transport.md)
 
 ## Responsibility boundary
 

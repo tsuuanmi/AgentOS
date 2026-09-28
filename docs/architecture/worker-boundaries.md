@@ -15,17 +15,17 @@ Skill    = agent usage guidance
 Server   = current application truth
 ~~~
 
-No layer may substitute for another.
+No layer may substitute for another. `Contract` here names a responsibility layer, not a documentation folder: normative product obligations belong in `requirements/`, while exact protocol/interface lookup belongs in `reference/`.
 
 ## Classification
 
 | Concern | Owner | Canonical home |
 |---|---|---|
-| meaning of Worker, Assignment, Message, Artifact, WorkerState | Contract | [Worker Protocol](../contracts/worker-protocol.md) |
-| minimum semantic guarantee of `research`, `tdd`, `review`, etc. | Contract | [Worker Protocol](../contracts/worker-protocol.md) |
+| meaning of Worker, Assignment, Message, Artifact, WorkerState | Contract | [Worker Protocol](../reference/worker-protocol.md) |
+| minimum semantic guarantee of `research`, `tdd`, `review`, etc. | Contract | [Worker Protocol](../reference/worker-protocol.md) |
 | required fields, discriminators, types, patterns, object shape | Schema | [`/schemas`](../../schemas/README.md) |
-| Website-facing `capabilities / claim / receive / submit / inspect` | MCP | [MCP Worker transport](../mcp/worker-transport.md) |
-| MCP Tasks, reachability, cursor projection, bundled tool schemas | MCP | [MCP Worker transport](../mcp/worker-transport.md) |
+| Website-facing `capabilities / claim / receive / submit / inspect` | MCP | [MCP Worker transport](../reference/mcp-worker-transport.md) |
+| MCP Tasks, reachability, cursor projection, bundled tool schemas | MCP | [MCP Worker transport](../reference/mcp-worker-transport.md) |
 | independent-first method, peer challenge/revision, TDD/review/synthesis method | Skill | [Worker usage guidance](../skills/worker-usage.md) |
 | caller authorization, current `attemptId` / `inputBinding` | Server invariant | Worker provider/runtime + tests |
 | lifecycle validity, stale-attempt fencing, idempotency conflicts | Server invariant | Worker provider/runtime + tests |

@@ -1,6 +1,6 @@
-# Agent Team contract
+# Agent Team requirements
 
-- **Status:** canonical contract
+- **Status:** canonical / living requirements
 - **Owner:** AgentOS Agent Team capability
 - **Runtime core:** DSH Agent Teams
 
@@ -50,7 +50,7 @@ SYNTHESIS
 
 Worker instances, providers, models, and objectives may vary.
 
-Capability requirements and the [Worker Protocol](worker-protocol.md) remain stable.
+Capability requirements and the [Worker Protocol](../reference/worker-protocol.md) remain stable.
 
 Specialized perspectives should be expressed as additional capabilities such as:
 
@@ -75,7 +75,7 @@ research -> implementation -> review
 
 This preserves Team-level continuity while separate Worker instances/Website bindings preserve independent reasoning where needed.
 
-A future Team provider may choose another topology while preserving this contract.
+A future Team provider may choose another topology while preserving these requirements.
 
 ## Worker and Website Agent
 
@@ -114,9 +114,9 @@ All Website-backed Worker exchange uses:
 - [WorkerSubmission](../../schemas/worker-submission.schema.json)
 - [WorkerCapabilities](../../schemas/worker-capabilities.schema.json)
 
-Local application semantics are documented in [Worker API](../api/worker-api.md).
+Local application semantics are documented in [Worker API](../reference/worker-api.md).
 
-Website interoperability is documented in [MCP Worker transport](../mcp/worker-transport.md).
+Website interoperability is documented in [MCP Worker transport](../reference/mcp-worker-transport.md).
 
 ## MCP boundary
 
@@ -320,7 +320,7 @@ DSH-specific types remain behind the implementation boundary because DSH Agent T
 
 DSH Agent Teams is the current implementation because shipping a working system has higher value than building a second Team runtime.
 
-A future Team runtime can replace it if this contract and the Worker Protocol remain satisfied.
+A future Team runtime can replace it if these requirements and the Worker Protocol remain satisfied.
 
 ## Conformance direction
 

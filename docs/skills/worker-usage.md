@@ -1,8 +1,8 @@
 # Worker usage guidance
 
 - **Status:** integration / living guidance
-- **Semantic authority:** [Worker Protocol](../contracts/worker-protocol.md)
-- **Callable Website surface:** [MCP Worker transport](../mcp/worker-transport.md)
+- **Semantic authority:** [Worker Protocol](../reference/worker-protocol.md)
+- **Callable Website surface:** [MCP Worker transport](../reference/mcp-worker-transport.md)
 - **Structural contracts:** [repository schemas](../../schemas/README.md)
 
 ## Purpose

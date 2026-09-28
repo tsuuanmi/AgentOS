@@ -447,4 +447,3 @@ When that happens:
 - shared conformance tests prove substitution.
 
 This is a stronger boundary than a generic "delegation policy" package and may become relevant earlier if AgentOS begins composing heterogeneous execution backends.
-

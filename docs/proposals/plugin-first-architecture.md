@@ -12,11 +12,11 @@ This proposal contains only remaining implementation decisions and open question
 Current accepted semantics live in:
 
 - [Architecture](../architecture/README.md)
-- [Workflow contract](../contracts/workflow.md)
-- [Agent Team contract](../contracts/agent-team.md)
-- [Worker Protocol](../contracts/worker-protocol.md)
-- [Worker API](../api/worker-api.md)
-- [MCP Worker transport](../mcp/worker-transport.md)
+- [Workflow requirements](../requirements/workflow.md)
+- [Agent Team requirements](../requirements/agent-team.md)
+- [Worker Protocol](../reference/worker-protocol.md)
+- [Worker API](../reference/worker-api.md)
+- [MCP Worker transport](../reference/mcp-worker-transport.md)
 - [Schema registry](../../schemas/README.md)
 
 Research documents are evidence, not authority.
@@ -77,7 +77,7 @@ Canonical schemas live under repository-root `/schemas`.
 
 ### Local application direction
 
-The Agent Team provider uses [Worker API](../api/worker-api.md):
+The Agent Team provider uses [Worker API](../reference/worker-api.md):
 
 ~~~text
 enqueueAssignment

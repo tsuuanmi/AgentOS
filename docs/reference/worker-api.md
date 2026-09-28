@@ -1,7 +1,7 @@
 # Worker API
 
-- **Status:** canonical
-- **Semantic contract:** [Worker Protocol](../contracts/worker-protocol.md)
+- **Status:** canonical / living reference
+- **Semantic contract:** [Worker Protocol](worker-protocol.md)
 - **Schemas:** [repository schemas](../../schemas/README.md)
 
 ## Purpose
@@ -125,7 +125,7 @@ This distinction is required because an independent brainstorm contribution Arti
 
 The corresponding Website-facing MCP profile is documented separately:
 
-[MCP Worker transport](../mcp/worker-transport.md)
+[MCP Worker transport](mcp-worker-transport.md)
 
 Its tool direction is:
 
