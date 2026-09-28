@@ -1,86 +1,77 @@
-# Workflow definitions and profiles
+# Workflow definitions and Profiles
 
 - **Status:** canonical architecture
-- **Rule:** domain behavior is declarative; the semantic Workflow plugin remains domain-agnostic.
+- **Rule:** domain behavior is declarative; Workflow semantics remain domain-agnostic.
 
-## Mental model
+## Model
+
+~~~mermaid
+flowchart LR
+    Profile[Workflow Profile]
+    Definition[Workflow Definition]
+    Admit[Admission validation]
+    Run[WorkflowRun]
+    Items[WorkItems]
+    Plugins[Worker / Agent Team / effect adapters]
+
+    Profile --> Definition --> Admit --> Run --> Items
+    Items --> Plugins
+~~~
 
 ~~~text
 Workflow semantic plugin
-  = validation + semantic WorkItem/transition/recovery/acceptance policy
+  = validation + WorkItem/transition/recovery/acceptance semantics
 
 Workflow Definition
-  = declarative graph/policy consumed by the plugin
+  = declarative graph/policy
 
 Workflow Profile
-  = reusable Definition + Skills + schemas + adapter/provider dependencies
+  = Definition + Skills + schemas + plugin/provider requirements + defaults
 
 WorkflowRun
-  = one durable semantic instance bound to one exact Definition and input
-
-runtime implementation
-  = DSH primitives by default; optional plugin-backed substitute
+  = one durable semantic instance bound to exact Definition/input
 ~~~
 
-Software development is one Profile, not a special Workflow implementation.
+## Definition responsibilities
 
-## Semantic plugin owns
+A Definition may declare input contract, WorkItem graph, dependencies/transitions, semantic executor kind, required capabilities, Agent Team collaboration policy, expected domain result contract, recovery policy, human/external gates, and terminal result contract.
 
-- validation before effects;
-- exact Definition/input binding when reproducibility requires it;
-- semantic WorkItem/dependency/transition meaning;
-- current ExecutionBinding when recovery/replacement requires it;
-- product recovery policy;
-- typed result acceptance;
-- effect evidence requirements;
-- durable external-decision semantics when needed;
-- terminal convergence/reattachment.
+A Definition should not name ACP methods, A2A Task fields, DSH internal ids, Website browser selectors, or provider-specific lifecycle states.
 
-It does not need to implement generic queue/checkpoint/timer machinery itself.
-
-## Definition owns
-
-A Definition may declare:
-
-- input contract;
-- WorkItem graph;
-- dependencies/transitions;
-- execution adapter/provider kind;
-- required capabilities;
-- Agent Team collaboration policy;
-- expected result schema;
-- recovery policy;
-- human/external gates;
-- terminal result contract.
-
-Static Definition facts and runtime WorkItem state remain separate.
-
-## Profile owns
+## Profile responsibilities
 
 A Profile packages:
 
-- the Definition;
-- capability/Skill packs;
-- referenced schemas;
-- required plugins/adapters/providers;
-- optional provider preferences;
-- presentation metadata.
+~~~text
+Definition
+Skills / capability packs
+domain schemas
+required plugins
+provider preferences
+presentation metadata
+~~~
 
-Profile packaging is not runtime authority.
+A Profile may prefer Website research or local code execution, but the Definition still refers to semantic capabilities rather than protocol wire types.
 
-## Exact Definition binding
+## Admission flow
 
-Before work with effects begins, validate and bind the exact Definition and input used by the run.
+~~~mermaid
+flowchart TD
+    P[Profile + Definition + input]
+    Graph[Validate graph/transitions]
+    Plugins[Resolve required plugins]
+    Caps[Check capability satisfiability]
+    Contracts[Resolve domain contracts]
+    Bind[Bind exact Definition/input]
+    Run[Create WorkflowRun]
+    Fail[Reject before effects]
 
-Use an immutable snapshot, content digest, or immutable resource reference plus digest.
-
-Mutable deployment config affects new runs, not the semantics of an already admitted run unless an explicit migration mechanism exists.
-
-Inspection/recovery must be able to identify the exact Definition/input without reconstructing them from current mutable config.
-
-## Admission validation
-
-Fail before effects begin when the Definition contains an invalid dependency/transition, unavailable adapter, unsatisfied required capability, unresolved correctness-bearing schema, invalid terminal target, or another semantic/structural error.
+    P --> Graph --> Plugins --> Caps --> Contracts --> Bind --> Run
+    Graph -. invalid .-> Fail
+    Plugins -. unavailable .-> Fail
+    Caps -. unsatisfied .-> Fail
+    Contracts -. unresolved .-> Fail
+~~~
 
 ## Software-development example
 
@@ -92,7 +83,7 @@ capabilityPacks:
 workItems:
   research:
     executor: agent-team
-    requires: [research, brainstorm, debate]
+    requires: [research, brainstorm]
     team:
       workers: 2
       independentFirst: true
@@ -100,7 +91,7 @@ workItems:
 
   implement:
     dependsOn: [research]
-    executor: agent-team
+    executor: worker
     requires: [implement, tdd]
     output: implementation-report
 
@@ -112,7 +103,7 @@ workItems:
   review:
     dependsOn: [validate]
     executor: agent-team
-    requires: [review, debate]
+    requires: [review]
     team:
       workers: 2
       independentFirst: true
@@ -123,7 +114,7 @@ transitions:
   review.changes_required: implement
 ~~~
 
-This is illustrative configuration, not yet the canonical serialized schema.
+This is illustrative configuration; the serialized schema is not frozen yet.
 
 ## Scientific-research example
 
@@ -134,8 +125,10 @@ capabilityPacks:
 
 workItems:
   literature:
-    executor: agent-team
+    executor: worker
     requires: [literature-search, evidence-extraction]
+    prefer:
+      - website-agent
 
   synthesis:
     dependsOn: [literature]
@@ -144,55 +137,42 @@ workItems:
 
   analysis:
     dependsOn: [synthesis]
-    executor: analysis-adapter
+    executor: worker
     requires: [data-analysis]
 
   peer-review:
     dependsOn: [analysis]
     executor: agent-team
-    requires: [scientific-review, debate]
+    requires: [scientific-review]
 ~~~
 
-The same Worker/provider seams apply. A Website ACP provider may satisfy literature-search while a local tool-enabled provider handles analysis.
+The Website Agent may be controlled through ACP for the literature Worker execution and may collaborate with Team Members through A2A. Those protocol details stay below the Profile.
 
 ## Capability binding
 
-~~~text
-Profile
-  -> WorkItem requires capabilities
-  -> Agent Team/selector evaluates available provider guarantees
-  -> provider execution
-  -> typed result acceptance
+~~~mermaid
+flowchart LR
+    Item[WorkItem requires capabilities]
+    Kind{executor kind}
+    Worker[Worker selection]
+    Team[Agent Team policy]
+    Result[Domain/native accepted result]
+
+    Item --> Kind
+    Kind -- worker --> Worker --> Result
+    Kind -- agent-team --> Team --> Result
 ~~~
 
-No SoftwareWorker or ScientificWorker type is required.
+No SoftwareWorker or ScientificWorker runtime type is needed.
 
-## Adapter binding
+## Exact binding
 
-A Definition names semantic execution kinds, for example:
+Before effects begin, Workflow binds the exact Definition and input using a snapshot, digest, or immutable reference plus digest.
 
-~~~text
-agent-team
-local-effect
-subagent
-job
-bounded-workflow
-analysis-adapter
-external-service
-~~~
-
-The Workflow plugin resolves them through installed adapters.
-
-An unavailable adapter fails admission rather than silently degrading.
+Mutable deployment/Profile configuration affects new runs only unless an explicit migration mechanism is later designed.
 
 ## Config-only extension rule
 
-Adding a domain should require only a new Profile when its capabilities, adapters, and schemas already exist.
+A new domain should normally require only a Profile, Skills, capability requirements, domain result contracts, and plugin/provider configuration.
 
-When something is missing:
-
-- add a Skill/capability pack for methodology;
-- add a provider/adapter plugin for a new execution/effect mechanism;
-- add a domain result schema when structured validation is valuable.
-
-Do not change the Workflow semantic plugin merely to add domain vocabulary.
+Change Workflow core only when a new cross-domain semantic invariant is proven.
