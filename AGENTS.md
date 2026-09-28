@@ -15,13 +15,15 @@ For non-trivial work:
 ## Invariants
 
 - Keep AgentOS smaller than the harness it runs on.
-- Preserve the role-optimized interaction model: Controller = interaction plane; Local Agent = environment execution plane; Internet Team = external reasoning plane; Workflow = durable coordination plane.
-- Controller and Local are both valid user entry points; Controller is optional and Local must remain directly usable.
+- Prioritize the v1 interaction model: Local Agent + Workflow + Agent Team.
+- Local Agent is directly usable and is the current environment-native/user-facing surface.
+- Workflow is the durable coordination boundary and may outlive the originating Local connection when the provider contract claims durability.
+- Agent Team is the AgentOS semantic capability for collaborative/external reasoning; DSH Agent Teams and Internet-backed teams are implementations/substrates, not the semantic definition.
+- A Workflow may compose Agent Team and other capabilities directly; do not force every internal step through the Local Agent.
 - Treat "Local can do almost everything, but should not be forced to do everything" as a design principle.
-- A durable Workflow may outlive the originating Local/Controller connection when the provider contract claims durability.
-- A Workflow may compose Internet Team and other capabilities directly; do not force every internal step through the Local Agent.
-- Keep Controller, Local, Internet Team, and Workflow as replaceable roles/contracts rather than provider identities.
-- Preserve graceful degradation when optional Controller/Internet Team/provider capabilities are unavailable.
+- Keep Local, Workflow, and Agent Team as replaceable roles/contracts rather than provider identities.
+- Preserve graceful degradation when optional Agent Team/provider capabilities are unavailable.
+- Treat Controller integration as future/optional unless a concrete v1 requirement promotes it.
 - Do not build a second plugin runtime, loader, lifecycle manager, or configuration system beside DSH/Cordis.
 - Prefer DSH-native plugins, services, events, and bundles.
 - Own AgentOS semantics; compose DSH/public/external implementations.
