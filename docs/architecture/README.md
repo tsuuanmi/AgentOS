@@ -28,9 +28,8 @@ flowchart TB
     T --> D[DSH Agent Teams runtime]
     T --> WB[Worker boundary]
 
-    WB --> P[Provider execution]
-    P -->|Website MCP today| WA[Website Agent]
-    P -.->|future| AP[ACP / A2A / direct provider]
+    WB <-->|MCP Worker transport| WA[Website Agent]
+    WB -.->|future provider adapter| AP[ACP / A2A / direct agent]
 
     E --> V[Validation / observed state]
     T --> V
@@ -79,9 +78,9 @@ flowchart LR
         RT[tools / storage / sessions]
     end
 
-    subgraph P["Provider execution"]
-        MCP[Website Agent via MCP]
-        OTHER[ACP / A2A / direct]
+    subgraph P["External agent execution"]
+        WA[Website Agent]
+        OTHER[ACP / A2A / direct agent]
     end
 
     W -->|phase request| T
@@ -92,8 +91,8 @@ flowchart LR
     C --> WS
 
     DT --> RT
-    WS --> MCP
-    WS -.-> OTHER
+    WS -->|MCP Worker transport| WA
+    WS -.->|future provider adapter| OTHER
 ~~~
 
 The planes are conceptual ownership boundaries, not necessarily separate processes.
