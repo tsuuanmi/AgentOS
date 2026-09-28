@@ -161,9 +161,9 @@ Do not copy Internet source into AgentOS and do not import Internet Team/Workflo
 
 Keep Website provider drivers/browser internals below the core API.
 
-## 5. Website ACP + A2A adapters
+## 5. Website ACP runtime port + A2A peer port
 
-Build both protocol adapters over the **same core**.
+Build both adapters over the **same core**, but test them as different architectural boundaries.
 
 ### ACP Agent adapter
 
@@ -187,14 +187,14 @@ Tests cover:
 
 Start with bounded one-shot execution.
 
-### A2A Agent adapter
+### A2A peer adapter
 
 ~~~text
-Worker
-  -> AgentOS A2A provider/client
+Agent Team Member
+  -> A2A peer/client adapter
       -> A2A
           -> Website A2A Agent adapter/server
-              -> same Website Agent core
+              -> same Website Agent Core
 ~~~
 
 Use the official A2A SDK.
@@ -210,7 +210,7 @@ Tests cover:
 - zero AgentOS protocol extensions;
 - chat/research routing without inventing a custom A2A skill-selection extension.
 
-The generic A2A Worker provider/client and the Website A2A server adapter are separate sides of the protocol but share no Website browser logic.
+A2A is not part of Worker provider selection in the primary architecture. It is the peer collaboration boundary between Team Members and Website Agent.
 
 ## 6. Agent Team plugin
 
@@ -299,7 +299,7 @@ DSH/Cordis remains the Host.
 3. Worker plugin.
 4. characterize/refine the protocol-neutral Website core in `@tsuuanmi/internet`.
 5. Website ACP Agent adapter.
-6. generic A2A Worker provider/client + Website A2A Agent adapter.
+6. Agent Team Member A2A peer/client adapter + Website A2A Agent adapter.
 7. Agent Team plugin.
 8. software-development Profile.
 9. Workflow plugin.
