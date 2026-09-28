@@ -316,6 +316,46 @@ A durable Agent Team implementation may maintain independent state. Workflow may
 
 V1 does not require Agent Team to start Workflows. If that direction is introduced later, it should call the same public Workflow capability contract rather than privileged internals.
 
+## Agent Team v1 boundary
+
+Agent Team is a peer capability to Workflow and Local.
+
+Current research narrows v1 Agent Team semantics to the two operations already required by the software vertical slice:
+
+~~~text
+research
+review
+~~~
+
+The caller requests typed reasoning output. Provider internals remain hidden.
+
+The current Internet Team is primarily a reasoning protocol:
+
+~~~text
+Team plan
+member speaking order
+peer context
+provider routing
+synthesis
+~~~
+
+DSH Agent Teams is primarily a durable collaboration substrate:
+
+~~~text
+roster
+mailbox
+task board
+continuable teammates
+~~~
+
+Therefore neither implementation shape should define the AgentOS semantic contract.
+
+V1 should first adapt the current Internet-backed Team behind typed research/review request-result contracts. DSH Agent Teams can later be evaluated as an alternative implementation substrate against the same conformance tests.
+
+Workflow sees one Agent Team WorkItem result; it does not persist Team member turns/tasks as Workflow nodes by default.
+
+See [Agent Team semantic contract v0](../research/agent-team-semantic-contract-v0.md).
+
 ## Workflow reuse rule
 
 Workflow research confirms that AgentOS should **not build another generic workflow engine**.
@@ -733,7 +773,7 @@ Do not pre-create additional AgentOS semantic packages merely to mirror these pa
 
 ## Research questions
 
-Current research priority is **Workflow first, Agent Team second, Controller later**.
+Current research priority is **freeze Workflow semantics, lock the minimal Agent Team research/review contract, then stop architecture expansion and move to executable conformance tests/TDD; Controller remains later**.
 
 Open questions are now:
 
