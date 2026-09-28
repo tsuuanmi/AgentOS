@@ -1,58 +1,89 @@
 # AgentOS
 
-AgentOS is a lightweight, plugin-first **interactive agent system** designed to run on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) while separating user interaction, local execution, external reasoning, and durable coordination.
+AgentOS is a lightweight DSH-native system for **durable collaborative agent work**.
 
-The project is intentionally small. AgentOS should not become a second harness, runtime, plugin manager, lifecycle engine, or orchestration kernel. DSH owns composition and plugin lifecycle. AgentOS follows a contract-first rule: **own AgentOS semantics, compose implementations**, and add an AgentOS-specific component only when an existing DSH/public contract cannot preserve the required meaning.
+It does not replace DeepSeek Harness. DSH owns runtime mechanics; AgentOS adds only the product semantics needed to turn those mechanics into coherent long-running collaborative work.
 
-## Interaction
+## V1 model
 
-AgentOS v1 is centered on three capabilities:
+~~~text
+                         User
+                          |
+                          v
+                     Local Agent
+                    /           \
+                   v             v
+             Agent Team       Workflow
+                  ^              |
+                  |              |
+                  +--------------+
+                         |
+                    real effects
+                         |
+                    Validation
+~~~
 
-```text
-Local Agent
-  direct interaction + environment-native execution
+- **Local** — direct user interaction and environment-native work.
+- **Agent Team** — collaborative research, debate, implementation, review, synthesis.
+- **Workflow** — durable lifecycle, recovery, waiting, authority, reattachment.
+- **DSH** — runtime kernel and Team/Agent/session/tool/storage mechanics.
 
-Workflow
-  durable coordination + recovery + authority
+## Agent Team
 
-Agent Team
-  research + critique + review + synthesis
-```
+V1 uses **DSH Agent Teams as the core Team runtime**.
 
-The primary v1 flow is:
+AgentOS does not build another roster, mailbox, Team task graph, member lifecycle, or Team persistence layer.
 
-```text
-User
-  <-> Local Agent
-        +-> Agent Team
-        +-> Workflow
-              +-> Agent Team
-              +-> Local/external workers
-              +-> Validation / Review
-```
+Instead, AgentOS adds collaboration semantics and a typed completion bridge.
 
-**Local can do almost everything, but AgentOS should not force Local to do everything.**
+A DSH Team member is primarily a local coordination proxy for one isolated Website Agent/conversation:
 
-"Agent Team" is the semantic capability name. It is independently usable from Local and may also be invoked by Workflow. Workflow does not own Team members or Team lifecycle; it consumes Agent Team through a semantic request/result boundary. V1 uses DSH Agent Teams as the Team runtime and adapts Internet Team's research/review reasoning policies on top. A future Internet-backed teammate provider can restore website-native members without introducing a second Team runtime. A remote Controller may be added later without changing these boundaries.
+~~~text
+DSH researcher A <-> Website Agent A
+DSH researcher B <-> Website Agent B
+DSH implementer  <-> Website Agent I
+DSH reviewer A   <-> Website Agent RA
+DSH reviewer B   <-> Website Agent RB
+DSH Lead         <-> Website Agent S / synthesis
+~~~
 
-See [the interaction model](docs/architecture/interaction-model.md).
+Research/review peers debate directly through DSH Team messaging. Local receives compact synthesis/results by default rather than the internal Team transcript.
 
-## Direction
+## Workflow
 
-- **AgentOS itself is a DSH plugin/bundle**, not a standalone runtime.
-- **DSH/Cordis is the core** for boot, lifecycle, composition, configuration, loading, and disposal.
-- **Reuse before ownership**: prefer an existing DSH plugin/service or public tool over implementing an AgentOS subsystem.
-- **Own semantics, compose implementations**: stable AgentOS contracts sit above DSH/public/external implementations only when AgentOS must own the meaning.
-- **AgentOS plugins fill real semantic gaps**: do not create a component merely because a policy/helper looks reusable.
-- **No wrapper-for-wrapper's-sake**: consume DSH contracts and public tools directly when their semantics already fit.
-- **Capabilities remain replaceable** when they need independent ownership, authority, failure isolation, lifecycle, or provider choice, with substitution proven by conformance tests.
-- **Transport is projection, not truth**: DSH job/MCP task/worker handles must not silently become AgentOS semantic identities.
-- **Composition is explicit**: a default AgentOS experience may bundle plugins, but the bundle is not the architecture.
-- **No speculative core**: shared code belongs in a minimal library only when multiple plugins require the same invariant or contract.
-- **Separate architecture from provider decisions**: DSH Storage Domain, single-Host ownership, aggregate run storage, and a derived in-memory scheduler are v1 provider choices unless promoted by cross-provider evidence.
+Workflow is a thin durable semantic layer over DSH primitives, not another general-purpose workflow engine.
 
-See [docs/README.md](docs/README.md) for the documentation map and the current [plugin-first architecture proposal](docs/proposals/plugin-first-architecture.md).
+It owns durable phase lifecycle, recovery, pending actions, exact-input result binding, and authority/effect separation.
+
+Workflow may reuse the same dedicated Agent Team across:
+
+~~~text
+research -> implementation -> validation -> review -> remediation
+~~~
+
+## Principles
+
+- **Own AgentOS semantics; reuse DSH machinery.**
+- **DSH Agent Teams is the practical core today; replaceability comes from keeping AgentOS contracts above DSH-specific types, not from building a second runtime now.**
+- **Team debate stays peer-to-peer where DSH already supports it.**
+- **Website Agents do the substantive provider-native work; DSH teammates provide Team coordination and bridging.**
+- **Model output is data/evidence, not correctness authority.**
+- **Validation comes from the real environment.**
+- **Provider/task/conversation handles do not become AgentOS semantic identities.**
+- **No speculative core.**
+
+## Documentation
+
+Start at [docs/README.md](docs/README.md).
+
+Canonical:
+
+- [Architecture](docs/architecture/README.md)
+- [Workflow contract](docs/contracts/workflow.md)
+- [Agent Team contract](docs/contracts/agent-team.md)
+
+Proposal/research documents are lower-authority change context and evidence.
 
 ## Status
 
-AgentOS is currently in architecture definition and research. Proposal and research documents are non-normative until promoted into current architecture, implementation, and tests.
+Architecture/contracts are being consolidated before implementation. Behavioral implementation will follow TDD: **Red -> Green -> Refactor**.
