@@ -58,12 +58,13 @@ If a future A2A extension is required, use A2A's native extension/metadata mecha
 
 - Provider/session/task ids remain provider handles.
 - Domain result schemas are preferred over a universal Worker result envelope.
+- Upstream ACP/A2A/DSH SDK types are preferred over AgentOS schemas that mirror them.
 - JSON Schema does not define authorization, lifecycle authority, recovery, or effect correctness.
 - New schema files require a concrete consumer and a concrete invariant.
 
 ## Related reference
 
-- [Worker Contract](../docs/reference/worker/contract.md)
-- [Execution binding](../docs/reference/worker/execution-binding.md)
+- [Worker Contract](../docs/architecture/plugins/worker/contract.md)
+- [Execution binding](../docs/architecture/plugins/worker/execution-binding.md)
 - [Minimal semantic delta](../docs/architecture/plugins/agentos/semantic-delta.md)
 - [Protocol stack](../docs/architecture/protocol-stack.md)
