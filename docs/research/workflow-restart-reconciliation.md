@@ -2,7 +2,7 @@
 
 - **Status:** active proving research
 - **Canonical semantics:** [Workflow requirements](../requirements/workflow/README.md)
-- **Scope:** crash-window evidence for the first Workflow provider and its TDD suite.
+- **Scope:** crash-window evidence for the first Workflow durable semantic layer and its TDD suite.
 
 ## Core rule
 
