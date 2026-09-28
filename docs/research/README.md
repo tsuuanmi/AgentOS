@@ -7,6 +7,7 @@ Accepted conclusions live in [architecture](../architecture/README.md), [contrac
 ## Active implementation research
 
 - [MCP Worker interoperability](mcp-worker-interoperability.md) — comparison of Coworker, repo-bridge, Codex ChatGPT Bridge, Web AI Local MCP Bridge, Bifrost, A2A, ACP, and modern MCP; establishes the Website-client/local-server pull/submit direction.
+- [A2A and ACP Worker provider research](a2a-acp-worker-provider.md) — standardizes Message/Artifact semantics, makes attempt fencing provider-neutral, prioritizes ACP as the second Worker provider, and keeps A2A for remote-agent interoperability.
 - [Local / Team Member / Website Agent communication review](agent-communication-api-mcp-review.md) — end-to-end communication matrix, Local-facing API gap, Website continuation feasibility, authorization/fencing review, and conformance scenarios.
 - [Website Agent bridge protocol](website-agent-bridge-protocol.md) — per-Worker Website binding, assignment/completion handshake, peer evidence flow, and restart recovery.
 - [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) — DSH Team authority/reuse map, teammate continuation limits, dedicated-root strategy, result bridging.
@@ -29,12 +30,15 @@ Accepted conclusions live in [architecture](../architecture/README.md), [contrac
 
 Highest ROI unresolved work:
 
-1. canonical Local-facing Agent Team API;
-2. Website continuation profile proving contribution -> later input -> revised completion;
-3. concrete Storage Domain shape for Worker binding/assignment/input/submission state;
-4. MCP `claim / receive / submit / inspect` schemas, attempt fencing, and authorization;
-5. typed durable phase completion;
-6. DSH-native research -> implementation -> review vertical slice;
-7. Workflow recovery around that same Team.
+1. normalize Worker vocabulary to Message / Artifact and separate lifecycle state from durable work products;
+2. canonical Local-facing Agent Team API;
+3. Website continuation profile proving contribution -> later Message -> revised Artifact;
+4. generalize attempt fencing and Worker provider state beyond Website-only semantics;
+5. concrete Storage Domain shape for Worker binding/assignment/message/artifact state;
+6. MCP `claim / receive / submit / inspect` schemas, attempt fencing, and authorization;
+7. ACP WorkerProvider spike after Website MCP proves the core flow;
+8. typed durable phase completion;
+9. DSH-native research -> implementation -> review vertical slice;
+10. Workflow recovery around that same Team.
 
 Do not add broader architecture until these are proven or blocked.
