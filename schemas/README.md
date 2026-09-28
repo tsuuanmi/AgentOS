@@ -60,7 +60,7 @@ State-transition correctness is enforced by the local server, not by schema alon
 
 ## Runtime validation beyond JSON Schema
 
-The following belong to [Worker server invariants](../docs/reference/worker-server-invariants.md):
+The following belong to [Worker Exchange invariants](../docs/reference/worker-exchange-invariants.md):
 
 - cross-object identity equality;
 - current-attempt fencing;
@@ -76,6 +76,6 @@ The following belong to [Worker server invariants](../docs/reference/worker-serv
 
 - [Worker Protocol](../docs/reference/worker-protocol.md)
 - [Worker API](../docs/reference/worker-api.md)
-- [Worker server invariants](../docs/reference/worker-server-invariants.md)
+- [Worker Exchange invariants](../docs/reference/worker-exchange-invariants.md)
 - [MCP Worker transport](../docs/reference/mcp-worker-transport.md)
 - [software-worker Skill](../.agents/skills/software-worker/SKILL.md)
