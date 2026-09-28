@@ -7,6 +7,7 @@ Accepted conclusions live in [architecture](../architecture/README.md), [contrac
 ## Active implementation research
 
 - [MCP Worker interoperability](mcp-worker-interoperability.md) — comparison of Coworker, repo-bridge, Codex ChatGPT Bridge, Web AI Local MCP Bridge, Bifrost, A2A, ACP, and modern MCP; establishes the Website-client/local-server pull/submit direction.
+- [Local / Team Member / Website Agent communication review](agent-communication-api-mcp-review.md) — end-to-end communication matrix, Local-facing API gap, Website continuation feasibility, authorization/fencing review, and conformance scenarios.
 - [Website Agent bridge protocol](website-agent-bridge-protocol.md) — per-Worker Website binding, assignment/completion handshake, peer evidence flow, and restart recovery.
 - [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) — DSH Team authority/reuse map, teammate continuation limits, dedicated-root strategy, result bridging.
 - [Agent Team software flow](agent-team-software-flow.md) — research/brainstorm/debate -> implementation -> review.
@@ -28,10 +29,12 @@ Accepted conclusions live in [architecture](../architecture/README.md), [contrac
 
 Highest ROI unresolved work:
 
-1. concrete Storage Domain shape for Worker binding/assignment/input/submission state;
-2. MCP `claim / receive / submit / inspect` schemas and authorization;
-3. typed durable phase completion;
-4. DSH-native research -> implementation -> review vertical slice;
-5. Workflow recovery around that same Team.
+1. canonical Local-facing Agent Team API;
+2. Website continuation profile proving contribution -> later input -> revised completion;
+3. concrete Storage Domain shape for Worker binding/assignment/input/submission state;
+4. MCP `claim / receive / submit / inspect` schemas, attempt fencing, and authorization;
+5. typed durable phase completion;
+6. DSH-native research -> implementation -> review vertical slice;
+7. Workflow recovery around that same Team.
 
 Do not add broader architecture until these are proven or blocked.
