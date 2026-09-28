@@ -57,7 +57,7 @@ They are not the definition of Worker.
 
 New capability packs can add domain capabilities without changing Worker Protocol identity.
 
-The current `software-worker` Skill is therefore an **initial software capability procedure pack**, not the canonical definition of Worker itself.
+The current `software-development` Skill is therefore an **initial software capability procedure pack**, not the canonical definition of Worker itself.
 
 ## Responsibility classification
 
