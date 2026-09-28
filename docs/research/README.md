@@ -1,28 +1,39 @@
 # Research
 
-Research is exploratory and non-normative. It collects evidence needed to decide AgentOS architecture without prematurely turning observations into contracts.
+Research is exploratory and non-normative.
 
-## Current research
+Accepted conclusions now live in [architecture](../architecture/README.md) and [contracts](../contracts/README.md). When research overlaps them, the canonical documents win.
 
-- [Agent Team software flow v0](agent-team-software-flow-v0.md) — one DSH Team collaboration spanning research (brainstorm + debate), implementation, and review (independent review + debate), with typed phase completion.
-- [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) — detailed authority/reuse map for roster, mailbox, Team tasks, continuation, provider limits, result bridging, and the exact AgentOS layer that should remain.
-- [DSH Agent Teams first adaptation](agent-team-dsh-first-adaptation.md) — use DSH Agent Teams as the v1 Team runtime and port Internet Team's research/review collaboration policies onto it; defer website-native teammates to a provider bridge.
-- [Agent Team semantic contract v0](agent-team-semantic-contract-v0.md) — minimal independently callable research/implementation/review phase capability above both Internet-backed reasoning protocols and DSH Agent Teams collaboration substrate.
-- [Workflow restart and reconciliation v0](workflow-restart-reconciliation-v0.md) — crash matrix for research/implementation/validation/review/PendingAction, execution admission/fencing, and the only valid recovery action after unknown outcomes.
-- [Software Workflow vertical slice v0](workflow-software-vertical-slice-v0.md) — prove the reduced durable model on research -> implementation -> validation -> review -> remediation/authority using DSH adapters.
-- [Durable long-running Workflow over DSH](workflow-long-running-dsh-runtime.md) — define the single-Host v1 runtime that survives Local/client disconnect and Host restart by combining DSH Storage Domain, cold Session resume, reconciliation, and existing execution plugins.
-- [Internet Workflow concept classification](workflow-internet-concept-classification.md) — classify current/vNext Internet concepts into v1 core, DSH reuse, Agent Team, software profile, adapter detail, defer, or do-not-adopt.
-- [Workflow semantic contract v0](workflow-semantic-contract-v0.md) — provisional minimal durable WorkflowRun/WorkItem/PendingAction/Result semantics after DSH reuse; deliberately avoids inventing a new engine.
-- [Workflow DSH reuse](workflow-dsh-reuse.md) — map durable Workflow semantics against existing DSH workflow/jobs/goals/schedule/subagent/Agent Teams/approval primitives and identify the remaining semantic gap.
-- [Internet architecture review](internet-architecture-review.md) — derive AgentOS ownership, contract, transport-projection, worker-adapter, and replaceability principles from the full Internet architecture/vNext corpus.
-- [Plugin boundary inventory](plugin-boundary-inventory.md) — earlier candidate inventory; candidate package boundaries are now subordinate to the contract-first rules in the architecture review and proposal.
+## Active implementation research
 
-## Initial research tracks
+These still contain unresolved provider/implementation questions:
 
-- DeepSeek Harness plugin and capability-seam model
-- AgentOS vs DSH responsibility map
-- `internet` module inventory: reuse, extract, replace, or discard
-- bundle vs root-plugin composition strategy
-- plugin compatibility/versioning and lifecycle testing
+- [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) — DSH Team authority/reuse map, teammate continuation limits, dedicated-root strategy, result bridging.
+- [Agent Team software flow v0](agent-team-software-flow-v0.md) — research/brainstorm/debate -> implementation -> review flow.
+- [DSH Agent Teams first adaptation](agent-team-dsh-first-adaptation.md) — transition from Internet Team behavior onto DSH Agent Teams.
+- [Workflow restart and reconciliation v0](workflow-restart-reconciliation-v0.md) — crash matrix and unknown-outcome recovery.
+- [Software Workflow vertical slice v0](workflow-software-vertical-slice-v0.md) — proving software flow.
+- [Durable long-running Workflow over DSH](workflow-long-running-dsh-runtime.md) — first DSH-backed Workflow provider.
+- [Workflow DSH reuse](workflow-dsh-reuse.md) — which DSH primitives are reused directly.
 
-Research conclusions become authoritative only when promoted into architecture, contracts, implementation, and tests.
+## Supporting evidence
+
+These explain how the current contracts were derived but are no longer canonical specifications:
+
+- [Agent Team semantic contract v0](agent-team-semantic-contract-v0.md) — superseded by [canonical Agent Team contract](../contracts/agent-team.md) where overlapping.
+- [Workflow semantic contract v0](workflow-semantic-contract-v0.md) — superseded by [canonical Workflow contract](../contracts/workflow.md) where overlapping.
+- [Internet Workflow concept classification](workflow-internet-concept-classification.md) — pruning/classification evidence.
+- [Internet architecture review](internet-architecture-review.md) — ownership/replaceability lessons.
+- [Plugin boundary inventory](plugin-boundary-inventory.md) — early hypotheses; not a package plan.
+
+## Current research focus
+
+Highest ROI unresolved work:
+
+1. durable per-member Website Agent binding;
+2. peer-to-peer DSH Team debate bridged to distinct Website Agents;
+3. typed durable phase completion;
+4. DSH-native research -> implementation -> review vertical slice;
+5. Workflow recovery around that same Team.
+
+Do not add broader architecture until these are proven or blocked.
