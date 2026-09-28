@@ -529,3 +529,87 @@ This boundary survives replacing:
 - provider-specific Website conversation mechanics.
 
 What remains stable is the Worker protocol and its explicit semantic handles.
+
+
+## Lessons from A2A and ACP
+
+Two adjacent standards are useful design references without becoming AgentOS transports.
+
+### A2A
+
+A2A is designed for independent/opaque agents and separates:
+
+~~~text
+Task
+Message
+Artifact
+capability discovery
+~~~
+
+The most useful lesson for AgentOS is:
+
+> **Communication messages are not durable task results.**
+
+AgentOS maps this principle as:
+
+~~~text
+DSH mailbox / WorkerInput
+  = communication
+
+WorkerSubmission contribution
+  = durable intermediate work product
+
+WorkerSubmission completion
+  = terminal Worker output
+
+AgentOS phase result
+  = durable synthesized phase output
+~~~
+
+Do not infer critical completion/result authority from chat/message delivery.
+
+A2A's capability discovery also supports the AgentOS decision to select Workers by capabilities rather than permanent personas.
+
+AgentOS does not adopt A2A as the Website transport now because current Website Agent integrations already expose MCP-style tool access and secure tunnel paths.
+
+### ACP
+
+ACP is a direct client/agent JSON-RPC protocol with explicit session identity, prompt/update/cancel/resume semantics.
+
+Useful lessons:
+
+- session/assignment identity should be explicit;
+- progress/update is distinct from terminal completion;
+- cancellation is first-class;
+- resumption should refer to explicit application identity.
+
+AgentOS maps those lessons to:
+
+~~~text
+workerId
+assignmentId
+WorkerInput
+WorkerSubmission
+cancelAssignment
+inspect/recovery
+~~~
+
+AgentOS does not use ACP as the Website transport because typical Website hosts do not expose ACP endpoints; ACP fits direct editor/local-agent integration better.
+
+### Result
+
+Do not stack protocols unnecessarily.
+
+~~~text
+A2A / ACP
+  -> semantic precedents
+
+AgentOS Worker Protocol
+  -> canonical application data model
+
+MCP
+  -> Website interoperability transport
+
+secure tunnel / HTTPS
+  -> reachability
+~~~
