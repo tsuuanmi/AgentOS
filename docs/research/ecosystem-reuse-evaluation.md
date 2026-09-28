@@ -35,11 +35,16 @@ The strongest candidates to learn from or potentially adopt more deeply are:
 - **Google ADK** for multi-agent composition, graph workflows, and A2A;
 - **LangGraph** for durable graph execution/recovery;
 - **CrewAI** for the Crews + Flows split;
-- **OpenAI Agents SDK** for minimal manager/handoff orchestration, structured handoffs, MCP, sessions, and sandboxed specialist execution.
+- **OpenAI Agents SDK** for minimal manager/handoff orchestration, structured handoffs, MCP, sessions, and sandboxed specialist execution;
+- **A2A 1.0** as the strongest standard candidate for remote Worker Task/Message/Artifact exchange;
+- **Agent Client Protocol (ACP)** as the strongest standard candidate for replaceable local coding-agent execution;
+- **Temporal/Inngest** as reference durable runtimes that set the bar for generic retry/checkpoint/wait mechanics.
 
 The immediate architecture implication is conservative:
 
-> Keep AgentOS as a thin semantic/composition layer over DSH while continuously testing whether an upstream framework can satisfy a semantic boundary better than custom code.
+> Keep AgentOS as a thin semantic/composition layer over DSH while continuously testing whether an upstream framework, protocol, or durable runtime can satisfy a boundary better than custom code.
+
+The deeper [protocol/runtime reuse research](protocol-runtime-reuse.md) now suggests a more specific split: A2A for remote independent agents, ACP for coding agents, MCP for tools/Website-host boundaries, and DSH-native services for in-process/runtime-local mechanics. AgentOS should retain semantic invariants above those protocols rather than create a new universal wire protocol.
 
 A runtime replacement should happen only if a candidate removes more AgentOS-owned complexity than the migration/integration layer it introduces.
 
@@ -269,7 +274,7 @@ Before substantial runtime implementation, answer these questions with small spi
 1. Can current DSH Team/Subagent/Storage/Workflow seams satisfy the required contracts with only a thin semantic layer?
 2. Can Agno AgentOS satisfy the complete software-development profile including arbitrary local/remote Workers and durable restart semantics?
 3. Can Microsoft Agent Framework's checkpoint + A2A model satisfy Worker/Workflow requirements more directly than the proposed custom Exchange/Core?
-4. Does A2A or ACP already define any Message/Artifact/Task semantics that AgentOS should adopt instead of inventing?
+4. Can A2A 1.0 Task/Message/Artifact + an AgentOS extension replace parallel remote Worker wire structures while preserving assignment/input/attempt invariants?
 5. Which exact AgentOS invariants remain after those reuse opportunities are applied?
 6. Is the project name still appropriate given Agno's existing AgentOS product?
 
