@@ -6,7 +6,39 @@
 
 Workflow is **not a second general-purpose workflow engine built from scratch**.
 
+Its architecture has two independent layers:
+
+~~~text
+Workflow Core
+  = fixed, domain-agnostic durable semantics
+
+Workflow Definition/Profile
+  = declarative domain/product configuration interpreted by the core
+~~~
+
 AgentOS Workflow supplies the durable semantics missing from DSH's existing bounded execution primitives and composes those primitives as WorkItem adapters.
+
+Software development is only the first Workflow Profile. Scientific research or another domain should reuse the same core and change configuration when existing capabilities/adapters are sufficient.
+
+## Core / Definition / Run
+
+~~~mermaid
+flowchart LR
+    Profile[Workflow Profile]
+    Definition[Workflow Definition]
+    Core[Workflow Core]
+    Run[WorkflowRun]
+    Input[Exact input]
+
+    Profile --> Definition
+    Definition --> Core
+    Input --> Core
+    Core --> Run
+~~~
+
+A WorkflowRun binds to the exact Definition and exact input admitted at start. Mutable deployment configuration must not silently change an in-progress run after restart.
+
+See [Workflow definitions and profiles](definitions.md).
 
 ## Existing DSH building blocks
 
@@ -42,7 +74,8 @@ AgentOS Workflow owns only the semantics that these plugins do not collectively 
 ~~~mermaid
 flowchart TB
     API[AgentOS Workflow semantic service]
-    State[Run state + reconciler]
+    Def[Validated Workflow Definition]
+    State[Domain-agnostic Core / reconciler]
     Store[ctx.storageDomain]
 
     AT[Agent Team capability]
@@ -53,7 +86,8 @@ flowchart TB
     Human[ctx.approval / ctx.userQuestions]
     Schedule[Schedule / derived wake]
 
-    API --> State
+    API --> Def
+    Def --> State
     State <--> Store
 
     State --> AT
@@ -89,6 +123,16 @@ WorkItemId != Team task id
 
 The Workflow reconciler remains authoritative if those runtime handles disappear.
 
+## Domain extension rule
+
+A new domain changes only Definition/Profile configuration when all referenced capabilities, schemas, and execution adapters already exist.
+
+If the domain needs a new methodology, add a capability/Skill pack.
+
+If the domain needs a genuinely new execution/effect mechanism, add an adapter plugin.
+
+Neither case should introduce domain-specific branches into Workflow Core.
+
 ## DSH dependency set
 
 See [composition](composition.md) for the detailed package/capability map.
@@ -96,4 +140,5 @@ See [composition](composition.md) for the detailed package/capability map.
 ## Requirements
 
 - [Workflow requirements](../../../requirements/workflow/README.md)
+- [Definition requirements](../../../requirements/workflow/definition.md)
 - [Recovery requirements](../../../requirements/workflow/recovery.md)
