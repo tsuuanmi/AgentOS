@@ -36,12 +36,13 @@ Start at [docs/README.md](docs/README.md).
 - [Workflow composition](docs/architecture/plugins/workflow/README.md) — domain-agnostic Core plus DSH persistence/execution/interaction reuse.
 - [Workflow definitions/profiles](docs/architecture/plugins/workflow/definitions.md) — config-driven domain workflows.
 - [Worker model](docs/architecture/worker-model.md) — agnostic capability-driven Worker and provider bindings.
-- [Reference](docs/reference/README.md) — Worker protocol/API/Exchange/MCP contracts.
+- [Protocol stack](docs/architecture/protocol-stack.md) — ACP for interchangeable coding Workers, A2A for agent-to-agent collaboration, MCP for tools/Website compatibility.
+- [Reference](docs/reference/README.md) — Worker Contract/API/Exchange and transport mappings.
 - [JSON Schemas](schemas/README.md) — machine-readable Worker structures.
 - [software-development Skill](.agents/skills/software-development/SKILL.md) — initial software capability procedure pack, not Worker identity.
 - [Initial implementation proposal](docs/proposals/initial-implementation.md) — composition-first TDD sequence.
 
-Research is temporary evidence for unresolved conformance/gap questions and is pruned once promoted. The active [ecosystem reuse evaluation](docs/research/ecosystem-reuse-evaluation.md) asks whether existing frameworks should replace or supply more of AgentOS before custom runtime code grows.
+Research is temporary evidence for unresolved conformance/gap questions and is pruned once promoted. Active build-vs-reuse work includes the [ecosystem evaluation](docs/research/ecosystem-reuse-evaluation.md) and [Mastra Factory feasibility](docs/research/mastra-factory-feasibility.md).
 
 ## Status
 
