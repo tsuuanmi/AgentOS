@@ -1,93 +1,84 @@
-# AgentOS composition
+# AgentOS plugin
 
 - **Status:** canonical architecture
-- **Runtime:** Cordis / DeepSeek Harness
-- **Role:** product composition layer
+- **Owner:** AgentOS
+- **Runtime:** DSH / Cordis
+- **Kind:** top-level composition plugin/bundle
 
-AgentOS is a **composition plugin/bundle**, not a new agent runtime.
+AgentOS is the composition root.
 
-It assembles thin AgentOS semantic plugins with existing DSH/Cordis capabilities and standard protocol/provider plugins.
+It mounts/configures the semantic plugins and the reused DSH/provider plugins needed by the selected Profiles.
 
-## Composition model
+## Composition
 
 ~~~mermaid
 flowchart TB
     Host[DSH / Cordis Host]
-    AgentOS[AgentOS composition]
+    AgentOS[AgentOS plugin]
 
-    Team[Agent Team semantic plugin]
-    Workflow[Workflow semantic plugin]
-    Website[Website ACP bridge]
-    A2A[A2A adapter]
+    Workflow[Workflow plugin]
+    Team[Agent Team plugin]
+    Worker[Worker plugin]
+    Website[Website Agent plugin]
+    A2A[A2A plugin]
     Profiles[Profiles / Skills]
 
+    DSHAT[DSH Agent Team]
+    Sub[DSH Subagents]
+    ACP[DSH ACP]
+    Runtime[DSH Workflow/runtime capabilities]
+
     Host --> AgentOS
-    AgentOS --> Team
+
     AgentOS --> Workflow
+    AgentOS --> Team
+    AgentOS --> Worker
     AgentOS -. optional .-> Website
     AgentOS -. optional .-> A2A
     AgentOS --> Profiles
 
-    subgraph DSH["DSH capabilities"]
-        AT[ctx.agentTeams]
-        Sub[ctx.subagents]
-        ACP[ACP provider]
-        Store[ctx.storageDomain]
-        Runtime[jobs / workflowEngine / schedule]
-        Int[approval / userQuestions]
-        Session[Session]
-        Tools[workspace / fs / shell / web / MCP / skills]
-    end
-
-    Team --> AT
-    Team --> Sub
-    Website --> ACP
-    ACP --> Sub
-    Workflow --> Store
     Workflow --> Team
-    Workflow -.-> Runtime
-    Workflow -.-> Int
-    Team --> Session
-    Team --> Tools
+    Workflow --> Worker
+    Team --> Worker
+
+    Team --> DSHAT
+    Worker --> Sub
+    Sub --> ACP
+    ACP --> Website
+    Sub --> A2A
+
+    Workflow --> Runtime
 ~~~
 
-A2A uses the official protocol/SDK for independent remote agents rather than a parallel AgentOS wire model.
+## Responsibilities
 
-## Component kinds
+AgentOS owns:
 
-| Kind | Meaning | Example |
-|---|---|---|
-| composition/bundle | mounts/configures capabilities | AgentOS |
-| semantic plugin | owns AgentOS-specific policy/invariants | Agent Team policy, Workflow semantic policy |
-| provider/bridge plugin | exposes execution through a DSH seam | Website ACP bridge / future continuable ACP provider |
-| protocol adapter plugin | integrates a standard protocol not already provided by DSH | A2A adapter |
-| runtime adapter plugin | delegates generic mechanics to another runtime behind Cordis | optional Inngest/Temporal Workflow adapter |
-| Profile/Skill | domain configuration/procedure | software-development, scientific-research |
+- plugin composition;
+- dependency wiring;
+- profile selection/configuration;
+- enabling optional providers/adapters;
+- product-level defaults.
 
-Do not create packages merely to mirror architecture nouns.
+AgentOS does not own:
 
-## AgentOS-owned semantic delta
+- agent execution runtime;
+- Team runtime mechanics;
+- provider registry mechanics;
+- generic workflow durability engine;
+- ACP/A2A/MCP protocols.
 
-AgentOS owns only what remains after DSH/protocol reuse:
+## Canonical plugin set
 
-- capability requirements and right-agent-right-job policy;
-- cost/context-aware selection policy;
-- collaboration barriers and typed phase acceptance;
-- Workflow Definition/Profile semantics;
-- exact Definition/input ownership where reproducibility requires it;
-- local ExecutionBinding/fencing only when recovery/replacement needs it;
-- typed result acceptance;
-- effect/evidence validation;
-- composition/provider limitation projection.
+See [Plugin architecture](../README.md) for the single canonical catalog.
 
-AgentOS does **not** own by default:
+The initial logical AgentOS plugins are:
 
-- universal Worker identity;
-- WorkerAssignment;
-- custom Worker Message/Artifact/State;
-- Worker Exchange;
-- a custom MCP Worker transport;
-- A2A extensions;
-- a second agent/workflow runtime.
+- Worker;
+- Agent Team;
+- Workflow;
+- Website Agent;
+- A2A adapter;
+- AgentOS composition itself.
 
-See [Minimal semantic delta](../../minimal-semantic-delta.md) and [Plugin inventory](../inventory.md).
+Profiles/Skills are selected product configuration and procedure packs, not automatically service plugins.
