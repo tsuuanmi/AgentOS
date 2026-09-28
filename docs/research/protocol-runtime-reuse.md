@@ -2,15 +2,15 @@
 
 - **Status:** active research
 - **Reviewed:** 2026-09-28
-- **Question:** which AgentOS boundaries should reuse existing protocols/runtimes instead of defining new wire protocols or durable execution engines?
+- **Question:** after adopting the canonical ACP/A2A/MCP protocol split, which AgentOS schemas/state and durable-runtime mechanics still remain necessary?
 
 This research follows the product rule: **reuse before build**.
 
 The strongest finding is that AgentOS should distinguish **semantic contracts** from **wire protocols** more aggressively. Several open protocols now cover wire-level roles that the current Worker design was beginning to own itself.
 
-## Working conclusion
+## Promoted protocol conclusion
 
-AgentOS probably should **not** define one new universal Worker wire protocol.
+The protocol-role conclusion has been promoted into canonical [Protocol stack](../architecture/protocol-stack.md): AgentOS does **not** define one new universal Worker wire protocol.
 
 Instead:
 
@@ -32,9 +32,7 @@ DSH native services
   = in-process/runtime-local Team and Subagent mechanics
 ~~~
 
-This changes the role of the current "Worker Protocol": it is more accurately a **Worker Contract / semantic profile** that can be projected onto existing protocols.
-
-Do not canonicalize that rename until conformance mapping proves the idea.
+This narrows the current Worker Protocol into a **Worker Contract / semantic profile** projected onto existing protocols. The remaining research question is which AgentOS-owned wire schemas can be removed after conformance mapping.
 
 ## 1. A2A is already the horizontal agent protocol
 
@@ -140,9 +138,7 @@ This would be preferable to inventing a parallel remote-agent protocol if the A2
 
 ### Direction
 
-**Promote A2A from "future provider" to the primary candidate protocol for remote independent Workers.**
-
-Before freezing AgentOS Worker Message/Artifact/State schemas, perform an explicit A2A 1.0 compatibility audit.
+A2A is now the **canonical preferred protocol for independent agent-to-agent communication**. Before freezing AgentOS Worker Message/Artifact/State schemas, perform an explicit A2A 1.0 compatibility audit to identify the residual AgentOS extension only.
 
 ## 2. ACP is already the coding-agent interoperability protocol
 
@@ -180,7 +176,7 @@ This means AgentOS already inherits a generic coding-agent integration seam.
 
 ### Direction
 
-For software-development Workers:
+ACP is now the **canonical preferred interchangeable coding-Worker execution/control boundary**. For software-development Workers:
 
 ~~~text
 prefer ACP provider
@@ -414,7 +410,7 @@ Future adapters could theoretically be Microsoft Agent Framework, Temporal, Inng
 
 This is not yet a canonical change. It should first be tested against current Workflow requirements to ensure no correctness-bearing semantics are accidentally delegated away.
 
-## 8. Proposed protocol selection model
+## 8. Canonical protocol selection model
 
 ~~~text
                         AgentOS semantics
