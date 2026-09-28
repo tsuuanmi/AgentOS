@@ -16,8 +16,11 @@ Accepted direction lives in:
 - [AgentOS semantic delta](../architecture/plugins/agentos/semantic-delta.md)
 - [Protocol stack](../architecture/protocol-stack.md)
 - [Worker plugin](../architecture/plugins/worker/README.md)
-- [Agent Team plugin contract](../architecture/plugins/agent-team/README.md)
-- [Workflow plugin contract](../architecture/plugins/workflow/README.md)
+- [Agent Team plugin](../architecture/plugins/agent-team/README.md)
+- [Workflow plugin](../architecture/plugins/workflow/README.md)
+- [Website Agent plugin](../architecture/plugins/website-agent/README.md)
+- [A2A plugin](../architecture/plugins/a2a/README.md)
+- [DSH reused plugins](../architecture/plugins/dsh/README.md)
 
 ## Implementation principle
 
@@ -29,136 +32,157 @@ The obsolete Worker/MCP wire schemas have already been pruned. Do not recreate t
 
 ## 1. DSH conformance
 
-Write characterization/conformance tests before adding AgentOS mechanics.
+Characterize the DSH seams AgentOS depends on before adding semantic behavior.
 
 ### Agent Team
 
-Prove the ctx.agentTeams behaviors AgentOS relies on:
+Prove the `ctx.agentTeams` behaviors required by the Agent Team plugin:
 
 - roster/member identity;
 - task/readiness semantics;
-- peer mailbox behavior;
+- peer mailbox;
 - teammate continuation/recovery;
 - restart/reload behavior;
 - programmatic API access.
 
 ### Subagents
 
-Prove ctx.subagents provider registration, one-shot/continuable contracts, result semantics, cancellation, provider removal, and capability rejection.
+Prove the `ctx.subagents` behaviors required by Worker:
+
+- provider registration/removal;
+- one-shot/continuable provider contracts;
+- result semantics;
+- cancellation;
+- provider capability rejection.
 
 ### Workflow/runtime primitives
 
-Characterize:
+Characterize the DSH capabilities Workflow may reuse:
 
-- ctx.storageDomain durability;
-- ctx.jobs lifecycle;
-- ctx.workflowEngine boundaries;
+- `ctx.storageDomain`;
+- `ctx.jobs`;
+- `ctx.workflowEngine`;
 - Schedule;
 - approval/questions;
 - Session/workspace/effect capabilities.
 
-The result is a list of mechanics AgentOS does **not** implement.
+The result is an explicit list of mechanics AgentOS does **not** implement.
 
 ## 2. ACP provider conformance
 
 Use the existing DSH ACP provider with at least two ACP-compatible agents where practical.
 
-Target the ACP surface supported by current DSH rather than ACP v2 Draft-only features.
+Target the ACP surface supported by current DSH rather than draft-only features.
 
 Prove:
 
-- one semantic task can move between providers without changing Team/Workflow policy;
+- the same semantic work can move between ACP providers without changing the Worker caller contract;
 - cwd/tool isolation;
 - cancellation;
 - stop-reason mapping;
 - permission behavior;
 - cost/usage visibility when available;
-- capability limitations are surfaced rather than silently degraded.
+- provider limitations are surfaced rather than silently degraded.
 
-Characterize the current limitation:
+Characterize the current one-shot limitation of `dsh-subagent-acp`.
 
-> DSH subagent-acp is one-shot and starts a fresh process/session for each run.
+## 3. Worker plugin
 
-Do not implement continuation yet.
-
-## 3. Website Agent ACP bridge
-
-Build the smallest bridge that speaks ACP toward DSH and Website-native integration toward the Website Agent.
-
-~~~text
-Agent Team
-  -> ctx.subagents
-      -> dsh-subagent-acp
-          -> Website ACP bridge
-              -> Website Agent
-~~~
+Implement the smallest Worker semantic plugin over `ctx.subagents`.
 
 ### Red
 
 Tests first for:
 
-- ACP initialize/session/prompt mapping;
-- Website conversation creation;
-- streamed/final result mapping;
-- cancellation behavior;
-- safe failure mapping;
-- Website ids not leaking as AgentOS semantic ids;
-- general research prompt with no code-specific assumption;
-- scientific literature/research prompt;
-- output acceptance against a declared domain contract;
-- optional MCP tool attachment when supported.
+- capability requirement -> valid provider selection;
+- unsupported capability rejection;
+- provider-neutral dispatch;
+- provider-native result -> caller result acceptance;
+- invalid result rejection;
+- provider ids not leaking into semantic result;
+- ExecutionBinding only when recovery/replacement requires it;
+- stale result rejection only when a reproducible replacement race exists.
 
 ### Green
 
-Implement only the bounded one-shot bridge required by those tests.
+Implement only:
+
+~~~text
+Worker
+  = capability selection
+  + provider dispatch
+  + minimal binding when required
+  + result acceptance
+~~~
 
 ### Refactor
 
-Keep Website host details inside the bridge.
+Keep ACP/A2A/Website/local provider branching below Worker.
 
-Do not add Worker Exchange, custom Message/Artifact schemas, or a Website-specific orchestration protocol.
+Do not add Worker Assignment/Message/Artifact/State protocols.
 
-## 4. Agent Team semantic layer
+## 4. Website Agent plugin
 
-Implement only policy above DSH:
-
-- capability requirements;
-- right-agent-right-job selection;
-- provider conformance;
-- independent-first/domain collaboration policy;
-- typed phase result acceptance;
-- local ExecutionBinding/fence only for a demonstrated replacement race;
-- effect/evidence validation.
-
-Prove software research -> implementation -> review without provider-specific branches.
-
-## 5. A2A adapter
-
-Use the official @a2a-js/sdk for independently hosted agents.
-
-The first Red tests should assume **zero AgentOS A2A extensions**.
-
-Prove that native:
-
-- AgentCard / AgentSkill;
-- Task / TaskStatus;
-- Message;
-- Artifact / Part;
-- task/context handles
-
-are sufficient when AgentOS keeps its exact-input, acceptance, and optional binding-generation state locally.
+Build the smallest Website ACP bridge.
 
 ~~~text
-semantic phase / WorkItem
-  -> local ExecutionBinding
-      -> A2A taskId/contextId
+Agent Team / Workflow
+  -> Worker
+      -> ctx.subagents
+          -> dsh-subagent-acp
+              -> Website ACP bridge
+                  -> Website Agent
 ~~~
 
-Only add an A2A extension after a failing interop test proves the remote peer must consume information that cannot be represented by normal A2A input/result data.
+Tests cover:
 
-## 6. Software-development Profile
+- ACP initialize/session/prompt mapping;
+- Website conversation creation;
+- streamed/final result mapping;
+- cancellation/failure mapping;
+- Website ids hidden below plugin boundary;
+- non-coding research;
+- scientific literature/research;
+- result acceptance through Worker;
+- optional MCP tool attachment.
 
-Express software development as Profile/configuration + software-development Skill rather than Worker/Workflow special cases.
+Start one-shot.
+
+## 5. A2A plugin
+
+Implement an A2A provider/adapter behind the Worker provider seam using the official A2A SDK.
+
+The first Red tests assume **zero AgentOS A2A extensions**.
+
+Prove native AgentCard/AgentSkill/Task/TaskStatus/Message/Artifact/Part are sufficient while exact-input/recovery/acceptance state stays local.
+
+~~~text
+Worker
+  -> ctx.subagents
+      -> A2A provider
+          -> remote Agent
+~~~
+
+Only add an A2A extension after a failing interoperability test proves the remote peer needs information missing from standard A2A input/result structures.
+
+## 6. Agent Team plugin
+
+Implement collaboration policy above DSH Team + Worker:
+
+- phase contract;
+- participant capability requirements;
+- independent-first barriers;
+- peer evidence/revision policy;
+- typed phase acceptance;
+- collaboration-specific effect/evidence requirements.
+
+Agent Team does **not** select concrete providers itself; it asks Worker to execute semantic capability requirements.
+
+Prove research -> debate/revision -> typed phase result without provider-specific branches.
+
+## 7. Software-development Profile
+
+Express software development as Profile/configuration + software-development Skill.
 
 Initial proof:
 
@@ -170,29 +194,28 @@ research
   -> remediation or complete
 ~~~
 
-The Profile may choose ACP, Website ACP, local DSH, or A2A-backed providers by capability.
+Provider choice happens through Worker.
 
-## 7. Workflow semantic plugin
+## 8. Workflow plugin
 
-Implement the smallest domain-agnostic Workflow Definition/Profile layer over DSH primitives.
+Implement the smallest domain-agnostic Workflow semantic layer over DSH primitives plus Agent Team/Worker.
 
-AgentOS-owned semantics should be no larger than:
+Own only:
 
 - Definition/Profile validation;
 - exact Definition/input binding when reproducibility requires it;
 - semantic WorkItem/dependency/transition state;
-- current provider/runtime binding only when recovery needs it;
 - result acceptance;
 - product recovery policy;
 - durable external-decision state when required;
 - effect evidence;
 - terminal convergence/reattachment.
 
-Do not build generic queue/checkpoint/timer/retry infrastructure when DSH already supplies it.
+Do not build generic queue/checkpoint/timer/retry infrastructure already supplied by DSH or another selected runtime plugin.
 
-## 8. Second-domain proof: scientific research
+## 9. Scientific-research Profile
 
-Add a scientific-research Profile without changing Worker, Agent Team, or Workflow core types.
+Add a scientific-research Profile without changing Worker, Agent Team, or Workflow plugin contracts.
 
 Example capabilities:
 
@@ -204,51 +227,36 @@ scientific-review
 synthesize
 ~~~
 
-Intentionally use Website Agent through the ACP bridge for at least one phase.
+Intentionally execute at least one phase through Website Agent -> Worker.
 
-The proof passes only if new work is limited to:
+The proof passes only if new work is limited to Profile/Skill/schema/tool/provider configuration.
 
-- Workflow/Profile configuration;
-- Skills/capability guidance;
-- domain result schemas;
-- tool/provider configuration.
+## 10. Deferred mechanics only after failing real workflows
 
-## 9. Continuable ACP only if required
+### Continuable ACP
 
-If an implemented Profile proves that later turns in the same provider context materially improve correctness/cost:
+Add only when a real Profile requires later turns in the same provider context.
 
-1. add a failing continuation test;
-2. prefer upstreaming continuable ACP support to DSH;
-3. otherwise add a narrow Cordis provider implementing ctx.subagents continuation.
+Prefer upstreaming generic continuation to DSH; otherwise add a narrow provider plugin.
 
-Persist provider handles only. Do not invent AgentOS conversation identity.
+### External durable runtime
 
-## 10. Durable runtime substitution only if required
-
-Only if Workflow tests expose a missing **generic** durability mechanic, compare a Cordis adapter around an external runtime.
-
-Candidates include Inngest and Temporal.
+Evaluate Inngest/Temporal only if a Workflow test demonstrates a generic durability gap in the default DSH composition.
 
 DSH/Cordis remains the Host.
-
-Adopt an external runtime only when:
-
-1. it preserves the Workflow semantic contract;
-2. it deletes more owned code than the adapter adds;
-3. the concrete workflow justifies the operational dependency.
 
 ## TDD order
 
 1. DSH conformance.
-2. Existing ACP provider conformance.
-3. Website ACP bridge.
-4. Agent Team policy.
-5. A2A adapter with zero-extension assumption.
-6. Software-development Profile.
-7. Workflow semantic layer.
-8. Scientific-research Profile.
-9. Continuable ACP only if a failing Profile requires it.
-10. External durable runtime only if a failing Workflow requirement requires it.
+2. ACP provider conformance.
+3. Worker plugin.
+4. Website Agent plugin.
+5. A2A plugin.
+6. Agent Team plugin.
+7. software-development Profile.
+8. Workflow plugin.
+9. scientific-research Profile.
+10. deferred continuation/runtime adapters only after failing real requirements.
 
 ## Deferred
 
@@ -270,8 +278,9 @@ Not required initially:
 
 Implementation can begin when:
 
-1. DSH capability ownership is explicit;
-2. the plugin inventory identifies AgentOS-owned behavior versus reused dependencies;
-3. ACP/A2A/MCP roles are unambiguous;
-4. legacy Worker/MCP wire schemas are absent;
-5. each first Red test distinguishes an upstream guarantee from a real AgentOS semantic gap.
+1. DSH ownership is explicit under `plugins/dsh/`;
+2. each AgentOS-owned plugin has one canonical architecture folder;
+3. Worker is the only semantic provider-selection boundary consumed by Agent Team/Workflow;
+4. ACP/A2A/MCP roles are unambiguous;
+5. legacy Worker/MCP wire schemas are absent;
+6. each first Red test distinguishes upstream mechanics from a real AgentOS semantic invariant.
