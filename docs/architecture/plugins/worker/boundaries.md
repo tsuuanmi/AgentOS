@@ -20,9 +20,10 @@ This document classifies Worker-related responsibilities so provider/runtime/pro
 | domain procedure | Skill/capability pack |
 | Team collaboration/barriers | Agent Team plugin |
 | Workflow sequencing/recovery | Workflow plugin |
-| provider-native task/session state | provider/protocol |
+| ACP session / A2A Task / DSH run state | owning protocol/runtime; use directly |
 | semantic work -> provider handle | ExecutionBinding only when needed |
-| output contract | caller/domain schema |
+| protocol result object | owning protocol/runtime; use directly |
+| domain output contract | caller/domain schema only when AgentOS/domain owns it |
 | result acceptance | Worker plugin + caller policy |
 | real effect verification | effect/environment adapter |
 
@@ -96,3 +97,8 @@ The Worker caller contract must not change when an execution moves among:
 - future provider.
 
 Provider limitations are exposed as capability/conformance facts rather than provider-specific branches in Agent Team/Workflow.
+
+
+## No shadow model
+
+Do not introduce AgentOS equivalents of ACP Session/Update, A2A Task/Message/Artifact/Part, or DSH provider results. An adapter may call Core behavior from those native objects, but the upstream object remains the authoritative protocol representation.
