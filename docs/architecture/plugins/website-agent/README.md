@@ -2,148 +2,202 @@
 
 - **Status:** canonical architecture
 - **Owner:** AgentOS
-- **Kind:** protocol-neutral Website Agent core + protocol adapters
-- **Initial core implementation source:** @tsuuanmi/internet
+- **Kind:** protocol-neutral Website execution core + protocol ports
+- **Initial core source:** `@tsuuanmi/internet`
 
-Website Agent has three clearly separated layers:
+Website Agent is a reusable agent implementation with one operational Core and two orthogonal external protocol ports.
 
-~~~text
-                    Website Agent
+## Architecture
 
-        Runtime/control port        Peer collaboration port
-               ACP                         A2A
-                |                           |
-                v                           v
-        +-------------------------------------------+
-        |            Website Agent Core             |
-        |                                           |
-        | account / auth                            |
-        | provider drivers                          |
-        | browser runtime                           |
-        | conversation continuity                   |
-        | retry / reconciliation                    |
-        | result / artifact retention               |
-        +-------------------------------------------+
+~~~mermaid
+flowchart TB
+    Runtime[DSH / another ACP-compatible runtime]
+    Member[Agent Team Member]
+
+    ACP[ACP runtime/control port]
+    A2A[A2A peer-collaboration port]
+
+    ACPAdapter[Website ACP Agent adapter]
+    A2AAdapter[Website A2A Agent adapter]
+
+    Core[Website Agent Core]
+
+    Accounts[Accounts / auth]
+    Providers[Provider drivers]
+    Browser[Browser runtime]
+    Conversations[Conversation binding]
+    Receipts[Turn reconciliation]
+    Results[Result retention]
+
+    Runtime --> ACP --> ACPAdapter --> Core
+    Member <--> A2A <--> A2AAdapter <--> Core
+
+    Core --> Accounts
+    Core --> Providers
+    Core --> Browser
+    Core --> Conversations
+    Core --> Receipts
+    Core --> Results
 ~~~
 
-These layers solve different problems:
+The three responsibilities are intentionally separate:
 
-- **Website Agent Core** makes the Website Agent actually work.
-- **ACP** standardizes how DSH or another ACP-compatible runtime connects to and controls that Agent.
-- **A2A** standardizes how the Website Agent communicates and collaborates with Agent Team Members or other agents.
+~~~text
+Website Agent Core
+  = how Website work actually executes
 
-ACP and A2A are therefore not alternative implementations of the same boundary.
+ACP
+  = how a runtime/client creates, controls, resumes, cancels, and prompts the Website Agent
 
-See:
+A2A
+  = how the Website Agent collaborates with peer Agent Team Members
+~~~
 
-- [Website Agent core](core.md)
-- [ACP and A2A adapters](adapters.md)
+## Core reuse from @tsuuanmi/internet
 
-## Website Agent Core
+Reuse/extract the existing logic for:
 
-The core reuses/extracts the Website execution logic already implemented in @tsuuanmi/internet.
-
-It owns:
-
-- authenticated accounts;
-- provider selection/configuration;
-- browser/runtime state;
-- ChatGPT Web / Gemini Web provider drivers;
-- native Website conversations;
+- authenticated Website accounts;
+- ChatGPT Web / Gemini Web providers;
+- persistent browser state;
+- native Website conversation binding;
 - provider-native Deep Research;
 - completion detection;
-- scheduling/concurrency;
+- account scheduling/concurrency;
 - reconcile-before-resubmit;
 - cancellation;
-- durable Website result artifacts.
+- durable full-result retention.
 
-It does not own AgentOS Team or Workflow semantics.
+Do not import Internet's Team/Workflow/Writer orchestration as Core semantics.
 
-## ACP: runtime connection
+## Runtime flow through ACP
 
-ACP is the **runtime-facing protocol**.
+~~~mermaid
+sequenceDiagram
+    participant R as DSH / ACP Runtime
+    participant A as Website ACP Agent
+    participant C as Website Core
+    participant P as Website Provider
 
-~~~text
-DSH / another ACP-compatible runtime
-  -> ACP Client
-      -> Website ACP Agent adapter
-          -> Website Agent Core
+    R->>A: initialize
+    A-->>R: native ACP capabilities
+    R->>A: session/new
+    A->>C: create/use conversation keyed by ACP sessionId
+    A-->>R: sessionId + native ACP session state
+    opt select chat/research mode
+        R->>A: session/set_mode
+        A->>C: set core execution mode
+    end
+    R->>A: session/prompt
+    A->>C: execute turn
+    C->>P: browser/provider work
+    P-->>C: provider result/evidence
+    C-->>A: retained core result
+    A-->>R: session/update notifications
+    A-->>R: prompt response / stopReason
 ~~~
 
-The goal is portability:
+ACP objects remain ACP objects. The adapter does not create AgentOS Session/Update/Prompt mirrors.
 
-> A Website Agent that implements ACP can connect to DSH today and another ACP-compatible runtime later without changing the Website core.
+## Peer flow through A2A
 
-DSH is the first runtime integration, not part of the Website core contract.
+~~~mermaid
+sequenceDiagram
+    participant M as Agent Team Member
+    participant A as Website A2A Agent
+    participant C as Website Core
+    participant P as Website Provider
 
-## A2A: agent collaboration
-
-A2A is the **peer-facing protocol**.
-
-~~~text
-Agent Team Member
-  <-> A2A
-  <-> Website A2A Agent adapter
-  <-> Website Agent Core
+    M->>A: native A2A Message
+    A->>A: preserve/generate contextId per A2A rules
+    A->>A: create server-side Task when task semantics are needed
+    A->>C: execute using native context/message identity
+    C->>P: Website work
+    P-->>C: provider result
+    C-->>A: retained core result
+    A-->>M: Task/status updates
+    A-->>M: Artifact/Part deliverable
 ~~~
 
-This allows a Website Agent and a Team Member to exchange standard A2A Task/TaskStatus, Message, Artifact/Part, context, cancellation, and updates.
+A2A Messages carry communication; Task outputs should be delivered as native A2A Artifacts when a Task exists.
 
-A2A is horizontal collaboration. It is not how AgentOS boots or controls the Website Agent runtime.
+## Identity ownership
 
-## Combined lifecycle
+| Identity | Owner | Website use |
+|---|---|---|
+| ACP `sessionId` | ACP Agent | use directly as Core logical conversation key when semantics match |
+| A2A `contextId` | A2A interaction | use directly as peer conversation key |
+| A2A `messageId` | A2A message creator | use directly as per-turn/logical-request identity when appropriate |
+| A2A `taskId` | A2A server | stateful peer Task identity; never client-generated for a new Task |
+| native Website conversation id/url | Website Core/provider | private provider binding |
+| account id/auth state | Website Core | private execution authority |
 
-A Website Agent may expose both ports at once:
+Do not invent AgentOS ids between these layers unless an irreducible recovery/security invariant requires one.
 
-~~~text
-                    DSH / runtime
-                         |
-                        ACP
-                         |
-                         v
-                 Website Agent
-                 /           \
-              Core           A2A
-                              |
-                              v
-                     Agent Team Member
-~~~
+## Modes and capabilities
 
-ACP answers:
-
-> **Who is controlling this Website Agent execution?**
-
-A2A answers:
-
-> **How does this Website Agent collaborate with peer agents?**
-
-The core answers:
-
-> **How does the Website Agent actually operate Website accounts/providers/browser state?**
-
-## Domain independence
-
-Software-development and scientific-research Profiles use the same Website Agent core and protocol ports.
-
-Domain-specific behavior comes from capabilities, Skills, prompts/tools, and typed result contracts rather than a new Website Agent implementation.
-
-## Package direction
+Website Core currently has at least:
 
 ~~~text
-@tsuuanmi/internet
-  -> implementation source for Website Agent Core
-  -> existing DSH tools may continue to coexist
-
-AgentOS Website Agent plugin
-  -> supported Internet core API
-  -> ACP Agent adapter
-  -> A2A Agent adapter
+chat
+research
 ~~~
 
-Do not copy the Internet implementation into AgentOS.
+For ACP, prefer native ACP Session Modes:
 
-Extract/refine a supported protocol-neutral core API first.
+~~~text
+availableModes:
+  - chat
+  - research
 
-## Canonical invariant
+session/set_mode
+  -> Core mode
+~~~
 
-> **One Website Agent Core. ACP connects runtimes to it. A2A connects peer agents to it.**
+If the runtime/client cannot yet select ACP modes, initial deployment may pin a default mode in configuration. Do not add a custom wire field.
+
+For A2A, advertise capabilities through AgentCard/AgentSkill. A2A does not currently require an AgentOS-specific skill-selection extension.
+
+## Failure/recovery boundaries
+
+~~~text
+browser/provider failure
+  -> Core responsibility
+
+unknown Website submission outcome
+  -> Core reconcile-before-resubmit
+
+ACP connection/session failure
+  -> ACP adapter/runtime responsibility
+
+A2A Task/transport failure
+  -> A2A adapter/protocol responsibility
+
+Workflow semantic retry/recovery
+  -> Workflow responsibility
+~~~
+
+A protocol retry must never bypass Core reconciliation for an uncertain Website turn.
+
+## Security boundary
+
+Website credentials/session cookies remain in Core/provider state.
+
+Never expose them through ACP/A2A Message, Artifact, metadata, or AgentOS logs.
+
+ACP/A2A authentication identifies callers/authority; it does not replace Website account authentication.
+
+## Implementation gates
+
+Implementation must prove:
+
+1. the same Core works through ACP and A2A;
+2. ACP sessionId can drive Core conversation continuity without a duplicate Session model;
+3. A2A contextId/messageId/taskId semantics are preserved directly;
+4. chat/research can use native ACP modes;
+5. full Website results are retained before compact protocol projection;
+6. retry/cancellation reaches Core correctly from both ports;
+7. native Website ids/auth do not leak across protocol boundaries;
+8. no Internet Team/Workflow orchestration is pulled into Core.
+
+See [Core](core.md) and [Protocol adapters](adapters.md).
