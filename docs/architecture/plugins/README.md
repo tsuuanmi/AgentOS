@@ -16,8 +16,10 @@ docs/architecture/plugins/
 
   worker/
     README.md
+    contract.md
     boundaries.md
     communication.md
+    execution-binding.md
 
   agent-team/
     README.md
