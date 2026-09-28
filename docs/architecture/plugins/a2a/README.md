@@ -1,117 +1,203 @@
 # A2A plugin
 
 - **Status:** canonical architecture
-- **Owner:** AgentOS
-- **Kind:** agent-to-agent collaboration adapter
+- **Owner:** AgentOS integration
 - **Protocol:** A2A v1
+- **SDK:** official `@a2a-js/sdk`
+- **Role:** horizontal Website Agent <-> Agent Team Member collaboration
 
-The A2A plugin standardizes **horizontal collaboration between agents**.
+A2A is not Worker runtime transport. It is the standard peer protocol between independently executed agents.
 
-Its primary AgentOS use is:
-
-~~~text
-Website Agent
-  <-> A2A
-  <-> Agent Team Member
-~~~
-
-This is deliberately different from ACP:
+## Boundary
 
 ~~~text
-ACP = runtime/client <-> Website Agent
-A2A = Website Agent <-> peer agent / Team Member
+ACP
+  = Runtime / Client <-> Website Agent
+
+A2A
+  = Website Agent <-> Agent Team Member / peer Agent
 ~~~
 
-## Responsibilities
+## Architecture
 
-The A2A plugin owns protocol integration only and uses the official A2A SDK/types directly:
+~~~mermaid
+flowchart LR
+    Member[Agent Team Member]
+    Factory[ClientFactory]
+    Client[A2A Client]
 
-- AgentCard / AgentSkill exposure and discovery;
-- native Task / TaskStatus handling;
-- Message / Part exchange;
-- Artifact / Part exchange;
-- contextId propagation;
-- cancellation/update handling;
-- authentication/transport integration;
-- passing native contextId/taskId directly into the owning semantic boundary where their semantics already match.
+    Card[AgentCard]
+    Transport[JSON-RPC initially]
 
-It does not own:
+    Handler[DefaultRequestHandler]
+    Executor[Website AgentExecutor]
+    TaskStore[A2A TaskStore]
+    Core[Website Agent Core]
 
-- Website browser/auth/provider logic;
-- Worker provider selection;
-- Team collaboration policy;
-- Workflow sequencing;
-- Website native conversation identity.
+    Member --> Factory --> Client
+    Client --> Card
+    Client <--> Transport
+    Transport <--> Handler
+    Handler --> TaskStore
+    Handler --> Executor
+    Executor --> Core
+~~~
 
-## Website Agent side
+## Native A2A model
 
-Website Agent exposes an A2A Agent/Server adapter over the shared Website Core.
+Use these upstream objects directly:
 
 ~~~text
-Website Agent Core
-  -> Website A2A Agent adapter
-      <-> A2A
+AgentCard
+AgentSkill
+Message
+Part
+Task
+TaskStatus
+Artifact
+contextId
+taskId
+messageId
 ~~~
 
-See [Website Agent adapters](../website-agent/adapters.md).
+No AgentOSTask, WorkerMessage, WorkerArtifact, or normalized A2A status/result model.
 
-## Agent Team Member side
+## Discovery
 
-Agent Team Members use an A2A peer/client adapter when communicating with Website Agent or another A2A peer.
+Website Agent exposes an AgentCard declaring:
+
+- identity/description;
+- supported interfaces/transports;
+- capabilities;
+- skills such as web research/literature research when appropriate;
+- authentication/security requirements.
+
+Agent Team Member uses `ClientFactory.createFromUrl` or an already discovered AgentCard.
+
+Do not build a separate AgentOS discovery schema when AgentCard is sufficient.
+
+## Task and context semantics
+
+~~~mermaid
+flowchart TD
+    Msg[Incoming Message]
+    Context{contextId present?}
+    Preserve[Accept/preserve contextId]
+    Generate[Server generates contextId]
+    Existing{taskId present?}
+    Continue[Continue existing Task]
+    New[Server creates new Task with server-generated taskId]
+
+    Msg --> Context
+    Context -- yes --> Preserve
+    Context -- no --> Generate
+    Preserve --> Existing
+    Generate --> Existing
+    Existing -- yes --> Continue
+    Existing -- no --> New
+~~~
+
+Important implementation rules:
+
+- client-generated `taskId` must not be used to create a new Task;
+- `contextId` groups multiple related Messages/Tasks;
+- mismatching task/context pairs must be rejected according to A2A semantics;
+- `messageId` is the native per-message identity and is suitable for per-turn correlation/idempotency in Website Core.
+
+## Message vs Artifact
 
 ~~~text
-Agent Team Member
-  -> A2A peer/client adapter
-      <-> A2A
-          <-> remote Agent
+Message
+  = instructions, questions, context, progress communication
+
+Artifact
+  = Task deliverable/output
 ~~~
 
-The Team Member's execution runtime may be DSH, ACP, or something else. A2A should not depend on that runtime.
+Do not use transient Messages as the only correctness-bearing output of a completed Task.
 
-## Collaboration semantics
+## Server flow
 
-A2A already provides the primitives AgentOS needs for peer collaboration:
+~~~mermaid
+sequenceDiagram
+    participant C as Team Member A2A Client
+    participant H as DefaultRequestHandler
+    participant E as Website AgentExecutor
+    participant Core as Website Core
 
-- AgentCard and AgentSkill for discovery;
-- Task as a stateful unit of peer work;
-- Message for conversational/context exchange;
-- Artifact for task deliverables;
-- contextId for related Tasks/Messages;
-- cancellation and status updates.
+    C->>H: sendMessage / sendMessageStream
+    H->>E: RequestContext
+    E->>Core: execute using contextId + messageId
+    E-->>H: Task submitted/working events
+    Core-->>E: result
+    E-->>H: Artifact update
+    E-->>H: Task completed
+    H-->>C: native A2A events
+~~~
 
-AgentOS should pass those native objects directly instead of defining WorkerMessage, WorkerArtifact, AgentOSTask, or normalized status/result mirrors.
+## Cancellation
 
-## Zero-extension default
+~~~mermaid
+sequenceDiagram
+    participant C as A2A Client
+    participant H as RequestHandler
+    participant E as AgentExecutor
+    participant Core as Website Core
 
-The initial AgentOS integration uses zero custom A2A extensions.
+    C->>H: cancelTask(taskId)
+    H->>E: cancelTask
+    E->>Core: abort execution
+    Core-->>E: canceled
+    E-->>H: Task canceled status
+    H-->>C: native canceled Task/status
+~~~
 
-Keep these local unless a peer genuinely needs them:
+## Transport choice
 
-- Workflow WorkItem id;
-- Worker ExecutionBinding generation;
-- exact-input digest;
-- retry policy;
-- Website native conversation id;
-- core artifact id;
-- local acceptance state.
+A2A v1 supports multiple transports through the official SDK.
 
-## Relationship to Worker
-
-Worker may create or control a Website Agent through ACP, but A2A peer communication is not modeled as a Worker provider transport.
+Initial AgentOS implementation:
 
 ~~~text
-Runtime
-  -> ACP
-      -> Website Agent
-          <-> A2A <-> Agent Team Member
+JSON-RPC over HTTP
 ~~~
 
-Keeping these axes separate prevents runtime lifecycle and peer collaboration from becoming one overloaded abstraction.
+because it is the smallest first integration and is supported by the official SDK/sample lifecycle.
 
-## Canonical invariant
+REST and gRPC are deferred until a concrete deployment requires them.
 
-> **A2A is the standard horizontal protocol between Website Agent and Agent Team Members/other agents.**
+Transport choice must not leak into Team/Core semantics.
 
-## Direct-type invariant
+## Streaming and push
 
-A2A Task, TaskStatus, Message, Artifact, Part, AgentCard, AgentSkill, taskId, and contextId remain the canonical peer-protocol model. AgentOS adapters may call Team/Website behavior from them, but must not replace them with structurally equivalent AgentOS types.
+Long-running Website research should support native streaming Task/status/artifact updates.
+
+Push notifications are deferred until clients need disconnected delivery. If enabled later, use A2A's native push-notification configuration rather than an AgentOS webhook protocol.
+
+## Authentication
+
+Use A2A security declarations and transport auth directly.
+
+Authentication identifies the peer. Website account credentials remain private Core state.
+
+## Extensions
+
+Start with **zero AgentOS A2A extensions**.
+
+A2A already owns discovery, Task lifecycle, Message, Artifact, Parts, context, auth, streaming, cancellation, and extensions.
+
+Only add an extension after a failing interop test proves the peer must consume an AgentOS-specific semantic unavailable in standard objects.
+
+## Implementation gates
+
+1. valid AgentCard discovery;
+2. official ClientFactory can connect;
+3. server uses AgentExecutor + DefaultRequestHandler;
+4. new taskId is server-generated;
+5. contextId/messageId are consumed directly;
+6. task results use Artifact/Part;
+7. cancellation and streaming work end to end;
+8. no duplicate AgentOS protocol types;
+9. no custom extension in the first implementation.
+
+See [Website Agent adapters](../website-agent/adapters.md) and [Protocol stack](../../protocol-stack.md).
