@@ -1,148 +1,102 @@
 # Protocol stack
 
 - **Status:** canonical cross-cutting architecture
-- **Scope:** protocol ownership below AgentOS plugin boundaries
 
-The canonical mental model is:
+AgentOS assigns one primary responsibility to each protocol:
 
 ~~~text
 ACP
-  = Client <-> Agent execution/control
+  = Runtime / Client <-> Agent
+  = standard connection used to run/control Website Agent from DSH or another ACP-compatible runtime
 
 A2A
-  = Agent <-> Agent Task / Message / Artifact
+  = Agent <-> Agent
+  = standard peer collaboration between Website Agent and Agent Team Members/other agents
 
 MCP
   = Agent <-> Tool / Capability / Data
 ~~~
 
-DSH/Cordis remains the Host.
+These protocols are complementary, not interchangeable.
 
-AgentOS does not create a fourth universal protocol.
-
-## Worker is the semantic boundary above provider protocols
+## Website Agent topology
 
 ~~~text
-Agent Team / Workflow
-  -> Worker plugin
-      -> DSH ctx.subagents
-          -> DSH-native provider
-          -> ACP provider
-          -> A2A provider
-          -> other provider
+DSH / other ACP runtime
+        |
+       ACP
+        |
+        v
+  Website Agent Core
+        ^
+        |
+       A2A
+        |
+        v
+ Agent Team Member
 ~~~
 
-The Worker plugin owns capability selection, minimal execution binding, and result acceptance.
-
-Protocols keep their native lifecycle/data models.
-
-See [Worker plugin](plugins/worker/README.md) and [Worker communication](plugins/worker/communication.md).
+Website Agent Core itself owns account/provider/browser/conversation/reconciliation behavior and is protocol-neutral.
 
 ## ACP
 
-ACP owns compatible Client <-> Agent execution/control.
+ACP standardizes how a client/runtime communicates with an Agent.
 
-AgentOS normally consumes ACP through the existing DSH ACP provider:
+AgentOS uses ACP so Website Agent is not coupled to DSH:
 
 ~~~text
-Worker
-  -> ctx.subagents
-      -> DSH ACP provider
-          -> ACP Agent
+DSH ACP Client ----------\
+Other ACP Runtime -------- ACP -> Website ACP Agent adapter -> Website Core
+Future ACP Runtime ------/
 ~~~
 
-This avoids one AgentOS integration per compatible agent product.
+DSH is the first implementation host, but the Website Agent ACP contract is runtime-agnostic.
 
-ACP sessions/updates remain provider state.
-
-See [DSH ACP](plugins/dsh/acp.md).
+See [DSH ACP](plugins/dsh/acp.md) and [Website adapters](plugins/website-agent/adapters.md).
 
 ## A2A
 
-A2A owns independent remote Agent-to-Agent interoperability:
+A2A standardizes horizontal communication and collaboration between independent agents.
+
+Primary AgentOS use:
 
 ~~~text
-AgentCard
-AgentSkill
-Task
-TaskStatus
-Message
-Artifact
-Part
-contextId
+Agent Team Member <-> A2A <-> Website Agent
 ~~~
 
-AgentOS integrates A2A through the [A2A plugin](plugins/a2a/README.md), preferably as a provider behind Worker/`ctx.subagents`.
+Use native AgentCard/AgentSkill, Task/TaskStatus, Message, Artifact/Part, contextId, cancellation, and update semantics.
 
-The initial integration uses zero AgentOS A2A extensions.
+A2A does not replace ACP's runtime-control role.
 
-Exact-input digests, binding generations, retry policy, and acceptance state remain local unless the remote peer genuinely needs them.
+See [A2A plugin](plugins/a2a/README.md).
 
 ## MCP
 
-MCP is the vertical tool/capability/data layer.
+MCP remains the vertical capability layer for tools, resources, and data.
 
-Use it for filesystem/repository access, browser/search, GitHub, databases, scientific/data tools, and domain services.
-
-MCP may be attached to ACP/Website/other agents as tools.
-
-It is not the Worker protocol and not a substitute for A2A.
-
-## DSH-native seams
-
-Inside the Host:
-
-~~~text
-Team runtime
-  -> ctx.agentTeams
-
-delegated provider registry/lifecycle
-  -> ctx.subagents
-
-durable AgentOS semantic records
-  -> ctx.storageDomain
-
-jobs/workflow/schedule/interaction/tools
-  -> DSH runtime plugins
-~~~
-
-See [DSH plugins and capabilities](plugins/dsh/README.md).
-
-## Boundary selection
-
-| Boundary | Preferred mechanism |
-|---|---|
-| AgentOS semantic work -> delegated execution | Worker plugin |
-| Worker -> provider registry | DSH `ctx.subagents` |
-| DSH -> compatible Agent | ACP |
-| Worker -> independent remote Agent | A2A provider |
-| Agent -> tool/data/capability | MCP/native DSH tool |
-| Agent Team peer mechanics | DSH `ctx.agentTeams` |
-| bounded Website execution | Worker -> DSH ACP -> Website ACP Agent adapter -> shared Website core |
-| unsupported provider | narrow `ctx.subagents` provider |
+An ACP-controlled Website Agent or an A2A peer may itself use MCP tools internally, but MCP is not the agent collaboration protocol.
 
 ## Identity rule
 
 ~~~text
-Workflow WorkItem / Agent Team phase
-  = semantic work identity
+ACP sessionId
+  = runtime-facing Website Agent session handle
 
-Worker ExecutionBinding
-  = optional local mapping for recovery
+A2A contextId/taskId
+  = peer collaboration handles
 
-ACP session / A2A Task / DSH run / Website conversation
-  = provider handles
+Website Core conversation key
+  = private semantic/native Website conversation mapping
 ~~~
 
-Do not turn provider handles into AgentOS semantic identity.
+Do not collapse these identities into one universal AgentOS id.
 
 ## Rules
 
-1. Worker is the stable semantic execution plugin above provider protocols.
-2. ACP owns compatible Agent execution/control.
-3. A2A owns remote Agent-to-Agent communication.
-4. MCP owns tools/capabilities/data.
-5. DSH owns in-host Team/provider/runtime mechanics.
-6. Use upstream protocol models directly instead of AgentOS copies.
-7. Keep local correctness bookkeeping local.
-8. Protocol choice follows the boundary, not the provider brand.
+1. ACP connects runtimes/clients to Agents.
+2. A2A connects Agents to peer Agents.
+3. MCP connects Agents to tools/data/capabilities.
+4. Website Core stays independent of all three protocol lifecycles.
+5. DSH may be replaced by another ACP-compatible runtime without changing Website Core.
+6. A2A peer collaboration should remain independent of which runtime executes either agent.
+7. Reuse upstream protocol objects instead of AgentOS copies.
