@@ -204,8 +204,8 @@ It must not create a new Worker runtime type.
 ## Canonical references
 
 - [Worker boundaries](boundaries.md)
-- [Worker Contract](../../../reference/worker-contract.md)
-- [Execution binding](../../../reference/execution-binding.md)
+- [Worker Contract](../../../reference/worker/contract.md)
+- [Execution binding](../../../reference/worker/execution-binding.md)
 - [DSH subagents](../dsh/subagents.md)
 - [DSH ACP](../dsh/acp.md)
 - [Website Agent](../website-agent/README.md)
