@@ -10,7 +10,7 @@ Agent Team owns collaborative software work.
 
 DSH Agent Teams is the current core runtime. DSH owns Team identity, roster, durable mailbox, Team tasks, teammate authority, continuation, cold resume, and Team recovery.
 
-AgentOS adds stable software roles, Website Agent bindings, collaboration policy, and typed semantic completion.
+AgentOS adds capability-driven Worker semantics, Website Agent bindings, collaboration policy, and typed semantic completion.
 
 ## Capability-driven Workers
 
@@ -149,7 +149,7 @@ The Worker forwards that JSON-structured assignment to its bound Website Agent w
 A Website Agent assignment is complete only when the Website Agent bridge has:
 
 1. received an explicit final/completion response for the current assignment;
-2. validated it against the expected role/phase output schema;
+2. validated it against the expected capability/phase output schema;
 3. verified assignmentId/inputBinding are current;
 4. durably recorded the completion before reporting success to the DSH member.
 
@@ -196,7 +196,7 @@ Workflow does not inspect Website Agent UI/activity and does not infer phase com
 
 Workflow or Local calls the Agent Team capability with one phase input.
 
-The Agent Team provider derives role-specific assignment envelopes from that same authoritative phase input.
+The Agent Team provider derives capability-specific Worker assignments from that same authoritative phase input.
 
 ~~~text
 AgentOS phase input
@@ -232,8 +232,8 @@ A peer message includes enough context to route it safely:
 
 ~~~text
 phase
-fromRole
-toRole
+fromWorker
+toWorker
 assignment/input binding
 kind
 content or compact result reference
@@ -253,7 +253,7 @@ DSH send_message
   -> DSH member sends revised conclusion to peer/Lead
 ~~~
 
-The DSH member should not silently summarize away correctness-bearing peer evidence unless the role policy explicitly allows compaction.
+The DSH member should not silently summarize away correctness-bearing peer evidence unless the Worker capability policy explicitly allows compaction.
 
 ## Research phase
 
@@ -303,7 +303,7 @@ one Worker: implement + tdd
 Lead / synthesis
 ~~~
 
-The Implementer receives:
+The Worker satisfying `implement + tdd` receives:
 
 - accepted ResearchResult;
 - exact workspace/base binding;
@@ -333,7 +333,7 @@ two Workers: review + debate
 Lead / synthesis
 ~~~
 
-Both reviewers receive the same exact implementation + validation binding, but have fixed different responsibilities.
+Both review Workers receive the same exact implementation + validation binding. They may have the same `[review, debate]` capabilities; a profile can add further capability lenses when justified.
 
 Flow:
 
@@ -365,10 +365,10 @@ ReviewResult is valid only for the exact current implementation/validation input
 
 For CHANGES_REQUIRED:
 
-- Lead sends accepted findings to Implementer;
-- Implementer continues its stable role/conversation when safe;
+- Lead sends accepted findings to the Worker satisfying `implement + tdd`;
+- the implementation Worker continues its existing Website Agent assignment/conversation when safe;
 - real validation runs again;
-- the same reviewer roles re-review the new exact input.
+- Workers satisfying the review capability profile re-review the new exact input.
 
 Bound remediation cycles prevent unbounded work.
 
@@ -386,7 +386,7 @@ A phase is complete only when the Lead completion boundary has:
 
 1. verified required DSH TeamTasks are complete/current;
 2. collected the required member results;
-3. produced the role-appropriate synthesis;
+3. produced the phase-appropriate synthesis;
 4. validated exact phase input binding;
 5. durably committed the typed phase result.
 
@@ -430,7 +430,7 @@ Tests should prove:
 
 - capability requirements/protocol shape are stable across runs;
 - phase objectives/inputs vary without changing the Worker protocol;
-- each member has an isolated Website Agent binding;
+- each Worker has an isolated Website Agent binding;
 - Website Agent assignment completion is explicit and durable;
 - member inactivity is never treated as completion;
 - send_message durability is never treated as peer processing completion;
