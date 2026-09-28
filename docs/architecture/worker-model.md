@@ -3,7 +3,9 @@
 - **Status:** canonical architecture
 - **Scope:** AgentOS Worker abstraction, execution providers, and authoritative Worker state
 
-A **Worker** is an AgentOS semantic execution role. It is not a DSH-specific agent type.
+A **Worker** is an AgentOS **agnostic, capability-driven semantic execution role**. It is not a software-specific persona and not a DSH-specific agent type.
+
+Worker identity stays stable while capability sets and concrete providers evolve.
 
 A Worker may be executed by a DSH subagent, Codex, Claude Code, a Website Agent, ACP/A2A agent, or another provider as long as the provider satisfies the required Worker capabilities and Worker Protocol semantics.
 
@@ -59,7 +61,7 @@ If this state lived only inside a concrete Worker runtime, replacing, restarting
 
 Therefore the separation is **logical**, not necessarily deployment-level.
 
-The first implementation may embed Worker Exchange Service inside the Agent Team plugin. A Website-facing MCP adapter may expose the same service remotely. A local provider may call it in-process.
+The first implementation may embed Worker Exchange Service inside the Agent Team capability composition. A Website-facing MCP adapter may expose the same service remotely. A local provider may call it in-process.
 
 ## Worker provider architecture
 
@@ -170,6 +172,16 @@ workerId
   != MCP Task id
 ~~~
 
+## Open capability model
+
+Capabilities are semantic identifiers, not a closed enum of Worker types.
+
+The initial software profile uses capabilities such as `research`, `brainstorm`, `debate`, `implement`, `tdd`, `review`, and `synthesize`.
+
+Future domains add capabilities such as `design`, `security-audit`, `data-analysis`, `documentation`, or other namespaced capabilities without changing Worker identity or protocol structure.
+
+The current `software-worker` Skill is one procedural capability pack for the initial software profile; it is not the definition of Worker.
+
 ## Provider capability projection
 
 AgentOS selects Workers by semantic capability, not provider brand.
@@ -250,5 +262,5 @@ Replacing a DSH provider with Codex, Claude, or Website execution should affect 
 4. Worker and Worker Exchange Service may be implemented in one plugin/process while preserving separate responsibilities.
 5. Provider-native ids never become Worker or Assignment identity.
 6. Semantic capabilities are advertised from real provider guarantees.
-7. Agent Team depends on Worker semantics and provider registry, not concrete provider implementations.
+7. Agent Team depends on Worker semantics and provider registry, not concrete provider implementations or a software-only Worker type.
 8. Workflow never depends on Worker providers directly; it depends on typed Agent Team phase semantics.
