@@ -1,7 +1,12 @@
 # MCP Worker interoperability research
 
-- **Status:** active implementation research
+- **Status:** supporting evidence / superseded where overlapping
 - **Goal:** define a stable protocol between a local DSH Agent Team Worker and a Website Agent so either side can be replaced without redesigning Team semantics.
+
+
+## Terminology note
+
+This research predates the canonical Message/Artifact normalization. Where historical text says `WorkerInput`, read canonical `Message`; where it says contribution/completion `WorkerSubmission`, read canonical `Artifact`. The old MCP `submit` surface has been split into `send` for Messages and `publish` for Artifacts. [Worker Protocol](../reference/worker-protocol.md), [Worker server invariants](../reference/worker-server-invariants.md), schemas, and MCP reference are authoritative where they overlap.
 
 ## Executive conclusion
 

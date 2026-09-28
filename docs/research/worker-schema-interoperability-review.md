@@ -1,8 +1,13 @@
 # Worker schema interoperability review
 
-- **Status:** active standards review
+- **Status:** supporting evidence / superseded where overlapping
 - **Scope:** root Worker schemas and MCP binding schemas
 - **Goal:** assess whether the current protocol is clean, standards-aligned, reusable by other plugins, and suitable as the basis for production implementation.
+
+
+## Terminology note
+
+This research predates the canonical Message/Artifact normalization. Where historical text says `WorkerInput`, read canonical `Message`; where it says contribution/completion `WorkerSubmission`, read canonical `Artifact`. The old MCP `submit` surface has been split into `send` for Messages and `publish` for Artifacts. [Worker Protocol](../reference/worker-protocol.md), [Worker server invariants](../reference/worker-server-invariants.md), schemas, and MCP reference are authoritative where they overlap.
 
 ## Sources reviewed
 

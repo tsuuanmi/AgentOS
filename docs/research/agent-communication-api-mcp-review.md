@@ -1,9 +1,14 @@
 # Local / Team Member / Website Agent communication review
 
-- **Status:** active implementation research
+- **Status:** supporting evidence / superseded where overlapping
 - **Date:** 2026-09-28
 - **Canonical contracts:** [Agent Team](../requirements/agent-team.md), [Worker Protocol](../reference/worker-protocol.md)
 - **Goal:** verify that the current API/MCP layering can support end-to-end communication between Local Agent, DSH Agent Team members, and Website Agents without collapsing all three boundaries into one protocol.
+
+
+## Terminology note
+
+This research predates the canonical Message/Artifact normalization. Where historical text says `WorkerInput`, read canonical `Message`; where it says contribution/completion `WorkerSubmission`, read canonical `Artifact`. The old MCP `submit` surface has been split into `send` for Messages and `publish` for Artifacts. [Worker Protocol](../reference/worker-protocol.md), [Worker server invariants](../reference/worker-server-invariants.md), schemas, and MCP reference are authoritative where they overlap.
 
 ## Executive conclusion
 
