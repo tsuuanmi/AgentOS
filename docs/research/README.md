@@ -6,6 +6,7 @@ Accepted conclusions now live in [architecture](../architecture/README.md) and [
 
 ## Active implementation research
 
+- [Website Agent bridge protocol v0](website-agent-bridge-protocol-v0.md) — fixed roles, per-member Website Agent binding, assignment/completion handshake, direct peer evidence flow, and restart recovery.
 These still contain unresolved provider/implementation questions:
 
 - [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) — DSH Team authority/reuse map, teammate continuation limits, dedicated-root strategy, result bridging.
@@ -30,9 +31,9 @@ These explain how the current contracts were derived but are no longer canonical
 
 Highest ROI unresolved work:
 
-1. durable per-member Website Agent binding;
-2. peer-to-peer DSH Team debate bridged to distinct Website Agents;
-3. typed durable phase completion;
+1. concrete Storage Domain shape for per-member Website Agent binding/assignment state;
+2. Website adapter API for assign/continue/inspect/cancel;
+3. typed durable phase completion API;
 4. DSH-native research -> implementation -> review vertical slice;
 5. Workflow recovery around that same Team.
 
