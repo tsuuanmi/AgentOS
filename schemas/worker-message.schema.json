@@ -1,60 +1,54 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentos.dev/schemas/worker-message.v1.json",
-  "title": "AgentOS Worker Message v1",
+  "$id": "https://agentos.dev/schemas/worker-message.schema.json",
+  "title": "AgentOS Worker Message",
+  "description": "Structured peer-to-peer Team message between Worker instances.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "protocolVersion",
     "messageId",
     "kind",
-    "phase",
     "fromWorker",
     "toWorker",
+    "sourceAssignmentId",
+    "targetAssignmentId",
     "inputBinding",
+    "payloadSchemaRef",
     "payload"
   ],
   "properties": {
-    "protocolVersion": {
-      "const": "1"
-    },
     "messageId": {
-      "type": "string",
-      "minLength": 1
+      "$ref": "worker-common.schema.json#/$defs/identifier"
     },
     "kind": {
-      "type": "string",
-      "enum": [
-        "peer_evidence",
-        "peer_challenge",
-        "peer_revision",
-        "phase_control"
-      ]
-    },
-    "phase": {
-      "type": "string",
-      "enum": [
-        "research",
-        "implementation",
-        "review",
-        "synthesis"
-      ]
+      "$ref": "worker-common.schema.json#/$defs/semanticName"
     },
     "fromWorker": {
-      "type": "string",
-      "minLength": 1
+      "$ref": "worker-common.schema.json#/$defs/identifier"
     },
     "toWorker": {
-      "type": "string",
-      "minLength": 1
-    },
-    "inputBinding": {
-      "type": "string",
-      "minLength": 1
+      "$ref": "worker-common.schema.json#/$defs/identifier"
     },
     "sourceAssignmentId": {
-      "type": "string"
+      "$ref": "worker-common.schema.json#/$defs/identifier"
     },
-    "payload": {}
+    "targetAssignmentId": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "inputBinding": {
+      "$ref": "worker-common.schema.json#/$defs/inputBinding"
+    },
+    "payloadSchemaRef": {
+      "$ref": "worker-common.schema.json#/$defs/schemaRef"
+    },
+    "payload": {
+      "description": "Structured message payload validated against payloadSchemaRef."
+    },
+    "inReplyTo": {
+      "$ref": "worker-common.schema.json#/$defs/identifier"
+    },
+    "extensions": {
+      "$ref": "worker-common.schema.json#/$defs/extensions"
+    }
   }
 }
