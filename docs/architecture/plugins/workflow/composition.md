@@ -1,56 +1,62 @@
 # Workflow composition map
 
-The Workflow capability is assembled from a fixed domain-agnostic Workflow Core, validated Workflow Definitions/Profiles, existing DSH plugins, and a small AgentOS-owned durable state/reconciliation layer.
+Workflow is a semantic plugin/profile layer hosted by DSH/Cordis.
 
 ## Composition inventory
 
-| Need | Reuse | AgentOS responsibility |
-|---|---|---|
-| domain/product workflow policy | Workflow Definition/Profile | validate and bind declarative config without hard-coding domain phases in Core |
-| Cordis composition | Cordis | declare dependencies/services only |
-| durable run records | `ctx.storageDomain` | define Workflow domain schema and transitions |
-| bounded parallel orchestration | `ctx.workflowEngine` | use as WorkItem adapter only |
-| background process-local work | `ctx.jobs` | use as adapter/reference, never durable truth |
-| delegated agent work | `ctx.subagents` | adapter/provider selection |
-| collaborative work | Agent Team / `ctx.agentTeams` underneath | consume typed Agent Team phase result |
-| immediate approval UI | `ctx.approval` | project durable PendingAction into UI |
-| user questions | `ctx.userQuestions` | project durable input gate |
-| scheduled delivery | Schedule | optional wake/reminder adapter |
-| actual local effects | workspace/fs/shell/etc. | bind receipt/observed state |
-| UI/history | Session projections / AgentOS projection | presentation only |
+| Need | Default reuse | Optional substitution behind plugin | AgentOS responsibility |
+|---|---|---|---|
+| plugin lifecycle | Cordis | none | composition |
+| Definition/Profile | AgentOS config/schema | external authoring UI/compiler | validate + exact binding |
+| durable AgentOS semantic records | ctx.storageDomain | alternate store plugin if justified | record semantics |
+| collaborative work | Agent Team / ctx.agentTeams underneath | none initially | consume typed result |
+| delegated execution | ctx.subagents | provider plugins | WorkItem/provider binding |
+| bounded orchestration | ctx.workflowEngine | external library if useful | adapter only |
+| background work | ctx.jobs | Inngest/Temporal adapter when justified | adapter only |
+| timers/events/waits | DSH primitives | Inngest/Temporal adapter | semantic wait/recovery policy |
+| human interaction presentation | ctx.approval / ctx.userQuestions | alternate UI plugin | durable decision semantics if needed |
+| effects/observation | workspace/fs/shell/domain tools | external effect adapter | acceptance/evidence policy |
 
 ## Minimal first composition
 
 ~~~text
-Workflow semantic service
-  + Workflow Definition loader/validator
+Workflow plugin
+  + Definition/Profile validation
   + ctx.storageDomain
-  + deterministic domain-agnostic reconciler
   + Agent Team adapter
-  + local validation/effect adapter
+  + exact semantic WorkItem state
+  + result/effect acceptance
+  + recovery policy
 ~~~
 
-Only add Jobs, `ctx.workflowEngine`, direct Subagent execution, Schedule, or human-interaction adapters when a concrete WorkItem requires them.
+Add Jobs, workflowEngine, Schedule, direct subagent execution, or external durable runtimes only when a concrete WorkItem requires them.
+
+## Runtime substitution
+
+DSH/Cordis remains the Host.
+
+~~~text
+DSH Host
+  -> AgentOS Workflow plugin
+      -> DSH runtime mechanics
+
+or, when it is a net simplification
+
+DSH Host
+  -> AgentOS Workflow plugin
+      -> Inngest/Temporal/... adapter plugin
+          -> external durable runtime
+~~~
+
+External runtime ids never become Workflow semantic identity.
 
 ## What not to build
 
-Do not create domain-specific forks of Workflow Core.
+Do not build another generic workflow engine, job system, scheduler, approval system, Team engine, subagent runtime, or storage backend.
 
-Software-development, scientific-research, or other workflow shapes belong in Definition/Profile configuration.
+Do not encode domain phase names in Workflow semantic code.
 
-Do not create another generic:
-
-- workflow scripting engine;
-- background-job runtime;
-- subagent runtime;
-- Team engine;
-- scheduler product;
-- approval system;
-- storage backend.
-
-AgentOS should implement the durable semantic gap and adapters around existing capabilities.
-
-## Suggested internal modules
+## Likely internal modules
 
 ~~~text
 workflow/
@@ -59,24 +65,18 @@ workflow/
     loader
     validator
     binding
-  domain-schema
-  state-machine
+  work-item-state
   readiness
-  reconciliation
-  pending-action
-  result-receipt-binding
+  recovery
+  durable-decision
+  result-acceptance
   adapters/
     agent-team
     local-effect
-    subagent?          # optional
-    job?               # optional
-    bounded-workflow?  # optional
-    schedule?          # optional
-    interaction?       # optional
+    runtime?           # optional external durable runtime
 ~~~
 
-Question marks are deliberate: optional adapters should not land before a requirement needs them.
-
+A module/plugin is added because behavior needs a boundary, not to mirror a diagram noun.
 
 ## Change classification
 
@@ -85,13 +85,14 @@ change graph / phase policy / capability mix
   -> Workflow Definition/Profile
 
 add domain procedure
-  -> capability/Skill pack
+  -> Skill/capability pack
 
-add execution/effect mechanism
-  -> adapter plugin
+add provider/effect mechanism
+  -> provider/adapter plugin
 
-change durability / recovery / lifecycle invariant
-  -> Workflow Core
+change product recovery/acceptance invariant
+  -> Workflow semantic plugin
+
+change generic checkpoint/retry/wait mechanics
+  -> runtime implementation/plugin
 ~~~
-
-This classification is a design guardrail: the first three changes must not require editing Core state-machine semantics unless they expose a genuine missing generic primitive.
