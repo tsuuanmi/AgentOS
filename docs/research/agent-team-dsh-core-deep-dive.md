@@ -4,6 +4,7 @@
 - **Date:** 2026-09-28
 - **Decision basis:** DSH Agent Teams is the core Team runtime for AgentOS v1.
 - **Goal:** reuse DSH Agent Teams completely for Team mechanics, add only the smallest AgentOS reasoning/result layer, and avoid duplicating capabilities already owned by DSH.
+- **See also:** [Agent Team software flow v0](agent-team-software-flow-v0.md) for brainstorm -> debate -> implement -> review.
 
 ## Executive conclusion
 
@@ -29,10 +30,11 @@ crash/reload recovery
 AgentOS should build only what DSH intentionally does not define:
 
 ~~~text
-research/review Team policy
+research/implementation/review Team policy
+brainstorm/debate methodology
 semantic role/task templates
 strongest-supported synthesis policy
-typed completion/result contract
+typed phase completion/result contract
 Workflow/Local invocation adapter
 future external continuable teammate provider
 ~~~
@@ -471,7 +473,7 @@ That would duplicate DSH messaging semantics and couple AgentOS to Session inter
 
 ## 11. Research policy mapped onto DSH core
 
-A minimal research policy can use only DSH-native constructs:
+A research policy should preserve the Internet Team interaction pattern using only DSH-native constructs:
 
 ~~~text
 Lead
@@ -490,9 +492,10 @@ Lead
   |      - send concise evidence/findings to Lead
   |      - complete TeamTask
   |
-  +-> optional critique pass:
-  |      Lead sends selected peer findings to opposite reviewer
+  +-> debate barrier after independent brainstorm:
+  |      Lead forwards peer findings
   |      teammates challenge/add evidence
+  |      teammates revise recommendations
   |
   +-> Lead synthesizes strongest-supported answer
   |
@@ -556,7 +559,7 @@ If AgentOS later lets multiple teammates edit one checkout:
 - preserve DSH's advisory semantics;
 - require Lead review/final validation.
 
-For v1 research/review, prefer read-only teammates where possible. This lowers coordination risk and keeps the first Agent Team adaptation focused on reasoning quality.
+For research/review, prefer read-only teammates where possible. This lowers coordination risk and keeps the first Agent Team adaptation focused on reasoning quality.
 
 ## 14. Prefer fresh teammates for independent reasoning
 
@@ -602,12 +605,13 @@ Candidate minimum:
 
 ~~~text
 AgentOS Team policy
-  research policy
-  review policy
-  synthesis guidance
+  research = brainstorm + debate + synthesis
+  implementation coordination / TDD guidance
+  review = independent review + debate + synthesis
 
 AgentOS semantic schemas
   ResearchRequest / ResearchResult
+  ImplementationReport
   ReviewRequest / ReviewResult
 
 AgentOS invocation/completion adapter
@@ -729,19 +733,23 @@ Refactor:
 - isolate DSH mapping behind one adapter;
 - no generic Team runtime abstractions.
 
-### Slice B: direct Local review
+### Slice B: implementation on the same Team
 
-Reuse the same Team mechanics.
+Reuse the dedicated Team root and DSH shared-workspace/task mechanics.
 
-Add only review-specific policy/schema.
+Keep actual repository/test validation external to model claims.
 
-### Slice C: Workflow -> Agent Team
+### Slice C: direct Local review
+
+Reuse the same Team and add fresh reviewers plus debate/synthesis.
+
+### Slice D: Workflow -> Agent Team
 
 Workflow WorkItem invokes the same Agent Team semantic capability.
 
 No new Team mechanics.
 
-### Slice D: external teammate research
+### Slice E: external teammate research
 
 Only after A-C work, research what DSH seam change is required for a true remote continuable website teammate.
 
@@ -804,13 +812,13 @@ That asymmetry is desirable.
 AgentOS should be much smaller than DSH Agent Teams because its value is the product reasoning contract, not another collaboration runtime.
 
 
-## 23. Invocation isolation: prefer one root Team per semantic Agent Team run
+## 23. Isolation: prefer one root Team per software collaboration run
 
 DSH Team identity is rooted in one ordinary root Agent Session.
 
 That creates an important v1 design choice.
 
-Reusing the user's long-lived Local root Team for every semantic research/review invocation has drawbacks:
+Reusing the user's long-lived Local root Team for every software collaboration has drawbacks:
 
 - teammate names are immutable and never reused;
 - default maxMembers is finite;
@@ -831,24 +839,25 @@ ctx.agents.create({
 
 Omitting parentAgent creates an ordinary runtime root. That root naturally becomes the Lead of its own implicit DSH Agent Team.
 
-Therefore the preferred provider-v1 isolation pattern is:
+Therefore the preferred provider-v1 isolation pattern is one dedicated root Team for the whole collaboration:
 
 ~~~text
 Local or Workflow
       |
       v
-Agent Team invocation I1
+software Team run I1
       |
       v
 create dedicated ordinary root Agent R1
       |
       v
 DSH Team rooted at R1
-  +-> researcher-a
-  +-> researcher-b
+  +-> research: brainstorm + debate
+  +-> implementation
+  +-> review: independent review + debate
       |
       v
-Lead R1 synthesizes typed result
+typed phase completions
 ~~~
 
 The invocation's DSH root Session id is provider/adapter identity, not AgentOS semantic identity.
@@ -932,7 +941,7 @@ This is not a second Team state store. It is one semantic completion fact that D
 
 ## 26. Direct Local use and Workflow use can share the same provider
 
-With dedicated Team roots, both call paths converge:
+With dedicated Team roots that persist across the software flow, both call paths converge:
 
 ~~~text
 Local
@@ -960,26 +969,28 @@ Agent Team semantic request
        v
 DSH-backed Agent Team provider
        |
-       +-> create isolated root Agent
+       +-> create isolated root Agent for the collaboration
        |      cwd = caller/workflow workspace when required
-       |      fresh scoped Team policy
+       |      scoped Team policy
        |
        +-> DSH Agent Teams
-       |      spawn/fork continuable teammates
+       |      research brainstorm/debate
+       |      implementation tasks
+       |      review/debate
        |      mailbox/task/wait/recovery
        |
-       +-> Team Lead synthesis
+       +-> Team Lead phase synthesis
        |
-       +-> durable typed completion fact
+       +-> durable typed phase completion
        |
        v
-ResearchResult / ReviewResult
+ResearchResult / ImplementationReport / ReviewResult
 ~~~
 
 No custom AgentOS Team scheduler, transcript store, roster, mailbox, task graph, or member lifecycle is required.
 
 
-## 28. Preferred v1 orchestration: deterministic outer adapter, native DSH Team mechanics
+## 28. Preferred v1 orchestration: deterministic phase structure, native DSH Team mechanics
 
 There are two possible ways to use DSH Agent Teams:
 
