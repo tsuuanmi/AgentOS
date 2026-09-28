@@ -123,14 +123,14 @@ Do not add Worker Assignment/Message/Artifact/State protocols.
 
 ## 4. Website Agent plugin
 
-Build the smallest Website ACP bridge.
+Build the smallest Website ACP Agent adapter over the shared Website core.
 
 ~~~text
 Agent Team / Workflow
   -> Worker
       -> ctx.subagents
           -> dsh-subagent-acp
-              -> Website ACP bridge
+              -> Website ACP Agent adapter over the shared Website core
                   -> Website Agent
 ~~~
 
