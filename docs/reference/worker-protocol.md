@@ -68,7 +68,7 @@ Adding a capability does not create a new Worker type.
 
 ## Initial software capability guarantees
 
-These guarantees define what a caller may depend on. Detailed software-capability procedure currently lives in the [software-worker Skill](../../.agents/skills/software-worker/SKILL.md); other capability packs may be added without changing Worker identity.
+These guarantees define what a caller may depend on. Detailed software-capability procedure currently lives in the [software-development Skill](../../.agents/skills/software-development/SKILL.md); other capability packs may be added without changing Worker identity.
 
 ### research
 
@@ -162,4 +162,4 @@ Worker selection, capability profiles, independent-first barriers, Team peer rou
 - [MCP Worker transport](mcp-worker-transport.md)
 - [Worker Exchange invariants](worker-exchange-invariants.md)
 - [Schema registry](../../schemas/README.md)
-- [software-worker capability Skill](../../.agents/skills/software-worker/SKILL.md)
+- [software-development capability Skill](../../.agents/skills/software-development/SKILL.md)
