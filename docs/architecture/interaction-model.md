@@ -3,7 +3,7 @@
 - **Status:** canonical interaction model
 - **Date:** 2026-09-28
 
-This document shows how the canonical architecture composes end to end. Ownership rules remain in [Architecture](README.md); detailed behavior remains in [requirements](../requirements/README.md) and [reference](../reference/README.md).
+This document shows how the canonical architecture composes end to end. Ownership rules remain in [Architecture](README.md); the exact Agent-to-Agent protocol routing is defined in [Agent communication architecture](agent-communication.md); detailed behavior remains in [requirements](../requirements/README.md) and [reference](../reference/README.md).
 
 The diagrams intentionally show **semantic interactions**, not frozen language-level APIs.
 
@@ -53,15 +53,15 @@ sequenceDiagram
     participant T as Agent Team
     participant D as DSH Agent Teams
     participant W as Worker boundary
-    participant P as Provider execution
+    participant P as Website Agent
     participant V as Validation
 
     U->>L: collaborative request
     L->>T: semantic phase request + exact input
     T->>D: create/continue dedicated Team and TeamTasks
-    D->>W: coordinate provider-backed Worker assignments
-    W->>P: assignment + current Messages
-    P->>W: contribution/completion Artifacts
+    D->>W: Worker API / Worker Protocol
+    W->>P: MCP: assignment + current Messages
+    P->>W: MCP: Messages + contribution/completion Artifacts
     W-->>D: accepted current Worker state/artifacts
     D-->>T: Team collaboration state
     T->>V: validate effect-bearing evidence when required
@@ -157,9 +157,9 @@ flowchart TB
         WS[Local Worker server]
     end
 
-    subgraph Providers["Provider executions"]
-        PA[Provider execution A]
-        PB[Provider execution B]
+    subgraph Providers["Website execution (current provider)"]
+        PA[Website Agent A]
+        PB[Website Agent B]
     end
 
     Policy --> A
@@ -217,6 +217,26 @@ sequenceDiagram
 ~~~
 
 Lead does not proxy normal peer debate. DSH messaging is the collaboration channel; Worker Message is the provider-neutral representation delivered to the target provider assignment when needed.
+
+## Protocol routing inside collaboration
+
+The same collaboration composes multiple protocols at different ownership boundaries:
+
+~~~text
+Local Agent
+  -- AgentOS semantic interface -->
+Agent Team
+  -- DSH Agent Teams -->
+DSH Worker
+  -- Worker API + Worker Protocol -->
+local Worker server
+  -- MCP Worker transport -->
+Website Agent
+~~~
+
+Peer Website Agents do not communicate directly. A peer message returns through the local Worker boundary, crosses the DSH Team mailbox to the target DSH Worker, and is then delivered to the target Website Agent as a Worker Message.
+
+See [Agent communication architecture](agent-communication.md) for the full protocol matrix and sequence diagrams.
 
 ## Website-backed Worker exchange
 
