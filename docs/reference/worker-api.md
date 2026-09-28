@@ -3,7 +3,7 @@
 - **Status:** canonical / living reference
 - **Semantic reference:** [Worker Protocol](worker-protocol.md)
 - **Schemas:** [repository schemas](../../schemas/README.md)
-- **Runtime invariants:** [Worker server invariants](worker-server-invariants.md)
+- **Runtime invariants:** [Worker Exchange invariants](worker-exchange-invariants.md)
 
 ## Purpose
 
@@ -35,7 +35,7 @@ readArtifacts(workerId, assignmentId, cursor?) -> Artifact[]
 
 The exact programming-language interface may vary by implementation.
 
-All operations use canonical schemas and obey Worker server invariants.
+All operations use canonical schemas and obey Worker Exchange invariants.
 
 ## capabilities
 
@@ -67,7 +67,7 @@ This is the reconciliation surface after restart or uncertain provider execution
 
 Requests cancellation/fencing of current execution under the assignment.
 
-Stale-attempt and state-transition behavior belongs to Worker server invariants.
+Stale-attempt and state-transition behavior belongs to Worker Exchange invariants.
 
 ## recordArtifact / readArtifacts
 
