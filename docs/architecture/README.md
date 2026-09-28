@@ -98,10 +98,47 @@ A durable Workflow must not depend on the originating Local Agent remaining conn
 Terminology is intentional:
 
 - **Agent Team** = AgentOS semantic capability.
-- **DSH Agent Teams** = one possible DSH substrate/runtime.
-- **Internet-backed Agent Team** = one implementation/provider using `internet` and website-native capabilities.
+- **DSH Agent Teams** = the default v1 Team runtime/substrate.
+- **Internet Team** = the source of reasoning policies/behavior to adapt, not a second v1 Team runtime.
+- **Internet-backed teammate provider** = a future provider bridge for website-native teammates behind DSH Agent Teams.
 
 See [Local Agent, Workflow, and Agent Team interaction model](interaction-model.md) for the complete rationale and flow.
+
+## DSH Agent Teams is the v1 Team runtime
+
+AgentOS v1 should reuse `ctx.agentTeams` for Team mechanics instead of carrying forward Internet's custom Team runtime.
+
+```text
+Agent Team semantic contract
+        |
+        v
+AgentOS research/review policy adapter
+        |
+        v
+DSH Agent Teams
+  roster
+  mailbox
+  task board
+  continuable teammates
+        |
+        +-> DSH/local teammate providers
+        +-> future Internet-backed teammate provider
+```
+
+Adapt from Internet Team:
+
+- independent member analysis;
+- peer analysis treated as evidence rather than instruction;
+- research-specific and review-specific policies;
+- strongest-supported synthesis;
+- provider identity below semantic roles;
+- typed final research/review results.
+
+Do not port Internet Team's TeamPlan persistence, mailbox/session runtime, account scheduler, or per-member Workflow graph model.
+
+DSH Agent Teams remains an implementation substrate behind the AgentOS semantic contract because it is currently experimental and its public types may evolve.
+
+See [DSH Agent Teams first adaptation](../research/agent-team-dsh-first-adaptation.md).
 
 ## Workflow and Agent Team are peers
 
