@@ -163,7 +163,7 @@ Possible implementations may include:
 
 Do not treat those names as interchangeable.
 
-## 5. Agent Team may be called directly or from Workflow
+## 5. Agent Team is independent and may be called directly or from Workflow
 
 Direct use:
 
@@ -196,7 +196,22 @@ Workflow
 
 Agent Team is therefore not the top-level runtime and not a hard dependency for every request.
 
-It is a composable capability.
+It is an **independent composable capability**.
+
+The relationship is not parent/child ownership:
+
+~~~text
+Local -> Agent Team
+Local -> Workflow -> Agent Team
+~~~
+
+Workflow may request collaborative reasoning from Agent Team, but Workflow does not own Team members, provider routing, Team sessions, debate/review mechanics, or Team persistence.
+
+Likewise, Agent Team does not directly mutate WorkflowRun state. It returns a typed result to its caller; when the caller is Workflow, the Workflow reconciler validates and durably commits that result.
+
+If an Agent Team implementation itself supports durable/long-running collaboration, that durability remains owned by the Agent Team provider and is referenced by Workflow through an opaque execution/provider reference.
+
+V1 does not require the reverse direction `Agent Team -> Workflow`. A future Agent Team may invoke a Workflow through the same public Workflow capability contract, but it must not receive privileged access to Workflow internals.
 
 ## 6. Why Agent Team matters
 
@@ -292,9 +307,11 @@ Workflow
   +-> delivery / user authority
 ~~~
 
-Workflow owns the coordination semantics.
+Workflow owns durable coordination semantics for its WorkflowRun.
 
-Agent Team owns collaborative reasoning semantics.
+Agent Team owns collaborative reasoning semantics and its internal lifecycle.
+
+The fact that Workflow calls Agent Team for one WorkItem does not transfer Agent Team ownership to Workflow.
 
 Workers own execution.
 
@@ -429,6 +446,8 @@ Its existence should not change the v1 authority model:
 7. DSH Agent Teams is a possible implementation substrate, not the Agent Team semantic definition.
 8. An Internet-backed team is one implementation/provider, not the architecture.
 9. Local and Workflow may both call Agent Team.
-10. Workflow may compose Agent Team, workers, validation, and review without routing every internal step through Local.
-11. Provider/model identities remain below semantic capability boundaries unless explicitly required by the requested semantics.
-12. Controller remains optional/future and must reuse existing semantic boundaries when introduced.
+10. Agent Team remains independently usable; Workflow invokes it through its semantic capability rather than controlling its internals.
+11. Agent Team returns typed results and does not directly mutate WorkflowRun/WorkItem state.
+12. Workflow may compose Agent Team, workers, validation, and review without routing every internal step through Local.
+13. Provider/model identities remain below semantic capability boundaries unless explicitly required by the requested semantics.
+14. Controller remains optional/future and must reuse existing semantic boundaries when introduced.
