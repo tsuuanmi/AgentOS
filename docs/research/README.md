@@ -4,6 +4,7 @@ Research is exploratory and non-normative. It collects evidence needed to decide
 
 ## Current research
 
+- [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) — detailed authority/reuse map for roster, mailbox, Team tasks, continuation, provider limits, result bridging, and the exact AgentOS layer that should remain.
 - [DSH Agent Teams first adaptation](agent-team-dsh-first-adaptation.md) — use DSH Agent Teams as the v1 Team runtime and port Internet Team's research/review collaboration policies onto it; defer website-native teammates to a provider bridge.
 - [Agent Team semantic contract v0](agent-team-semantic-contract-v0.md) — minimal independently callable research/review capability above both Internet-backed reasoning protocols and DSH Agent Teams collaboration substrate.
 - [Workflow restart and reconciliation v0](workflow-restart-reconciliation-v0.md) — crash matrix for research/implementation/validation/review/PendingAction, execution admission/fencing, and the only valid recovery action after unknown outcomes.
