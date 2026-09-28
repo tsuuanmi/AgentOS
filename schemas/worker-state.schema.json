@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentos:schema:worker-state",
+  "title": "AgentOS Worker Assignment State",
+  "description": "Current durable application state for one Worker assignment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workerId",
+    "assignmentId",
+    "inputBinding",
+    "status"
+  ],
+  "properties": {
+    "workerId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    },
+    "assignmentId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    },
+    "inputBinding": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/inputBinding"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "active",
+        "input_required",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "pendingInputCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "lastSubmissionId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    },
+    "terminalSubmissionId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    },
+    "extensions": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/extensions"
+    }
+  }
+}
