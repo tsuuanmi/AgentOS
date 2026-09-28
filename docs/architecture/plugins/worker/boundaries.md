@@ -1,104 +1,95 @@
 # Worker plugin boundaries
 
 - **Status:** canonical architecture
-- **Owner:** AgentOS Worker plugin
-
-This document classifies Worker-related responsibilities so provider/runtime/protocol concerns do not leak into the semantic plugin.
+- **Owner:** Worker plugin
 
 ## Ownership map
 
 | Concern | Owner |
 |---|---|
-| semantic capability requirement | Worker plugin |
-| right-agent-right-job selection | Worker plugin |
-| cost/context selection policy | Worker plugin |
-| delegated provider registry/lifecycle | DSH `ctx.subagents` |
-| local/compatible Agent execution protocol | ACP / DSH ACP plugin |
-| peer Agent-to-Agent collaboration | A2A plugin / Agent Team peer adapter |
-| Website transport/session mapping | Website Agent plugin |
-| tools/data/capabilities | MCP or native DSH tools |
-| domain procedure | Skill/capability pack |
-| Team collaboration/barriers | Agent Team plugin |
-| Workflow sequencing/recovery | Workflow plugin |
-| ACP session / A2A Task / DSH run state | owning protocol/runtime; use directly |
-| semantic work -> provider handle | ExecutionBinding only when needed |
-| protocol result object | owning protocol/runtime; use directly |
-| domain output contract | caller/domain schema only when AgentOS/domain owns it |
-| result acceptance | Worker plugin + caller policy |
-| real effect verification | effect/environment adapter |
+| semantic capability requirement | Worker |
+| right-agent-right-job policy | Worker |
+| cost/context/provider preference | Worker/Profile |
+| provider registry/lifecycle | DSH ctx.subagents |
+| runtime/client <-> Agent protocol | ACP |
+| Website peer collaboration | A2A + Agent Team/Website adapters |
+| Team roster/tasks/mailbox | DSH ctx.agentTeams |
+| Workflow sequencing/recovery | Workflow |
+| tools/data | MCP or native DSH tools |
+| Website account/provider/browser | Website Core |
+| ACP session/update/stopReason | ACP |
+| DSH provider result | DSH |
+| A2A Task/Message/Artifact/context | A2A, not Worker |
+| semantic execution association | Worker ExecutionBinding only when needed |
+| domain result contract | domain/caller |
+| real effect evidence | effect/environment boundary |
 
-## DSH boundary
+## Boundary diagram
 
-Inside the Host, Worker should call `ctx.subagents` rather than implement a second provider registry.
+~~~mermaid
+flowchart TB
+    Workflow[Workflow]
+    Team[Agent Team]
+    Worker[Worker]
 
-See [DSH subagents](../dsh/subagents.md).
+    DSH[ctx.subagents]
+    ACP[ACP]
+    Website[Website Agent]
 
-## ACP boundary
+    A2A[A2A]
+    Peer[Team Member]
+    MCP[MCP / tools]
 
-ACP owns Client <-> Agent execution/control.
+    Workflow --> Worker
+    Team --> Worker
+    Worker --> DSH --> ACP --> Website
 
-AgentOS reuses the existing DSH ACP provider and does not define its own ACP envelope/session lifecycle.
+    Peer <--> A2A <--> Website
 
-See [DSH ACP](../dsh/acp.md).
+    Worker --> MCP
+    Website --> MCP
+~~~
 
-## A2A boundary
+## No-shadow-model rule
 
-A2A owns horizontal Agent <-> Agent interoperability, especially Website Agent <-> Agent Team Member collaboration:
+Do not create AgentOS equivalents of ACP Session/Update/StopReason, A2A Task/TaskStatus/Message/Artifact/Part, DSH provider result/Team state, or MCP tool/resource.
 
-- AgentCard / AgentSkill;
-- Task / TaskStatus;
-- Message;
-- Artifact / Part;
-- context;
-- auth/update mechanisms.
-
-AgentOS begins with zero custom A2A extensions.
-
-Local exact-input, recovery, binding-generation, and acceptance state stay local unless the remote peer genuinely needs them.
-
-See [A2A plugin](../a2a/README.md).
+Use the native object at the owning boundary.
 
 ## Website boundary
 
-Website Agent exposes two separate ports: ACP for runtime control and A2A for peer collaboration.
-
-Runtime path:
+Runtime control:
 
 ~~~text
-Worker -> ctx.subagents -> DSH ACP provider -> ACP -> Website ACP Agent adapter -> Website Core
+Worker -> ctx.subagents -> DSH ACP Client -> Website ACP Agent -> Website Core
 ~~~
 
-Peer path:
+Peer collaboration:
 
 ~~~text
-Agent Team Member <-> A2A <-> Website A2A Agent adapter -> Website Core
+Agent Team Member <-> A2A <-> Website Agent
 ~~~
 
-Website conversation/session ids stay below the plugin boundary.
-
-See [Website Agent plugin](../website-agent/README.md).
+These paths are orthogonal.
 
 ## Schema boundary
 
-AgentOS does not define universal Worker Assignment/Message/Artifact/State schemas.
+Create an AgentOS schema only if AgentOS owns the serialized semantic.
 
-Use upstream/provider models and domain/caller schemas.
+Valid candidates include domain result contracts or Workflow Definition records.
 
-A Worker-owned serialized schema should be added only when a real Worker plugin state crosses a persistence/interoperability boundary and runtime types are insufficient.
+Invalid reason:
 
-## Plugin invariant
+> We need the same shape as A2A Artifact but with AgentOS names.
 
-The Worker caller contract must not change when an execution moves among:
+## ExecutionBinding boundary
 
-- DSH-native provider;
-- ACP provider;
-- Website ACP Agent adapter over the shared Website core;
-- ACP-controlled Website Agent with optional A2A peer port;
-- future provider.
+Worker may persist a minimal local association between semantic work and a native provider handle only when recovery/replacement tests require it.
 
-Provider limitations are exposed as capability/conformance facts rather than provider-specific branches in Agent Team/Workflow.
+A2A Task/context recovery remains owned by Agent Team/A2A, not Worker ExecutionBinding.
 
+## Replacement invariant
 
-## No shadow model
+Changing among DSH-native and ACP-backed Worker providers must not change the Workflow/Agent Team caller contract.
 
-Do not introduce AgentOS equivalents of ACP Session/Update, A2A Task/Message/Artifact/Part, or DSH provider results. An adapter may call Core behavior from those native objects, but the upstream object remains the authoritative protocol representation.
+Provider limitations are capability/conformance facts, not branches in callers.
