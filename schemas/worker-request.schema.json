@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentos.dev/schemas/worker-request.v1.json",
+  "title": "AgentOS Worker Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "requestId",
+    "assignmentId",
+    "phase",
+    "requiredCapabilities",
+    "objective",
+    "inputBinding",
+    "expectedOutput"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": "1"
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assignmentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "research",
+        "implementation",
+        "review",
+        "synthesis"
+      ]
+    },
+    "requiredCapabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9.-]*$"
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "goal"
+      ],
+      "properties": {
+        "goal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptanceCriteria": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "inputBinding": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contextRefs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "acceptedResults": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "peerEvidence": {
+      "type": "array",
+      "items": {
+        "$ref": "worker-message.schema.json"
+      }
+    },
+    "expectedOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaRef"
+      ],
+      "properties": {
+        "schemaRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "completion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "explicit": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    }
+  }
+}
