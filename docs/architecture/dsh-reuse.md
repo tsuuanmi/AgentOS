@@ -26,7 +26,7 @@ Prefer service definitions and capability seams over concrete implementation int
 | experimental Agent Team / `ctx.agentTeams` | durable roster, mailbox, task board, teammate lifecycle/recovery | Agent Team | primary Team runtime candidate; experimental |
 | experimental Agent Team profile/tools/UI | ready-made Team composition and presentation | Agent Team / AgentOS bundle | optional composition |
 | `subagent` / `ctx.subagents` | provider registry, one-shot/continuable delegated agents | Agent Team, Workflow | primary execution seam |
-| spawn/fork subagents | continuable local DSH Workers | Agent Team | provider option |
+| spawn/fork subagents | continuable local Workers through DSH providers | Agent Team | provider option |
 | Codex subagent | Codex Worker execution | Agent Team / Workflow | provider option; currently one-shot |
 | Claude Code subagent | Claude Worker execution | Agent Team / Workflow | provider option; currently one-shot |
 | ACP / DSH SDK subagents | alternate out-of-process execution | Agent Team / Workflow | provider option |
@@ -138,7 +138,7 @@ Website Agent = MCP client
 AgentOS Worker bridge = MCP server
 ~~~
 
-These are different roles. DSH MCP-client packages may still be Worker tools, but they are not the Website Worker server implementation.
+These are different roles. DSH MCP-client packages may still be Worker tools, but they are not the Website Worker Exchange MCP-server adapter.
 
 ## Dependency rules
 
