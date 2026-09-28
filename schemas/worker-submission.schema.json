@@ -27,6 +27,7 @@
         "submissionId",
         "workerId",
         "assignmentId",
+        "attemptId",
         "inputBinding",
         "kind"
       ],
@@ -39,6 +40,10 @@
         },
         "assignmentId": {
           "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+        },
+        "attemptId": {
+          "$ref": "urn:agentos:schema:worker-common#/$defs/identifier",
+          "description": "Current Website execution attempt for this assignment. A superseded attempt cannot commit."
         },
         "inputBinding": {
           "$ref": "urn:agentos:schema:worker-common#/$defs/inputBinding"

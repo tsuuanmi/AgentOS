@@ -75,6 +75,7 @@ Core objects carry explicit:
 ~~~text
 workerId
 assignmentId
+attemptId for Website execution attempts
 inputBinding
 inputId / submissionId
 ~~~
@@ -82,6 +83,14 @@ inputId / submissionId
 No schema relies on MCP session, tunnel, browser tab, provider, model, or Website conversation identity.
 
 This is required for multi-client/plugin interoperability.
+
+### Assignment identity and stale-execution fencing
+
+`assignmentId` remains stable for durable work while a Website claim receives a separate opaque `attemptId`.
+
+This closes a recovery gap that `assignmentId + inputBinding` alone cannot close: the same assignment may be rebound to a new Website conversation while retaining the same correctness-bearing input.
+
+Rotating `attemptId` on supersession/rebinding lets the provider reject late submissions from the old execution without treating transport or conversation identity as semantic state.
 
 ### Capability-driven selection
 
@@ -190,6 +199,7 @@ Schema alone cannot guarantee that:
 
 ~~~text
 assignment.workerId == submission.workerId
+currentAttemptId == submission.attemptId
 assignment.inputBinding == submission.inputBinding
 ~~~
 
@@ -203,6 +213,7 @@ Schema cannot enforce:
 inputId unique within assignment
 submissionId idempotent
 claim atomic
+attemptId rotation on supersession/rebind
 cursor acknowledgement
 stale submission fencing
 ~~~

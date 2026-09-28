@@ -69,6 +69,7 @@ Core handles include:
 ~~~text
 workerId
 assignmentId
+attemptId
 inputBinding
 cursor/message ids where needed
 ~~~
@@ -102,10 +103,12 @@ Conceptual input:
 Conceptual result:
 
 ~~~text
-assignment
+assignment + attemptId
 or
 no_work
 ~~~
+
+`attemptId` is an opaque AgentOS execution-claim handle. It is not an MCP session, task, tunnel, conversation, or provider identifier.
 
 An assignment validates against:
 
@@ -114,6 +117,8 @@ An assignment validates against:
 ~~~
 
 Claiming is atomic: one assignment is not silently claimed by multiple Website conversations unless the provider explicitly supports shared execution.
+
+If current execution is superseded or rebound, the provider rotates `attemptId` while retaining the same durable `assignmentId`. Calls carrying the old attempt are stale.
 
 ### agentos.worker.receive
 
@@ -124,6 +129,7 @@ Conceptual input:
 ~~~text
 workerId
 assignmentId
+attemptId
 cursor?
 waitMs?
 ~~~
@@ -176,7 +182,7 @@ completion
   = terminal revised result for the assignment
 ~~~
 
-The local bridge validates assignment/input binding and persists the submission before acknowledging it.
+The local bridge validates worker, assignment, current attempt, and input binding before persisting the submission and acknowledging it.
 
 ### agentos.worker.inspect
 
@@ -259,11 +265,11 @@ Website reasoning should occur in the Website Agent that is already acting as th
 
 ## Delivery and idempotency semantics
 
-`claim` is atomic for one Worker assignment.
+`claim` is atomic for one Worker assignment and returns the current `attemptId`.
 
-`receive` is at-least-once. The Website client de-duplicates by `inputId`. The returned `nextCursor` is presented on the next receive call to advance the read position; repeating an older cursor may replay already-seen inputs safely.
+`receive` requires that current attempt and is at-least-once. The Website client de-duplicates by `inputId`. The returned `nextCursor` is presented on the next receive call to advance the read position; repeating an older cursor may replay already-seen inputs safely.
 
-`submit` is idempotent by `submissionId`. Repeating the same current submission returns `duplicate`; reusing an id with different content is a protocol error.
+`submit` requires the current `attemptId` in the WorkerSubmission and is idempotent by `submissionId`. Repeating the same current submission returns `duplicate`; reusing an id with different content is a protocol error. A submission from a superseded attempt is rejected even when `assignmentId` and `inputBinding` still match.
 
 These are application semantics and must be tested; JSON Schema alone cannot enforce them.
 
@@ -325,7 +331,7 @@ Tests should prove:
 - MCP session/tunnel identity never substitutes for workerId/assignmentId;
 - claim is atomic;
 - receive returns only current assignment input;
-- submit rejects stale worker/assignment/input bindings;
+- receive and submit reject stale worker/assignment/attempt/input bindings;
 - contributions do not terminate an assignment;
 - completion is durable before acknowledgement;
 - inactive Website conversations leave work queued rather than falsely failed;

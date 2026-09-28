@@ -48,6 +48,7 @@ Human-readable semantics:
 - MCP adapters bundle/dereference shared schemas into self-contained tool schemas for hosts that do not resolve external resources.
 - Intermediate `contribution` and terminal `completion` are distinct WorkerSubmission kinds.
 - Explicit application ids are authoritative; MCP sessions/tunnels are never semantic identity.
+- `assignmentId` identifies durable work; an opaque `attemptId` identifies the current Website execution claim and rotates when execution is superseded or rebound.
 
 ## Validation expectation
 

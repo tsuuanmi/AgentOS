@@ -217,6 +217,7 @@ Always carry explicit application handles.
 ~~~text
 workerId
 assignmentId
+attemptId for Website execution attempts
 inputBinding
 inputId / submissionId where applicable
 ~~~
@@ -232,6 +233,21 @@ Never use as semantic identity:
 
 Provider-specific handles may be persisted below the Worker binding for recovery.
 
+### Assignment identity versus execution attempt
+
+`assignmentId` is the durable identity of the work. It does not change merely because Website execution is resumed or rebound.
+
+A claimed Website execution receives an opaque `attemptId`. This handle identifies the **current execution attempt**, not a transport session.
+
+~~~text
+assignmentId = durable work identity
+attemptId    = current Website execution claim
+~~~
+
+If execution is superseded or rebound, the provider rotates `attemptId`. Late input reads or submissions carrying an older attempt are stale and cannot commit.
+
+Do not derive `attemptId` from an MCP session, tunnel, browser tab, conversation id, model, or provider.
+
 ## Completion
 
 A Website response is not automatically assignment completion.
@@ -239,10 +255,11 @@ A Website response is not automatically assignment completion.
 A terminal WorkerSubmission is current only when:
 
 1. `workerId` and `assignmentId` match the active assignment;
-2. `inputBinding` is current;
-3. required capabilities are satisfied;
-4. output validates against the declared schema;
-5. the submission is durably persisted.
+2. `attemptId` matches the current Website execution attempt;
+3. `inputBinding` is current;
+4. required capabilities are satisfied;
+5. output validates against the declared schema;
+6. the submission is durably persisted.
 
 Intermediate `contribution` does not terminate the assignment.
 
@@ -323,7 +340,7 @@ Tests should prove:
 - multiple Workers with the same capabilities remain isolated by explicit ids/bindings;
 - peer evidence arrives as structured WorkerInput;
 - debate continues the same assignment;
-- stale worker/assignment/input bindings cannot commit;
+- stale worker/assignment/attempt/input bindings cannot commit;
 - contributions do not terminate assignments;
 - terminal output validates against its expected schema;
 - direct API and MCP adapters preserve the same Worker semantics;

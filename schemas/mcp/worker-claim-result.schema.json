@@ -2,18 +2,23 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:agentos:schema:mcp-worker-claim-result",
   "title": "AgentOS MCP Worker Claim Result",
-  "description": "Returns an assignment or an explicit no-work result.",
+  "description": "Returns an assignment with its current execution attempt, or an explicit no-work result.",
   "oneOf": [
     {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "status",
+        "attemptId",
         "assignment"
       ],
       "properties": {
         "status": {
           "const": "assignment"
+        },
+        "attemptId": {
+          "$ref": "urn:agentos:schema:worker-common#/$defs/identifier",
+          "description": "Application-level execution attempt handle that must be echoed by receive and submit."
         },
         "assignment": {
           "$ref": "urn:agentos:schema:worker-assignment"

@@ -2,18 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:agentos:schema:mcp-worker-receive-request",
   "title": "AgentOS MCP Worker Receive Request",
-  "description": "Retrieves structured input for an active Worker assignment.",
+  "description": "Retrieves structured input for the current Website execution attempt of an active Worker assignment.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "workerId",
-    "assignmentId"
+    "assignmentId",
+    "attemptId"
   ],
   "properties": {
     "workerId": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
     "assignmentId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    },
+    "attemptId": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
     "cursor": {

@@ -1,0 +1,20 @@
+{
+  "status": "assignment",
+  "attemptId": "attempt-research-a-1",
+  "assignment": {
+    "workerId": "worker-research-a",
+    "assignmentId": "assignment-research-a",
+    "requiredCapabilities": [
+      "research",
+      "brainstorm",
+      "debate"
+    ],
+    "objective": {
+      "goal": "Research the proposed change and return implementation-relevant findings."
+    },
+    "inputBinding": "sha256:example-input-binding",
+    "expectedOutput": {
+      "schemaRef": "urn:example:schema:research-contribution"
+    }
+  }
+}

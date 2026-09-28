@@ -18,6 +18,10 @@
     "assignmentId": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
+    "attemptId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier",
+      "description": "Current Website execution attempt when the assignment has been claimed. Rotates when execution is superseded or rebound."
+    },
     "inputBinding": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/inputBinding"
     },

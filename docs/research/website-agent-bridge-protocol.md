@@ -33,7 +33,6 @@ WorkerBinding
  capabilities[]
  websiteProvider
  conversationRef
- bindingRevision
 ~~~
 
 Examples:
@@ -81,7 +80,7 @@ Required invariants:
 - one Worker -> one active current conversation;
 - no silent sharing of conversations across Workers;
 - recovery reuses the current binding;
-- rebinding increments revision and fences stale assignment results;
+- rebinding rotates the current execution `attemptId` and fences stale Website results;
 - provider/account/conversation ids stay opaque.
 
 For current, persist AgentOS-only binding/assignment/completion state in an AgentOS DSH Storage Domain.
@@ -109,8 +108,6 @@ expectedOutput.schemaRef
 Control semantics come from:
 
 ~~~text
-protocolVersion
-phase
 requiredCapabilities
 completion contract
 ~~~
@@ -124,7 +121,7 @@ Website output does not count as completion merely because text appeared.
 Completion requires:
 
 1. current assignment id;
-2. current binding revision;
+2. current Website execution `attemptId`;
 3. current exact input binding;
 4. output matching the expected JSON Schema;
 5. durable provider completion record.
@@ -251,7 +248,7 @@ Canonical request/result/message validation comes from repository-root [`/schema
 2. Worker selection fails if required capabilities are missing;
 3. two research Workers can have identical capabilities but isolated Website conversations;
 4. free-form unvalidated Website output cannot complete an assignment;
-5. stale assignment/binding/input result cannot commit;
+5. stale assignment/attempt/input result cannot commit after rebinding or supersession;
 6. debate uses WorkerMessage JSON and continues the existing Website assignment;
 7. direct API and MCP adapters produce equivalent validated semantics;
 8. TeamTask cannot complete before Worker assignment durable completion;

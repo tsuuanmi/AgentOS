@@ -2,6 +2,7 @@
   "submissionId": "submission-contribution-1",
   "workerId": "worker-research-a",
   "assignmentId": "assignment-research-a",
+  "attemptId": "attempt-research-a-1",
   "inputBinding": "sha256:example-input-binding",
   "kind": "contribution",
   "outputSchemaRef": "urn:example:schema:research-contribution",

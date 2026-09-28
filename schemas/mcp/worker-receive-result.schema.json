@@ -2,12 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:agentos:schema:mcp-worker-receive-result",
   "title": "AgentOS MCP Worker Receive Result",
-  "description": "Returns an at-least-once batch of structured Worker inputs and the cursor for the next read.",
+  "description": "Returns an at-least-once batch of structured Worker inputs for the current execution attempt and the cursor for the next read.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "workerId",
     "assignmentId",
+    "attemptId",
     "inputs",
     "nextCursor"
   ],
@@ -16,6 +17,9 @@
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
     "assignmentId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    },
+    "attemptId": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
     "inputs": {

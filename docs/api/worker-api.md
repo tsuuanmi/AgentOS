@@ -74,6 +74,8 @@ The assignment contains:
 
 Enqueueing work does not imply a Website Agent is currently active.
 
+The local API owns assignment state. A Website-facing adapter creates an opaque execution `attemptId` when an assignment is successfully claimed. Rebinding or superseding Website execution rotates that attempt without changing `assignmentId`.
+
 ## appendInput
 
 Adds structured input to an existing assignment.
@@ -104,7 +106,7 @@ Inspect is the primary reconciliation operation after restart.
 
 Fences/cancels the current assignment.
 
-Late Website submissions after cancellation or supersession cannot commit as current.
+Late Website submissions after cancellation, rebinding, or supersession cannot commit as current. The provider fences them with the current `attemptId`.
 
 ## readSubmissions
 
@@ -162,3 +164,5 @@ A plugin does not need to know:
 - DSH Team internals.
 
 It depends only on Worker capabilities, explicit handles, and canonical schemas.
+
+`attemptId` is an application-level execution handle. It is never inferred from transport/session identity.
