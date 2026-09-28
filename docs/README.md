@@ -10,7 +10,6 @@ This is the canonical knowledge router for AgentOS.
 | [Plugin architecture](architecture/plugins/README.md) | canonical plugin catalog and ownership tree | canonical / living |
 | [Product principles](architecture/product-principles.md) | why AgentOS exists | canonical / living |
 | [Protocol stack](architecture/protocol-stack.md) | ACP/A2A/MCP protocol ownership | canonical / living |
-| [Reference](reference/README.md) | exact AgentOS-owned semantic contracts/invariants | canonical / living |
 | [Proposals](proposals/README.md) | unresolved implementation change | evolutionary |
 | [Research](research/README.md) | temporary proving evidence | exploratory |
 | [Governance](governance/README.md) | documentation lifecycle | canonical / living |
@@ -24,7 +23,7 @@ When changing behavior:
 1. read [plugin architecture](architecture/plugins/README.md);
 2. read the canonical folder for the plugin being changed;
 3. read the corresponding [DSH plugin page](architecture/plugins/dsh/README.md) when reusing DSH mechanics;
-4. read [reference](reference/README.md) for exact Worker/execution invariants;
+4. read the plugin-local contract/invariant files in that canonical folder;
 5. read proposals/research only when the question remains unresolved;
 6. read source/tests once implementation exists.
 
