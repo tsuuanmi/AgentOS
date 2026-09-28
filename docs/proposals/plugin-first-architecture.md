@@ -54,7 +54,13 @@ Worker R2 [review, debate]              <-> Website Agent R2
 Lead/Synthesis [synthesize]             <-> Website Agent S
 ~~~
 
-The canonical structured boundary is [Worker Protocol](../contracts/worker-protocol.md): versioned JSON Schema with direct typed API and an MCP transport profile.
+The canonical semantic boundary is [Worker Protocol](../contracts/worker-protocol.md).
+
+Machine-readable contracts live under repository-root [`/schemas`](../../schemas/README.md).
+
+Callable operations live in [Worker API](../api/worker-api.md).
+
+MCP-specific mapping lives in [MCP Worker transport](../mcp/worker-transport.md).
 
 Research/review policy:
 
@@ -182,7 +188,7 @@ Provider-v1 should persist AgentOS-only binding/assignment/completion state in a
 Current remaining bridge questions are implementation-level:
 
 1. exact Storage Domain schema/transaction shape for member bindings and assignment completions;
-2. concrete implementation of the canonical Worker API: capabilities/start/continue/inspect/cancel;
+2. concrete implementation of the canonical [Worker API](../api/worker-api.md): capabilities/start/continue/inspect/cancel;
 3. provider-specific completion detection and auth/re-auth behavior;
 4. how local tool requests from Website Agent I are represented and authorized;
 5. whether synthesis always uses a Website Agent Worker or may be satisfied locally by a Worker with `synthesize`.
@@ -235,7 +241,7 @@ Implementation can begin when:
 - capability-driven Worker profiles and Website Agent completion ownership are reflected in tests;
 - the per-member binding/assignment Storage Domain schema is concrete enough to implement;
 - typed completion has a concrete testable API;
-- the research capability profile and Worker Protocol schemas are encoded in black-box tests;
+- the research capability profile and root `/schemas` Worker Protocol schemas are encoded in black-box tests;
 - Workflow provider choices remain clearly implementation-specific;
 - no DSH Team/runtime state is shadowed by AgentOS.
 
