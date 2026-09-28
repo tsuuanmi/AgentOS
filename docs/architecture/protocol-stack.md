@@ -1,47 +1,65 @@
 # Protocol stack
 
-- **Status:** canonical architecture
-- **Scope:** protocol ownership for delegated execution, agent collaboration, and tool access
+- **Status:** canonical cross-cutting architecture
+- **Scope:** protocol ownership below AgentOS plugin boundaries
 
 The canonical mental model is:
 
 ~~~text
 ACP
-  = Client <-> Agent
-  = execution/control for compatible agents
+  = Client <-> Agent execution/control
 
 A2A
-  = Agent <-> Agent
-  = Task / Message / Artifact collaboration
+  = Agent <-> Agent Task / Message / Artifact
 
 MCP
   = Agent <-> Tool / Capability / Data
 ~~~
 
-DSH/Cordis remains the Host around these protocols.
+DSH/Cordis remains the Host.
 
-## ACP: execution/control
+AgentOS does not create a fourth universal protocol.
 
-ACP standardizes a client driving an agent through initialization, capability negotiation, sessions, prompt/update lifecycle, cancellation, permissions, and extensibility.
-
-AgentOS normally consumes ACP through DSH ctx.subagents.
+## Worker is the semantic boundary above provider protocols
 
 ~~~text
-AgentOS
+Agent Team / Workflow
+  -> Worker plugin
+      -> DSH ctx.subagents
+          -> DSH-native provider
+          -> ACP provider
+          -> A2A provider
+          -> other provider
+~~~
+
+The Worker plugin owns capability selection, minimal execution binding, and result acceptance.
+
+Protocols keep their native lifecycle/data models.
+
+See [Worker plugin](plugins/worker/README.md) and [Worker communication](plugins/worker/communication.md).
+
+## ACP
+
+ACP owns compatible Client <-> Agent execution/control.
+
+AgentOS normally consumes ACP through the existing DSH ACP provider:
+
+~~~text
+Worker
   -> ctx.subagents
       -> DSH ACP provider
           -> ACP Agent
 ~~~
 
-This avoids one AgentOS integration per Codex/Claude/Gemini/etc. implementation.
+This avoids one AgentOS integration per compatible agent product.
 
-ACP does not define Worker identity. Worker remains the semantic role selected by capability.
+ACP sessions/updates remain provider state.
 
-Current DSH ACP provider is one-shot. Continuable ACP support is a provider capability gap, not justification for a new AgentOS protocol.
+See [DSH ACP](plugins/dsh/acp.md).
 
-## A2A: remote Agent-to-Agent
+## A2A
 
-A2A owns remote agent discovery/collaboration concepts such as:
+A2A owns independent remote Agent-to-Agent interoperability:
 
 ~~~text
 AgentCard
@@ -54,91 +72,77 @@ Part
 contextId
 ~~~
 
-AgentOS should use those structures directly.
+AgentOS integrates A2A through the [A2A plugin](plugins/a2a/README.md), preferably as a provider behind Worker/`ctx.subagents`.
 
-The owning Workflow/phase may keep a local mapping:
+The initial integration uses zero AgentOS A2A extensions.
 
-~~~text
-semantic work id
-  -> A2A taskId/contextId
-~~~
+Exact-input digests, binding generations, retry policy, and acceptance state remain local unless the remote peer genuinely needs them.
 
-Only add AgentOS extension metadata when the remote A2A peer itself must consume or attest to it.
+## MCP
 
-Do not automatically export local exact-input digests, binding generations, retry counters, or acceptance state onto the A2A wire.
+MCP is the vertical tool/capability/data layer.
 
-## MCP: tools/capabilities
+Use it for filesystem/repository access, browser/search, GitHub, databases, scientific/data tools, and domain services.
 
-MCP is the vertical capability layer.
+MCP may be attached to ACP/Website/other agents as tools.
 
-Use it for:
-
-- filesystem/repository access;
-- browser/search;
-- GitHub;
-- databases;
-- scientific/data tools;
-- domain-specific services;
-- tools attached to ACP or Website agents.
-
-MCP is not the default Agent-to-Agent protocol.
+It is not the Worker protocol and not a substitute for A2A.
 
 ## DSH-native seams
 
 Inside the Host:
 
 ~~~text
-Team mechanics
+Team runtime
   -> ctx.agentTeams
 
 delegated provider registry/lifecycle
   -> ctx.subagents
 
-durable AgentOS-owned records
+durable AgentOS semantic records
   -> ctx.storageDomain
 
-tools/skills/workspace
-  -> corresponding DSH plugins
+jobs/workflow/schedule/interaction/tools
+  -> DSH runtime plugins
 ~~~
 
-Standard protocols are integrated beneath or beside these seams, not used to duplicate them.
+See [DSH plugins and capabilities](plugins/dsh/README.md).
 
 ## Boundary selection
 
 | Boundary | Preferred mechanism |
 |---|---|
-| AgentOS -> named delegated provider | DSH ctx.subagents |
-| DSH -> compatible external agent | ACP |
-| independent remote Agent <-> Agent | A2A |
-| Agent -> tool/data/capability | MCP |
-| DSH teammate collaboration | ctx.agentTeams |
-| Website bounded delegation | DSH ACP provider + Website ACP bridge |
-| Website/remote Agent with native A2A | A2A |
-| unsupported provider | narrow ctx.subagents provider |
+| AgentOS semantic work -> delegated execution | Worker plugin |
+| Worker -> provider registry | DSH `ctx.subagents` |
+| DSH -> compatible Agent | ACP |
+| Worker -> independent remote Agent | A2A provider |
+| Agent -> tool/data/capability | MCP/native DSH tool |
+| Agent Team peer mechanics | DSH `ctx.agentTeams` |
+| bounded Website execution | Worker -> DSH ACP -> Website Agent bridge |
+| unsupported provider | narrow `ctx.subagents` provider |
 
-## Worker relationship
+## Identity rule
 
 ~~~text
-Worker
-  = semantic capability-driven role
+Workflow WorkItem / Agent Team phase
+  = semantic work identity
 
-Provider
-  = concrete execution implementation
+Worker ExecutionBinding
+  = optional local mapping for recovery
 
-ExecutionBinding
-  = optional local mapping to current provider handle when recovery requires it
-
-ACP / A2A / MCP
-  = standard protocols that keep their native identities/data models
+ACP session / A2A Task / DSH run / Website conversation
+  = provider handles
 ~~~
 
-## Architectural rules
+Do not turn provider handles into AgentOS semantic identity.
 
-1. Do not invent a universal AgentOS wire protocol.
-2. Prefer DSH provider/service seams inside the Host.
-3. Prefer ACP for compatible delegated agent execution.
-4. Prefer A2A for independent remote Agent-to-Agent collaboration.
-5. Prefer MCP for tools/capabilities/data.
+## Rules
+
+1. Worker is the stable semantic execution plugin above provider protocols.
+2. ACP owns compatible Agent execution/control.
+3. A2A owns remote Agent-to-Agent communication.
+4. MCP owns tools/capabilities/data.
+5. DSH owns in-host Team/provider/runtime mechanics.
 6. Use upstream protocol models directly instead of AgentOS copies.
-7. Keep local semantic bookkeeping local unless a remote peer truly needs it.
+7. Keep local correctness bookkeeping local.
 8. Protocol choice follows the boundary, not the provider brand.
