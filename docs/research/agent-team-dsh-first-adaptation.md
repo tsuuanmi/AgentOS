@@ -3,6 +3,7 @@
 - **Status:** target v1 research direction
 - **Date:** 2026-09-28
 - **Goal:** use DSH Agent Teams as the first Agent Team runtime and adapt the strongest reasoning semantics from Internet Team on top of it.
+- **See also:** [DSH Agent Teams core deep dive](agent-team-dsh-core-deep-dive.md) for the detailed reuse/non-duplication map.
 
 ## Decision
 
@@ -274,33 +275,32 @@ This proves:
 
 It also minimizes changes because no second Team runtime is introduced.
 
-### Phase 2 — Internet-backed teammate provider
+### Phase 2 — research external/website teammate support
 
-DSH Agent Teams already accepts a provider when spawning a teammate, and DSH subagents are provider-based.
+DSH Agent Teams accepts a provider when spawning a teammate, but the relevant seam is specifically the **continuable** subagent capability.
 
-The clean future integration is therefore:
-
-~~~text
-DSH Agent Teams
-   |
-   +-> provider: local/fork
-   +-> provider: Codex / Claude Code / DSH SDK
-   +-> provider: Internet-backed continuable agent   # future adapter
-~~~
-
-An Internet-backed provider can map a continuable teammate Session to a stable website-agent conversation/capability.
-
-This is preferable to:
+Current DSH evidence shows:
 
 ~~~text
-local teammate
-  -> repeatedly calls internet tool
-  -> copies all reasoning through Local context
+spawn-in-process -> continuable
+fork-in-process  -> continuable
+
+Codex            -> one-shot today
+Claude Code      -> one-shot today
+ACP              -> one-shot today
 ~~~
 
-because the latter loses much of the token/context and provider-native benefit that motivated Internet Team.
+Therefore AgentOS must not assume Codex/Claude/ACP can currently be rostered as durable DSH teammates.
 
-The Internet-backed provider is a future adapter boundary, not required to validate Phase 1.
+A future website-native teammate also cannot be assumed to be a trivial provider adapter: DSH's current continuation manager owns the continuable child's DSH Session/Agent lifecycle after provider preparation.
+
+Research options later include:
+
+1. extend DSH with a remote-continuable seam;
+2. keep a local continuable DSH teammate that owns one stable website-agent conversation capability;
+3. introduce another transport under DSH Team membership without duplicating roster/mailbox/task semantics.
+
+This work is intentionally deferred until DSH-native research/review semantics are proven.
 
 ## Important limitation
 
@@ -377,8 +377,8 @@ with the same semantic contract.
 1. **DSH Agent Teams-backed research** — proves Team semantic boundary.
 2. **DSH Agent Teams-backed review** — proves exact-input typed review.
 3. **Workflow adapter** — use those same operations as durable WorkItems.
-4. **Provider/model routing inside DSH teammates** — use existing DSH subagent providers.
-5. **Internet-backed continuable teammate provider** — recover website-native research/connectors/token advantages.
+4. **Fresh/fork policy and model routing inside currently continuable DSH teammates.**
+5. **Research remote/website teammate continuation seam** — do not assume current one-shot providers fit.
 6. **Only then** evaluate richer Team topology, dynamic member substitution, or alternate Team runtimes.
 
 This path reuses the maximum amount of DSH immediately while preserving the best parts of Internet Team without carrying its custom Team runtime forward.
