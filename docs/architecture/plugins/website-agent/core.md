@@ -2,187 +2,197 @@
 
 - **Status:** canonical architecture
 - **Owner:** Website Agent plugin
-- **Initial implementation source:** @tsuuanmi/internet
-- **Current browser substrate:** patchright-core
+- **Initial implementation source:** `@tsuuanmi/internet`
+- **Current browser substrate:** `patchright-core`
 
-Website Agent Core is the protocol-neutral execution engine that makes Website Agent behavior possible.
+Website Agent Core is the protocol-neutral operational engine.
 
-It knows nothing about DSH, ACP, A2A, Agent Team, or Workflow semantics.
+## Component architecture
 
-## Responsibilities
+~~~mermaid
+flowchart TB
+    API[Website Core facade]
 
-~~~text
-WebsiteAgentCore
-  -> account / authentication
-  -> provider configuration
-  -> browser runtime
-  -> native Website conversation state
-  -> provider-specific execution
-  -> retry / reconciliation
-  -> result / artifact retention
+    Accounts[Account registry / auth]
+    Scheduler[Account scheduler]
+    Providers[Provider driver registry]
+    Browser[BrowserManager]
+    Conv[ConversationStore]
+    Receipt[ProviderTurnReceiptStore]
+    Artifacts[Website result/artifact store]
+
+    ChatGPT[ChatGPT Web driver]
+    Gemini[Gemini Web driver]
+    Future[future Website provider]
+
+    API --> Accounts
+    API --> Scheduler
+    API --> Providers
+    API --> Browser
+    API --> Conv
+    API --> Receipt
+    API --> Artifacts
+
+    Providers --> ChatGPT
+    Providers --> Gemini
+    Providers -.-> Future
 ~~~
 
-## Reuse from tsuuanmi/internet
-
-The existing repository already implements the core mechanics AgentOS needs.
+## Reuse map from tsuuanmi/internet
 
 | Internet source | Core responsibility |
 |---|---|
-| src/participant/service.ts | protocol-neutral Website participant facade |
-| src/participant/artifact-store.ts | durable owner-scoped Website results |
-| src/browser/runtime.ts | browser/account execution and scheduling |
-| src/browser/conversations.ts | logical conversation -> native Website conversation binding |
-| src/browser/turn-receipts.ts | reconcile-before-resubmit / ambiguous-outcome handling |
-| src/browser/chatgpt*.ts | ChatGPT Web provider implementation |
-| src/browser/gemini*.ts | Gemini Web provider implementation |
-| src/core/accounts.ts | authenticated account/provider capabilities |
+| `src/participant/service.ts` | closest existing protocol-neutral execution facade |
+| `src/participant/artifact-store.ts` | retained full Website results |
+| `src/browser/runtime.ts` | browser/account execution and scheduling |
+| `src/browser/conversations.ts` | logical -> native Website conversation binding |
+| `src/browser/turn-receipts.ts` | uncertain-turn reconciliation |
+| `src/browser/chatgpt*.ts` | ChatGPT Website driver |
+| `src/browser/gemini*.ts` | Gemini Website driver |
+| `src/core/accounts.ts` | account/provider capability and auth semantics |
 
-Current WebsiteParticipantService is the closest existing facade to the desired Core API.
-
-## What is not Core
-
-Do not import Internet's higher-level orchestration as Website Agent Core:
-
-- internet_team;
-- Internet Team roster/task semantics;
-- Internet software Workflow;
-- Writer-specific policy.
-
-Those responsibilities belong to AgentOS Worker, Agent Team, Workflow, and Profiles.
-
-## Core request identity
+## Core operation
 
 Conceptually:
 
 ~~~text
-owner key
-conversation key
-logical request key
-account/provider
-mode
-prompt
-cancellation
-  -> Website execution result
+execute(
+  owner/account authority,
+  conversation key,
+  logical request key,
+  mode,
+  prompt/content,
+  cancellation
+)
+  -> retained Website result/evidence
 ~~~
 
-The existing Internet model already has equivalent concepts:
+Exact TypeScript names are not frozen until characterization tests exist.
+
+## Conversation binding
+
+~~~mermaid
+flowchart LR
+    Logical[Core conversation key]
+    Store[ConversationStore]
+    Account[Authenticated account]
+    Native[Native Website conversation id/url]
+
+    Logical --> Store
+    Store --> Account
+    Store --> Native
+~~~
+
+Binding is stable: one logical conversation must not silently move to a different native Website conversation.
+
+Protocol-native conversation ids may be used directly as the logical key:
 
 ~~~text
-ownerSessionId
-conversationSessionId
-logicalRequestId
-accountId
-mode
-prompt
-signal
+ACP sessionId -> Core conversation key
+A2A contextId -> Core conversation key
 ~~~
 
-Do not rewrite proven behavior merely to normalize names.
+The Core still privately binds that logical key to ChatGPT/Gemini native conversation identity.
 
-## Account and provider layer
+## Turn lifecycle
 
-An account identifies an authenticated Website execution identity.
-
-Provider drivers own Website-specific behavior such as:
-
-~~~text
-ChatGPT Web
-  -> login/session behavior
-  -> ordinary chat
-  -> Deep Research
-  -> reasoning/config options
-  -> completion semantics
-
-Gemini Web
-  -> login/session behavior
-  -> ordinary chat
-  -> Deep Research
-  -> provider-specific completion semantics
+~~~mermaid
+stateDiagram-v2
+    [*] --> admitted
+    admitted --> submitting
+    submitting --> waiting
+    waiting --> completed
+    waiting --> reconciling: timeout / disconnect / unknown outcome
+    reconciling --> waiting: provider still working
+    reconciling --> completed: provider result recovered
+    reconciling --> submitting: bounded safe resubmit
+    reconciling --> ambiguous: cannot prove outcome
+    ambiguous --> [*]
+    completed --> [*]
 ~~~
-
-Adding a Website provider adds a provider driver/configuration, not a new ACP/A2A architecture.
-
-## Browser layer
-
-The browser/runtime layer owns:
-
-- persistent authenticated browser state;
-- page/session management;
-- scheduling and concurrency;
-- provider UI automation;
-- cancellation propagation;
-- actual observation of Website state.
-
-ACP/A2A adapters never reproduce this logic.
-
-## Conversation continuity
-
-The core owns the stable mapping:
-
-~~~text
-core conversation key
-  -> account/provider
-  -> native Website conversation id/url
-~~~
-
-When protocol identity semantics already match, use them directly as this key:
-
-~~~text
-ACP sessionId -> core conversation key
-A2A contextId -> core conversation key
-~~~
-
-Neither protocol id becomes native Website provider identity; it remains the Core's logical conversation key while the Core privately binds that key to the native Website conversation.
 
 ## Reconcile-before-resubmit
 
-The existing ProviderTurnReceiptStore behavior is a core correctness invariant:
+~~~mermaid
+flowchart TD
+    Unknown[Unknown submission outcome]
+    Inspect[Inspect native provider state]
+    Decision{What can be proven?}
+    Wait[WAIT]
+    Recover[RECOVER existing result]
+    Retry[Bounded RESUBMIT]
+    Ambiguous[AMBIGUOUS / fail closed]
 
-~~~text
-unknown submission outcome
-  -> inspect provider state
-  -> WAIT / RECOVER / bounded RESUBMIT
-  -> AMBIGUOUS -> fail closed
+    Unknown --> Inspect --> Decision
+    Decision -- still running --> Wait
+    Decision -- completed --> Recover
+    Decision -- definitely not submitted / safe --> Retry
+    Decision -- cannot establish --> Ambiguous
 ~~~
 
-ACP and A2A integrations must reuse this same core mechanism without wrapping protocol objects in duplicate AgentOS retry/task models.
+No ACP/A2A retry logic may bypass this Core invariant.
 
 ## Result retention
 
-Long Website outputs are retained before compact projection:
-
 ~~~text
-Website provider result
-  -> durable core result/artifact
-  -> ACP result projection
-  -> A2A Artifact projection
-  -> targeted later reads
+Website provider output
+  -> retain full result/evidence
+  -> protocol-specific projection
+      ACP native updates/response
+      A2A native Artifact/Part
 ~~~
 
-This is important for the AgentOS cost model: do not force downstream agents to repeatedly re-read the same large Website result.
+The retained Core result is operational storage, not a replacement A2A Artifact model.
 
-A core result/artifact is private execution storage. It is not the same object as an A2A Artifact.
+## Mode handling
 
-## Protocol ports
+Core modes are operational capabilities such as `chat` and `research`.
 
-Core exposes behavior to protocol adapters but does not depend on them:
+Adapters may select them through native protocol features:
 
-~~~text
-ACP Agent adapter
-      |
-      v
-Website Agent Core
-      ^
-      |
-A2A Agent adapter
-~~~
+- ACP Session Modes;
+- deployment/configuration or request interpretation for A2A.
 
-See [Protocol adapters](adapters.md).
+Core does not parse AgentOS-specific protocol extensions for mode selection.
 
-## Canonical invariant
+## Cancellation
 
-> **Account, provider, browser, native conversation, reconciliation, and result retention exist exactly once in Website Agent Core.**
+One Core cancellation path should stop:
 
-## No protocol mirrors
+- scheduled account work when not started;
+- browser/provider execution when in flight;
+- completion polling;
+- adapter-facing execution.
 
-Website Core accepts only the minimal operational values it needs. ACP/A2A adapters should pass native identifiers/content through directly where semantics match. Do not create structurally equivalent Website-specific copies of ACP Session, A2A Task, Message, Artifact, or status objects.
+ACP `session/cancel` and A2A task cancellation both terminate at this same mechanism.
+
+## Core errors
+
+Implementation should distinguish:
+
+- unavailable/unauthenticated account;
+- provider capability unavailable;
+- browser/provider navigation failure;
+- provider rejected/blocked operation;
+- cancellation;
+- timeout;
+- ambiguous submission outcome;
+- native conversation mismatch;
+- retained-result persistence failure.
+
+Do not translate these into protocol errors inside Core. Protocol adapters own their own error representation.
+
+## Implementation gates
+
+Characterization tests from Internet should prove:
+
+1. stable account isolation;
+2. stable conversation binding;
+3. same logical request cannot silently change prompt/conversation;
+4. uncertain submission reconciles before resubmit;
+5. ambiguous outcome fails closed;
+6. chat and research retain distinct provider behavior;
+7. cancellation reaches real browser/provider work;
+8. full output is stored before compact projection.
+
+Only after these pass should a supported Core API be extracted/refined.
