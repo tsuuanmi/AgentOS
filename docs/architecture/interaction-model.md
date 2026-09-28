@@ -1,276 +1,387 @@
-# Local-first interaction model
+# Controller, Local Agent, Internet Team, and Workflow interaction model
 
 - **Status:** target interaction architecture
 - **Date:** 2026-09-28
-- **Scope:** define how the user, Local Agent, direct capabilities, Teams, and Workflows interact without assigning their internal mechanics to AgentOS.
+- **Scope:** define why AgentOS separates interaction, local execution, external reasoning, and durable coordination while keeping every layer replaceable and optional where possible.
 
 ## Product intent
 
-AgentOS is an **interactive local-agent system**.
+AgentOS is an interactive system built around **role-optimized capability planes**, not around one mandatory super-agent.
 
-The user interacts with a Local Agent running on DSH. That Local Agent can reason and act directly, consult a Team, or delegate a bounded/long-running objective to a Workflow.
+The architecture does not assume that a Local Agent is incapable of research, user interaction, orchestration, or review. In practice a sufficiently capable Local Agent may do all of those things.
 
-The primary relationship is:
+The design exists because different surfaces are better optimized for different work:
 
-```text
-User
-  <-> Local Agent (DSH)
-        |
-        +-> direct capabilities
-        |
-        +-> Team / consultation capabilities
-        |
-        +-> Workflow capabilities
-```
+~~~text
+Controller
+  optimized for access, human interaction, cloud-native capabilities
 
-AgentOS is therefore more than a passive bundle of plugins, but it is still not a second runtime. Its product semantics live in **how the Local Agent composes and delegates work across capabilities**.
-
-## 1. Local Agent is the interaction surface
-
-The Local Agent remains:
-
-- the conversational interface to the user;
-- a reasoning-capable participant;
-- the place where direct tools and plugins are used;
-- the entry point for Team/consultation work;
-- the entry point for Workflow delegation;
-- the surface that presents compact progress, results, and pending actions back to the user.
-
-The Local Agent is not required to own every delegated subsystem's state machine.
-
-```text
-User
-  <-> Local Agent
-        |
-        +-> ordinary reasoning
-        +-> tools/plugins
-        +-> Teams
-        +-> Workflows
-```
-
-## 2. Direct interaction path
-
-For ordinary interactive work:
-
-```text
-User
-  <-> Local Agent
-        |
-        +-> DSH tool/service
-        +-> public plugin/tool
-        +-> Internet chat/research
-        +-> repository/files/shell/etc.
-        |
-        v
-     result
-        |
-        v
-  Local Agent reasons/responds
-```
-
-The Local Agent may continue reasoning over the result, ask the user a question, or escalate the task into Team/Workflow execution when useful.
-
-Direct work should remain the cheapest path when no durable or structured orchestration is needed.
-
-## 3. Team / consultation path
-
-A Team is a capability, not the top-level AgentOS runtime.
-
-```text
-User
-  <-> Local Agent / Lead
-        |
-        +-> DSH Agent Teams
-        |      |
-        |      +-> local teammate
-        |      +-> local teammate
-        |      +-> linked public/Internet capabilities
-        |
-        +-> Internet Team / consult capability
-```
-
-When DSH Agent Teams is used, DSH remains authoritative for:
-
-- roster;
-- teammate lifecycle;
-- task board;
-- mailbox;
-- wake/resume;
-- Team UI/projection.
-
-Internet Team or another consultation plugin may remain an independent reasoning capability when its semantics are useful.
-
-AgentOS does not require one universal Team topology.
-
-## 4. Workflow handoff path
-
-For bounded deterministic or long-running work, the Local Agent may hand off an objective to a Workflow capability.
-
-```text
-User
-  <-> Local Agent
-        |
-        | objective
-        | constraints
-        | acceptance criteria
-        | authority
-        v
-   Workflow capability
-        |
-        +-> planning / decomposition
-        +-> research
-        +-> consultation / Internet Team
-        +-> implementation worker
-        +-> validation
-        +-> review
-        +-> delivery / authority gates
-```
-
-The Workflow may be supplied by:
-
-- Internet;
-- DSH;
-- another plugin;
-- a future AgentOS-specific implementation only if AgentOS must own additional semantics.
-
-AgentOS should not assume one workflow engine merely because Workflow is a first-class interaction mode.
-
-## 5. Internet Team inside a Workflow
-
-A key target composition is:
-
-```text
 Local Agent
-    |
-    v
-Workflow
-    |
-    +-> Research capability
-    |
-    +-> Internet Team / consult
-    |      |
-    |      +-> independent reasoning/review
-    |      +-> website-native participants when configured
-    |
-    +-> Execution capability
-    |      |
-    |      +-> DSH worker
-    |      +-> Codex/external worker
-    |
-    +-> Validation / Review
-```
+  optimized for execution close to the user's environment
 
-Internet Team is not AgentOS core.
+Internet Team
+  optimized for external reasoning, research, native provider capabilities
 
-It is a composable capability that may be called:
+Workflow Runtime
+  optimized for durable deterministic coordination
+~~~
 
-- directly by the Local Agent;
-- by a Workflow;
-- by a DSH teammate;
-- by another higher-level capability when the contract permits it.
+The governing principle is:
 
-This is the intended meaning of "everything is a plugin": higher-level flows compose capabilities instead of reimplementing them.
+> **Local can do almost everything, but AgentOS should not force Local to do everything.**
 
-## 6. Local remains the user-facing authority broker
+The same applies to every other layer. More capability in one layer should reduce unnecessary delegation, not collapse the architecture.
 
-While a Workflow runs, the Local Agent remains the user's interaction surface.
+## 1. Four capability planes
 
-```text
-Workflow
-   |
-   +-> compact progress
-   +-> action required
-   +-> artifact/result reference
-   v
-Local Agent
-   |
-   v
-User
-```
+The architecture can be reasoned about as four planes:
 
-User input returns through the same boundary:
+~~~text
++--------------------------------------------------+
+| Interaction Plane                                |
+| Controller                                       |
+| human conversation · remote access · cloud tools |
++--------------------------------------------------+
 
-```text
-User decision / clarification
-          |
-          v
-      Local Agent
-          |
-          v
-validated Workflow/Team/tool operation
-```
++--------------------------------------------------+
+| Execution Plane                                  |
+| Local Agent                                      |
+| repo · files · shell · local data · local runtime|
++--------------------------------------------------+
 
-The Local Agent may explain, critique, or recommend.
++--------------------------------------------------+
+| External Reasoning Plane                         |
+| Internet Team                                    |
+| research · critique · synthesis · native services|
++--------------------------------------------------+
 
-Its hidden reasoning is not authoritative workflow state, and protected user authority must not be inferred from ordinary model prose.
++--------------------------------------------------+
+| Coordination Plane                               |
+| Durable Workflow Runtime                         |
+| state · scheduling · gates · recovery · authority|
++--------------------------------------------------+
+~~~
 
-## 7. Interactive and Workflow modes coexist
+These are **roles, not a strict vertical stack**.
 
-A Workflow must not take over the Local Agent.
+Calls may cross planes directly when the capability contract allows it:
 
-The same Local session can continue interacting while delegated work exists:
+~~~text
+Controller -> Local Agent
+Controller -> cloud/public capability
 
-```text
-interactive reasoning
-      |
-      +-> direct tool use
-      |
-      +-> ask Internet Team
-      |
-      +-> start Workflow W1
-      |      |
-      |      +-> W1 runs independently when supported
-      |
-      +-> continue ordinary conversation
-      |
-      +-> inspect W1
-      |
-      +-> respond to W1 pending action
-      |
-      +-> start another capability / Workflow
-```
+Local Agent -> Internet Team
+Local Agent -> Workflow
+Local Agent -> ordinary DSH/public tools
 
-This implies a clean distinction between:
+Workflow -> Local execution
+Workflow -> Internet Team
+Workflow -> validation/review capability
 
-- **conversation state** owned by the Local Agent/DSH;
-- **Workflow state** owned by the Workflow provider;
-- **Team state** owned by its Team provider;
-- **transport/task projection** owned by the host/adapter;
-- **AgentOS interaction semantics** that define how those pieces compose.
+Controller/Local -> Workflow inspect/respond/reattach
+~~~
 
-## 8. Workflow interaction surface
+## 2. Controller: ubiquitous user-facing intelligence
 
-AgentOS should reason about Workflows through semantic operations rather than provider-internal controls.
+The Controller is optimized for:
+
+- being accessible from anywhere the user can reach the controller product;
+- continuous conversation and brainstorming;
+- web research before local execution is necessary;
+- cloud-native plugins/connectors and provider-native features;
+- turning discussion into a precise objective, constraints, and acceptance criteria;
+- deciding when local/environment execution is actually needed.
 
 Conceptually:
 
-```text
-start
-  objective + constraints + relevant context
+~~~text
+User
+  <-> Controller
+        |
+        +-> brainstorm / research / cloud capabilities
+        |
+        +-> when local execution is required
+               |
+               v
+           Local Agent
+~~~
 
-inspect
-  compact authoritative status/result projection
+The Controller should be able to do useful work without waking the Local Agent.
 
-respond
-  resolve one explicit pending action / authority request
+Examples:
 
-cancel
-  request cancellation through the owning Workflow
-```
+- research an architecture;
+- inspect cloud documents;
+- reason about a problem;
+- refine requirements;
+- prepare a task for later local execution.
 
-This is an **interaction model**, not yet a mandatory AgentOS API package.
+The Controller is not the authority for Local filesystem/process state merely because it is user-facing.
 
-If only one Workflow provider is used and its existing tool/service contract already fits, AgentOS should consume it directly.
+## 3. Local Agent: environment-native execution
 
-A dedicated AgentOS Workflow contract becomes justified only when multiple Workflow providers need to satisfy the same Local-facing semantics or AgentOS must preserve additional cross-provider invariants.
+The Local Agent is optimized for work whose correctness depends on the actual execution environment.
 
-## 9. Capability composition inside a Workflow
+Typical local capabilities include:
 
-A Workflow should route semantic needs to capabilities instead of hard-coding implementations.
+- repository and uncommitted state;
+- local files and datasets;
+- shell/process execution;
+- local services and databases;
+- test fixtures;
+- private networks;
+- hardware/GPU/device access;
+- local credentials with environment-scoped authority;
+- IDE/build/runtime state.
 
-Example software flow:
+Example:
 
-```text
+~~~text
+Controller:
+  "Reproduce bug X against local dataset Y."
+
+        |
+        v
+
+Local Agent:
+  inspect local repository
+  read local data
+  run program/tests
+  collect logs
+  modify code/tests
+  return exact findings/results
+~~~
+
+The Local Agent may also be used directly by the user:
+
+~~~text
+User <-> Local Agent
+~~~
+
+Controller is therefore a preferred interaction surface when available, not a mandatory hop.
+
+## 4. Internet Team: external reasoning and native capability plane
+
+Internet Team addresses work that can be expensive or awkward for Local to perform entirely in its own model context.
+
+Examples:
+
+- source-heavy web research;
+- provider-native search/deep research;
+- large-context reading;
+- independent critique/review;
+- multi-model synthesis;
+- external/cloud-native services exposed through provider/plugin ecosystems.
+
+Target pattern:
+
+~~~text
+Local Agent
+   |
+   | semantic research/review request
+   v
+Internet Team
+   |
+   +-> search / browse / native research
+   +-> external provider reasoning
+   +-> cloud/plugin capability
+   |
+   v
+compact result / artifact reference
+   |
+   v
+Local Agent or Workflow
+~~~
+
+The goal is not zero Local-Agent token use.
+
+Local reasoning remains useful for:
+
+- decomposition;
+- coordination;
+- verification;
+- implementation decisions;
+- policy/authority-sensitive judgment.
+
+The optimization target is to avoid forcing Local to ingest and process large external context when another capability can do the first-pass work better.
+
+## 5. Cloud-native integrations are capabilities, not Local obligations
+
+External reasoning providers may expose useful native integrations such as:
+
+- calendar;
+- email;
+- cloud documents/storage;
+- collaboration systems;
+- provider-native web research;
+- future third-party services.
+
+AgentOS should treat these as capabilities available through the Controller, Internet Team, or another plugin rather than requiring Local to own every OAuth/integration implementation.
+
+Example:
+
+~~~text
+Controller or Internet Team
+      |
+      +-> cloud document/calendar capability
+      |
+      v
+compact semantic result
+      |
+      v
+Local Agent / Workflow
+~~~
+
+If a Local-native plugin later provides an equivalent capability, it should be able to satisfy the same higher-level need where the semantics match.
+
+## 6. Workflow: durable coordination independent of a connected Local Agent
+
+Workflow exists for work whose correctness or continuity should not depend on one live conversation/process.
+
+A durable Workflow may coordinate:
+
+- planning/decomposition;
+- research;
+- Internet Team consultation;
+- Local execution;
+- implementation workers;
+- validation;
+- review/remediation cycles;
+- pending user actions;
+- delivery/approval.
+
+~~~text
+Controller or Local Agent
+          |
+          | objective + constraints + authority
+          v
+      Workflow
+          |
+          +-> Research / Internet Team
+          +-> Local execution
+          +-> Worker
+          +-> Validation
+          +-> Review
+          +-> PendingAction / authority gate
+~~~
+
+The critical invariant is:
+
+> **Workflow progress must not depend on the originating Local Agent remaining connected when the selected workflow runtime claims durable execution.**
+
+Conceptually:
+
+~~~text
+Local Agent starts W1
+        |
+        v
+Durable Workflow W1
+        |
+Local disconnects
+        |
+        +---- W1 keeps running where autonomous work exists
+        |
+new Local Agent / Controller
+        |
+        v
+     reattach
+        |
+        v
+ inspect / respond / continue interaction
+~~~
+
+The Workflow provider remains authoritative for its own durable state.
+
+AgentOS should not mirror that state merely so another client can see it.
+
+## 7. Controller and Local are both interaction entry points
+
+The architecture supports two important user entry paths.
+
+### Remote/controller-first
+
+~~~text
+User
+  <-> Controller
+        |
+        +-> research / brainstorm / cloud capabilities
+        |
+        +-> Local Agent when environment execution is needed
+        |
+        +-> inspect/respond to durable Workflow when supported
+~~~
+
+### Local-direct
+
+~~~text
+User
+  <-> Local Agent
+        |
+        +-> local tools
+        +-> Internet Team
+        +-> Workflow
+~~~
+
+These paths should converge on stable capability contracts rather than provider-specific assumptions.
+
+## 8. Controller and Local implementations are replaceable
+
+The architecture should depend on roles/contracts rather than product identities.
+
+Conceptually:
+
+~~~text
+Controller role
+   +-> ChatGPT implementation
+   +-> Claude implementation
+   +-> Gemini implementation
+   +-> future controller
+
+Local Agent role
+   +-> DSH Agent
+   +-> Codex/local executor
+   +-> Claude Code
+   +-> custom daemon / IDE agent
+~~~
+
+A future implementation only qualifies as a substitute when it satisfies the required capability contract and authority semantics.
+
+The architecture must not require every Controller implementation to expose identical optional features.
+
+## 9. Internet Team implementations are also replaceable
+
+Internet Team should not be synonymous with one provider.
+
+Conceptually:
+
+~~~text
+External reasoning capabilities
+   |
+   +-> research
+   +-> critique
+   +-> review
+   +-> synthesis
+   +-> native cloud/service access
+~~~
+
+Possible provider implementations may change independently:
+
+~~~text
+research  -> provider A
+critique  -> provider B
+freshness -> provider C
+writer    -> provider D
+~~~
+
+Higher-level Workflow/Local semantics should depend on capability meaning rather than provider brand, except when a provider-native feature is explicitly part of the requested semantics.
+
+## 10. Workflow may compose every other plane
+
+A Workflow does not have to route through Local for each step.
+
+A target software flow may be:
+
+~~~text
 Workflow
   |
   +-> planning
@@ -278,97 +389,210 @@ Workflow
   +-> repository research
   |
   +-> external research
-  |
-  +-> consult / Internet Team
+  |      +-> Internet Team
   |
   +-> implementation capability
-  |      +-> DSH worker
-  |      +-> Codex worker
+  |      +-> Local Agent / DSH worker
+  |      +-> Codex/external worker
   |
   +-> validation
+  |      +-> local machine/data when required
   |
   +-> review
+  |      +-> Internet Team
   |
   +-> delivery / user authority
-```
+~~~
 
-The Workflow provider owns its own correctness state.
+Only user interaction, protected authority, or genuinely conversational clarification needs to return to an appropriate user-facing client.
 
-AgentOS does not need to ingest every intermediate reasoning payload. Compact status, artifacts, references, and pending actions are preferred at the Local boundary.
+## 11. Example end-to-end flow
 
-## 10. End-to-end target
+Example request:
 
-```text
-                         USER
-                          |
-                          v
-                  +---------------+
-                  |  Local Agent  |
-                  |     (DSH)     |
-                  +-------+-------+
-                          |
-          +---------------+----------------+
-          |               |                |
-          v               v                v
-   Direct Tools       Team/Consult      Workflow
-   & Plugins          Capabilities      Capability
-          |               |                |
-          |          Internet Team          |
-          |               |          +-----+------------------+
-          |               |          |     |        |         |
-          |               |          v     v        v         v
-          |               |       Research Team  Worker   Validation
-          |               |                     / Review
-          |               |                        |
-          +---------------+------------------------+
-                          |
-                          v
-                 artifacts / results /
-               progress / pending actions
-                          |
-                          v
-                      Local Agent
-                          |
-                          v
-                         USER
-```
+> Research whether a PR regresses mtDNA poly-C behavior, test it against local data, and propose a fix if needed.
 
-## 11. Ownership summary
+Possible flow:
 
-```text
-DSH / Cordis
-  host lifecycle, Local Agent/session, plugin composition
+~~~text
+User
+  |
+  v
+Controller
+  |
+  +-> discuss problem
+  +-> initial web research
+  +-> clarify expected behavior
+  |
+  v
+Local Agent
+  |
+  +-> inspect exact PR/head
+  +-> run real local samples
+  +-> reproduce/measure behavior
+  |
+  +-> Internet Team
+  |      +-> review relevant tools/docs/literature
+  |      +-> compare approaches
+  |
+  +-> implement regression test/fix
+  +-> run local validation
+  |
+  v
+Workflow Runtime
+  |
+  +-> preserve exact state
+  +-> coordinate review/remediation
+  +-> hold receipts/results
+  +-> request protected approval when needed
+~~~
 
-AgentOS
-  local-first interaction semantics and composition profile
+No single agent must perform every phase.
 
-Workflow provider
-  workflow-specific domain state, execution, recovery, gates
+## 12. Local can do everything; specialization is an optimization
 
-DSH Agent Teams
-  roster, mailbox, task board, teammate lifecycle when used
+AgentOS should explicitly preserve graceful fallback.
 
-Internet
-  Internet-specific Team/research/website participant semantics
+If Controller is unavailable:
 
-Public tools/plugins
-  bounded external capabilities
+~~~text
+User -> Local Agent
+~~~
 
-Workers
-  implementation/execution behind semantic capability boundaries
-```
+If Internet Team is unavailable:
 
-This ownership model allows AgentOS to provide a coherent interactive system without becoming the implementation owner of every subsystem it can invoke.
+~~~text
+Local Agent -> local/web tools -> research itself
+~~~
 
-## 12. Architectural invariants
+If Local Agent is unavailable:
 
-1. The user interacts primarily with the Local Agent.
-2. Direct, Team, and Workflow paths are all first-class and composable.
-3. A Workflow may invoke Team/Internet capabilities directly.
-4. The Local Agent does not need to proxy or summarize every internal Workflow step.
-5. Workflow/Team providers retain authority over their own durable state.
-6. AgentOS must not mirror provider-owned state merely for visibility.
-7. Compact progress/results/pending actions flow back to Local.
-8. User authority flows from User -> Local -> explicit validated operation.
-9. Interactive conversation can continue while delegated Workflow work exists.
-10. Provider-specific implementations remain below semantic capability boundaries.
+~~~text
+User -> Controller -> research / discuss / prepare work
+~~~
+
+If one external provider is unavailable:
+
+~~~text
+capability resolution -> alternate provider
+~~~
+
+If Workflow is unnecessary:
+
+~~~text
+Controller/Local -> direct work
+~~~
+
+This is a core design quality:
+
+> **No optional intelligence surface should become a single point of failure for ordinary use.**
+
+Durable Workflow may still be required for a specific operation when that operation's correctness explicitly depends on durable orchestration.
+
+## 13. Why not collapse everything into Local?
+
+A powerful Local Agent may technically perform:
+
+- conversation;
+- web research;
+- file/repository work;
+- implementation;
+- review;
+- Git;
+- orchestration;
+- subagent coordination.
+
+Keeping separate capability planes is still useful because forcing all work through Local may incur:
+
+- worse remote/mobile UX;
+- harder access away from the machine;
+- higher Local model/context cost;
+- duplicated external source ingestion;
+- weaker provider-native research;
+- smaller cloud connector ecosystem;
+- unnecessary Local context growth.
+
+Therefore:
+
+> **The separation is about optimization and replaceability, not about declaring Local incapable.**
+
+## 14. Why Controller growth does not remove the Local boundary
+
+Controller products may gain more capabilities over time.
+
+That should allow more work to stay in the interaction plane before delegation.
+
+It should not force an architecture rewrite.
+
+When environment-native execution matters, the stable boundary remains:
+
+~~~text
+Controller
+   |
+   v
+Local execution capability
+~~~
+
+The Local Agent/environment remains the authority for state that only that environment can establish correctly.
+
+## 15. Transport and reattachment
+
+Controller and Local clients should interact with long-running work through stable semantic operations rather than hidden provider sessions.
+
+Conceptually:
+
+~~~text
+start
+  objective + constraints + context
+
+inspect
+  compact authoritative state/result projection
+
+respond
+  answer one explicit pending action
+
+cancel
+  request cancellation
+
+reattach
+  recover access to the same durable operation from a new client/session
+~~~
+
+A host task/session handle may project this lifecycle but is not automatically the durable semantic identity.
+
+## 16. Design philosophy
+
+The architecture should preserve these concise principles:
+
+> **Controller is optimized for access and human interaction.**
+
+> **Local Agent is optimized for environment-native execution.**
+
+> **Internet Team is optimized for external reasoning, research, and native ecosystem capabilities.**
+
+> **Workflow is optimized for durable deterministic coordination.**
+
+> **Local can do almost everything, but AgentOS should not force Local to do everything.**
+
+> **Capability growth in one layer should reduce unnecessary delegation, not collapse stable boundaries.**
+
+> **No provider identity is the architecture. Roles and contracts are.**
+
+> **Durable workflows outlive the client that started them.**
+
+> **Optional layers should fail gracefully; ordinary use should retain a simpler path.**
+
+## 17. Architectural invariants
+
+1. Controller and Local Agent are both valid user interaction entry points.
+2. Controller is preferred for ubiquitous/remote interaction when available, not required for Local use.
+3. Local Agent remains the execution authority for environment-native work.
+4. Internet Team is an external reasoning/capability plane, not a mandatory provider identity.
+5. Workflow is a coordination capability and may compose Local, Internet Team, workers, validation, and review.
+6. Durable Workflow execution must not require the originating Local Agent to remain connected when durability is part of the provider contract.
+7. A new Controller or Local client may reattach through durable workflow state where the workflow contract supports it.
+8. Local may directly perform work normally delegated to Controller/Internet Team when needed.
+9. Optional planes degrade gracefully rather than becoming universal hard dependencies.
+10. Provider/model identities remain below semantic capability boundaries unless explicitly required by the requested semantics.
+11. User authority must travel through explicit validated operations, not hidden reasoning.
+12. Workflow/Team/provider-owned durable state is not mirrored by AgentOS merely for visibility.
