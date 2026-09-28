@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:agentos:schema:worker-input",
-  "title": "AgentOS Worker Input",
-  "description": "Structured additional input delivered to an existing Worker assignment.",
+  "$id": "urn:agentos:schema:worker-message",
+  "title": "AgentOS Worker Message",
+  "description": "Non-authoritative structured communication associated with a Worker assignment.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "inputId",
+    "messageId",
     "workerId",
     "assignmentId",
     "inputBinding",
@@ -15,7 +15,7 @@
     "payload"
   ],
   "properties": {
-    "inputId": {
+    "messageId": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
     "workerId": {
@@ -37,7 +37,7 @@
       "$ref": "urn:agentos:schema:worker-common#/$defs/schemaRef"
     },
     "payload": {
-      "description": "Structured payload validated by the application against payloadSchemaRef."
+      "description": "Structured communication payload validated by the server against payloadSchemaRef."
     },
     "inReplyTo": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"

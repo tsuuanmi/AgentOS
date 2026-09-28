@@ -6,6 +6,8 @@ Accepted conclusions live in [requirements](../requirements/README.md), [archite
 
 ## Active implementation research
 
+- [Worker Protocol layer audit](worker-protocol-layer-audit.md) — statement-by-statement classification into Contract / Schema / MCP / Skill / Server invariant and the resulting pre-TDD cleanup.
+
 - [MCP Worker interoperability](mcp-worker-interoperability.md) — comparison of Coworker, repo-bridge, Codex ChatGPT Bridge, Web AI Local MCP Bridge, Bifrost, A2A, ACP, and modern MCP; establishes the Website-client/local-server pull/submit direction.
 - [A2A and ACP Worker provider research](a2a-acp-worker-provider.md) — standardizes Message/Artifact semantics, makes attempt fencing provider-neutral, prioritizes ACP as the second Worker provider, and keeps A2A for remote-agent interoperability.
 - [Local / Team Member / Website Agent communication review](agent-communication-api-mcp-review.md) — end-to-end communication matrix, Local-facing API gap, Website continuation feasibility, authorization/fencing review, and conformance scenarios.

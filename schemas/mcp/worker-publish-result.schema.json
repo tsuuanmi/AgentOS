@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:agentos:schema:mcp-worker-submit-result",
-  "title": "AgentOS MCP Worker Submit Result",
-  "description": "Acknowledges idempotent durable acceptance of a Worker submission.",
+  "$id": "urn:agentos:schema:mcp-worker-publish-result",
+  "title": "AgentOS MCP Worker Publish Result",
+  "description": "Acknowledges durable idempotent acceptance of one Worker Artifact.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "status",
-    "submissionId"
+    "artifactId"
   ],
   "properties": {
     "status": {
@@ -17,7 +17,7 @@
         "duplicate"
       ]
     },
-    "submissionId": {
+    "artifactId": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     }
   }

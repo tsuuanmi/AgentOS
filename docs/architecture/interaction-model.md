@@ -48,7 +48,7 @@ Local
        +-> attach/create dedicated Team T1
        |
        +-> RESEARCH
-       |     independent Website Agents
+       |     independent provider-backed Workers
        |     -> peer-to-peer debate
        |     -> ResearchResult
        |
@@ -60,7 +60,7 @@ Local
        |     environment/test authority
        |
        +-> REVIEW
-       |     independent Website Agents
+       |     independent provider-backed Workers
        |     -> peer-to-peer debate
        |     -> ReviewResult
        |
@@ -68,11 +68,11 @@ Local
        +-> PendingAction / delivery
 ~~~
 
-The same Team may be reused across the software collaboration for continuity. Research/review independence comes from distinct Worker instances and Website Agent bindings, not permanent semantic personas.
+The same Team may be reused across the software collaboration for continuity. Research/review independence comes from distinct Worker instances and isolated provider bindings, not permanent semantic personas.
 
 ## Team communication
 
-Each DSH Team Worker can bind to a separate Website Agent/conversation and communicates with it through the Worker Protocol.
+Each DSH Team Worker has an isolated provider binding and communicates through the Worker Protocol.
 
 Normal peer debate is direct:
 
@@ -80,31 +80,31 @@ Normal peer debate is direct:
 DSH Worker A <---- send_message ----> DSH Worker B
       |                                 |
       v                                 v
-Website Agent A                    Website Agent B
+provider execution A                provider execution B
 ~~~
 
-Each DSH Worker validates the structured peer message, continues its existing Website Agent assignment with that evidence, and returns the revised typed conclusion through DSH Team messaging.
+Each DSH Worker bridges peer evidence into a Worker Message for its bound provider execution. The provider may revise and publish a new Artifact under the same assignment.
 
 Lead does not proxy every peer message.
 
 Lead/synthesizer gathers distilled conclusions and produces the typed phase result.
 
-## Website Worker exchange
+## Worker provider exchange
 
-For MCP-backed Website Workers, Website Agent is the MCP client and the local Worker bridge is the MCP server.
+Worker Protocol is provider-neutral.
 
 ~~~text
-local Worker state
-  -> queued WorkerAssignment
-
-Website Agent
-  -> claim
-  -> submit contribution
-  -> receive peer/local WorkerInput
-  -> submit completion
+local Worker server
+  -> durable WorkerAssignment / Messages
+  -> provider adapter
+  -> provider execution
+  -> Messages / Artifacts
+  -> local Worker server
 ~~~
 
-The local runtime does not rely on transport sessions to identify work and does not assume it can wake a Website conversation.
+Website-backed Workers use the MCP profile. ACP and future A2A/direct providers may use different execution lifecycles while preserving the same Worker semantics.
+
+Provider session/transport identity never substitutes for Worker, assignment, attempt, or input identity.
 
 ## Ownership
 
@@ -138,9 +138,9 @@ The local runtime does not rely on transport sessions to identify work and does 
 - Team roster/mailbox/tasks/continuation;
 - tools/runtime/storage primitives.
 
-### Website Agents
+### Worker providers
 
-- provider-native research/reasoning/implementation/review assigned to their bound DSH member.
+- provider-native research/reasoning/implementation/review behind an isolated Worker binding.
 
 ## Graceful paths
 

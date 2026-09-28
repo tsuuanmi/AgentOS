@@ -28,7 +28,7 @@ DeepSeek Harness (DSH/Cordis) remains the runtime kernel. AgentOS adds only prod
 - **Workflow** — durable lifecycle, recovery, waiting, authority, and reattachment.
 - **DSH/Cordis** — runtime mechanics such as agents, sessions, Teams, tools, and storage primitives.
 
-The current Team runtime is DSH Agent Teams. Website-backed Workers use a provider-neutral Worker Protocol; MCP exposes Website-facing capability, Skill guidance teaches usage, schemas enforce structure, and server/domain logic enforces current application truth.
+The current Team runtime is DSH Agent Teams. Provider-backed Workers use a provider-neutral Worker Protocol; schemas define structure, MCP maps Website-facing transport, Agent Skills teach procedure, and Worker server invariants enforce current durable truth.
 
 ## Documentation
 
@@ -39,9 +39,11 @@ Canonical entry points:
 - [Requirements](docs/requirements/README.md)
 - [Architecture](docs/architecture/README.md)
 - [Reference](docs/reference/README.md)
+- [Worker boundary model](docs/architecture/worker-boundaries.md)
+- [software-worker Skill](.agents/skills/software-worker/SKILL.md)
 - [JSON Schemas](schemas/README.md)
 
-Proposals and research are lower-authority change context/evidence. [Skills](docs/skills/README.md) are agent operating guidance and never replace semantic, schema, authorization, or lifecycle authority.
+Proposals and research are lower-authority change context/evidence. Agent Skills are procedural guidance and never replace semantic, schema, authorization, lifecycle, or server-invariant authority.
 
 ## Status
 

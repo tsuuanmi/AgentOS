@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentos:schema:mcp-worker-send-result",
+  "title": "AgentOS MCP Worker Send Result",
+  "description": "Acknowledges durable idempotent acceptance of one Worker Message.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "messageId"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "duplicate"
+      ]
+    },
+    "messageId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    }
+  }
+}

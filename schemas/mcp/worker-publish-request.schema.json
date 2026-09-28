@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentos:schema:mcp-worker-publish-request",
+  "title": "AgentOS MCP Worker Publish Request",
+  "description": "Publishes one Worker Artifact from the current Website execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact"
+  ],
+  "properties": {
+    "artifact": {
+      "$ref": "urn:agentos:schema:worker-artifact"
+    }
+  }
+}

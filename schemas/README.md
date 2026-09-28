@@ -1,87 +1,81 @@
 # AgentOS Schemas
 
-This directory contains canonical machine-readable JSON Schemas.
+This directory is the canonical machine-readable structure layer.
 
-Schemas are repository-level machine-readable reference contracts and intentionally live outside `docs/`.
+Schemas define fields, types, required properties, discriminators, references, and structural validation. They do not define transport behavior, agent procedure, authorization, fencing, idempotency, or durable transaction rules.
 
 ## Worker Protocol
 
 - [worker-common.schema.json](worker-common.schema.json)
 - [worker-capabilities.schema.json](worker-capabilities.schema.json)
 - [worker-assignment.schema.json](worker-assignment.schema.json)
-- [worker-input.schema.json](worker-input.schema.json) — transitional filename; canonical concept is **Message**
-- [worker-submission.schema.json](worker-submission.schema.json) — transitional mixed schema; durable contribution/completion becomes **Artifact**
+- [worker-message.schema.json](worker-message.schema.json)
+- [worker-artifact.schema.json](worker-artifact.schema.json)
 - [worker-state.schema.json](worker-state.schema.json)
 
-### Pending naming normalization
+MCP tool-envelope schemas live under [`schemas/mcp/`](mcp/README.md).
 
-Before the conformance suite freezes these contracts, normalize the machine-readable schemas around:
+Portable examples live under [`schemas/examples/`](examples/README.md).
+
+All schemas declare JSON Schema Draft 2020-12 through `$schema`. That identifies the dialect, not AgentOS product versioning.
+
+## Object structure
+
+### WorkerAssignment
+
+Structured unit of work offered to a Worker.
+
+### Message
+
+Assignment-scoped non-authoritative communication.
+
+`kind` is intentionally open so plugins/providers can introduce namespaced Message kinds without changing the core schema.
+
+### Artifact
+
+Durable Worker work product.
+
+`kind` is closed to current core semantics:
 
 ~~~text
-Message
-  = communication / contextual exchange
-
-Artifact
-  = durable Worker work product
-
-WorkerState
-  = execution lifecycle
+contribution
+completion
 ~~~
 
-Do not mechanically rename WorkerSubmission to Artifact because its current `input_required`, `failure`, and `cancelled` variants are lifecycle/control concerns rather than durable deliverables.
+### WorkerState
 
-MCP tool-envelope schemas live under [`schemas/mcp/`](reference/README.md).
+Durable lifecycle projection shape.
 
-Portable payload examples live under [`schemas/examples/`](examples/README.md).
-
-All Worker Protocol schemas declare JSON Schema Draft 2020-12 through `$schema`.
-
-That declaration identifies the JSON Schema dialect; it is not AgentOS product versioning.
-
-Human-readable reference:
-
-- [Worker Protocol](../docs/reference/worker-protocol.md)
-- [Worker API](../docs/reference/worker-api.md)
-- [MCP Worker transport](../docs/reference/mcp-worker-transport.md)
-
-## Responsibility boundary
-
-Schemas are the source of truth for **structural representation**, not current application truth.
-
-A schema can prove required fields, types, discriminators, formats, and object shape. It cannot by itself prove that a Worker/assignment exists, an `attemptId` or `inputBinding` is current, a caller is authorized, a lifecycle transition is allowed, an idempotency key is fresh/content-consistent, a result was durably committed, or a structurally valid model output is semantically correct.
-
-Those are server/domain invariants declared by the Worker contract and enforced by runtime code/tests. Skills do not replace either schema validation or server enforcement.
+State-transition correctness is enforced by the local server, not by schema alone.
 
 ## Design rules
 
-- Structural machine validation uses files in this directory as the source of truth.
-- Documentation must link here rather than embed divergent schema copies.
-- Core schemas use explicit opaque application handles rather than transport/session identity.
-- Core capability and message/input kinds are open semantic names unless AgentOS correctness requires a closed discriminator.
-- Assignment objectives/context may vary while the control schema remains stable.
-- Plugin-specific optional data belongs under `extensions`; correctness-bearing shared semantics should graduate to first-class fields.
-- Transport adapters must preserve these schemas and semantics.
-- MCP adapters should advertise self-contained/bundled tool schemas when a host cannot resolve external `$ref` resources.
+- Schema resource ids use `urn:agentos:schema:...`.
+- Core objects reject unexpected fields.
+- Plugin-owned optional data belongs under namespaced `extensions`.
+- Provider/session/transport ids do not become semantic identity fields.
+- Dynamic Message/Artifact data pairs with explicit schema references.
+- MCP adapters reuse these schemas rather than maintaining semantic copies.
+- `format` annotations are not security boundaries by themselves.
 
+## Runtime validation beyond JSON Schema
 
-## Interoperability decisions
+The following belong to [Worker server invariants](../docs/reference/worker-server-invariants.md):
 
-- Schema resources use stable `urn:agentos:schema:...` identifiers rather than a network domain.
-- Plugin extension keys must be absolute URI namespaces to avoid collisions.
-- `format` annotations such as `uri-reference` are not treated as security boundaries by themselves; the conformance validator/application must perform any required URI checks.
-- Dynamic payloads are paired with an explicit `schemaRef`; runtime code validates the payload against the referenced registered schema.
-- MCP adapters bundle/dereference shared schemas into self-contained tool schemas for hosts that do not resolve external resources.
-- Intermediate `contribution` and terminal `completion` are distinct Artifact semantics.
-- Explicit application ids are authoritative; MCP sessions/tunnels are never semantic identity.
-- `assignmentId` identifies durable work; an opaque `attemptId` identifies the current provider execution attempt and rotates when execution is superseded or rebound.
+- cross-object identity equality;
+- current-attempt fencing;
+- authorization;
+- dynamic schema resolution;
+- idempotency;
+- claim atomicity;
+- durable-before-ack;
+- lifecycle transitions;
+- local effect authority.
 
-## Validation expectation
+## Related reference
 
-A plugin consuming these schemas should:
-
-1. load the Draft 2020-12 dialect;
-2. register all referenced `urn:agentos:schema:...` resources;
-3. reject unresolved references;
-4. validate dynamic `payload`/`output` against their declared `schemaRef`;
-5. enable application-level URI/media-type/digest validation where correctness or security depends on it;
-6. run the AgentOS conformance fixtures/tests rather than relying only on schema parsing.
+- [Worker Protocol](../docs/reference/worker-protocol.md)
+- [Worker API](../docs/reference/worker-api.md)
+- [Worker server invariants](../docs/reference/worker-server-invariants.md)
+- [MCP Worker transport](../docs/reference/mcp-worker-transport.md)
+- [software-worker Skill](../.agents/skills/software-worker/SKILL.md)

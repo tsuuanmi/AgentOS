@@ -1,163 +1,95 @@
 # Worker API
 
 - **Status:** canonical / living reference
-- **Semantic contract:** [Worker Protocol](worker-protocol.md)
+- **Semantic reference:** [Worker Protocol](worker-protocol.md)
 - **Schemas:** [repository schemas](../../schemas/README.md)
+- **Runtime invariants:** [Worker server invariants](worker-server-invariants.md)
 
 ## Purpose
 
-The Worker API is the **local application interface** used by Agent Team orchestration and Worker bridge plugins.
+Worker API is the transport-neutral local callable surface used by Agent Team orchestration and Worker provider adapters.
 
-It is not the Website Agent MCP surface.
+It projects Worker Protocol semantics; it does not redefine them.
 
-Website Agents usually act as MCP clients, so the local API and the MCP tool direction are intentionally different.
+Provider-specific operations such as MCP tool calls, ACP sessions, or A2A tasks stay behind provider adapters.
 
-## Local API
-
-Conceptually:
+## Conceptual operations
 
 ~~~text
 capabilities(binding?) -> WorkerCapabilities
 
-enqueueAssignment(workerId, WorkerAssignment) -> AssignmentState
+enqueueAssignment(workerId, WorkerAssignment) -> WorkerState
 
-appendMessage(workerId, assignmentId, Message) -> AssignmentState
+appendMessage(workerId, assignmentId, Message) -> WorkerState
 
-inspectAssignment(workerId, assignmentId) -> AssignmentState
+readMessages(workerId, assignmentId, cursor?) -> Message[]
 
-cancelAssignment(workerId, assignmentId, reason?) -> AssignmentState
+inspectAssignment(workerId, assignmentId) -> WorkerState
+
+cancelAssignment(workerId, assignmentId, reason?) -> WorkerState
+
+recordArtifact(workerId, assignmentId, Artifact) -> WorkerState
 
 readArtifacts(workerId, assignmentId, cursor?) -> Artifact[]
 ~~~
 
-The exact programming-language shape may vary by plugin/runtime.
+The exact programming-language interface may vary by implementation.
 
-The semantics and canonical JSON data contracts do not.
+All operations use canonical schemas and obey Worker server invariants.
 
 ## capabilities
 
-Returns the capabilities available through a Worker binding/provider.
+Returns semantic Worker capabilities available through a binding/provider.
 
-Capabilities are semantic behavior guarantees such as:
-
-~~~text
-research
-brainstorm
-debate
-implement
-tdd
-review
-synthesize
-~~~
-
-Provider/model names are not capabilities.
+Provider execution features such as resumability, streaming, MCP Tasks, or permission requests are adapter capabilities and do not become semantic Worker capabilities.
 
 ## enqueueAssignment
 
 Creates durable work for one Worker.
 
-Input validates against:
+Enqueueing does not imply a provider execution is already active.
 
-~~~text
-/schemas/worker-assignment.schema.json
-~~~
+## appendMessage / readMessages
 
-The assignment contains:
+Messages are assignment-scoped durable communication.
 
-- explicit assignment id;
-- exact input binding;
-- required capabilities;
-- run-specific objective;
-- context references;
-- constraints;
-- expected output schema.
+Appending a Message must not silently create a different assignment or change its exact input binding.
 
-Enqueueing work does not imply a Website Agent is currently active.
-
-The local API owns assignment state. A Website-facing adapter creates an opaque execution `attemptId` when an assignment is successfully claimed. Rebinding or superseding Website execution rotates that attempt without changing `assignmentId`.
-
-## appendMessage
-
-Adds a structured Message to an existing assignment.
-
-Examples:
-
-- peer evidence;
-- local tool result;
-- clarification;
-- remediation context;
-- cancellation/control signal.
-
-Message uses the canonical Worker Message contract. The current `/schemas/worker-input.schema.json` filename is transitional until the Message/Artifact schema normalization pass.
-
-Appending a Message must not silently create a new provider conversation/session or assignment.
+Provider-specific delivery direction is not part of the local API contract.
 
 ## inspectAssignment
 
-Returns current provider-owned assignment state without starting new work.
+Returns local authoritative assignment state without creating provider work.
 
-Inspect is the primary reconciliation operation after restart.
+This is the reconciliation surface after restart or uncertain provider execution.
 
 ## cancelAssignment
 
-Fences/cancels the current assignment.
+Requests cancellation/fencing of current execution under the assignment.
 
-Late Website submissions after cancellation, rebinding, or supersession cannot commit as current. The provider fences them with the current `attemptId`.
+Stale-attempt and state-transition behavior belongs to Worker server invariants.
 
-## readArtifacts
+## recordArtifact / readArtifacts
 
-Reads durable Worker Artifacts.
+Artifacts are durable Worker work products.
 
-Artifacts may be intermediate or terminal work products.
+A provider adapter records an Artifact only through the local authoritative server path so identity, attempt, input binding, schema validation, idempotency, and durable persistence can be enforced.
 
-Examples:
+A completion Artifact is not accepted merely because a provider returned it.
 
-~~~text
-contribution
-completion
-~~~
+## Provider adapters
 
-Input-required, failure, cancellation, and other execution lifecycle concerns belong to Message/WorkerState rather than Artifact.
-
-This distinction is required because an independent brainstorm contribution Artifact may satisfy a collaboration barrier without terminating the assignment before debate.
-
-## Website-facing MCP
-
-The corresponding Website-facing MCP profile is documented separately:
-
-[MCP Worker transport](mcp-worker-transport.md)
-
-Its tool direction is:
+Current/future adapters may include:
 
 ~~~text
-Website Agent -> local MCP server
-
-claim
-receive
-submit
-inspect
+Website MCP
+ACP
+A2A
+direct/in-process
 ~~~
 
-Do not expose the internal Local API mechanically as MCP tools.
+They map provider lifecycle onto this local semantic surface without leaking provider ids into callers.
 
-## Completion
+## Non-goals
 
-Local AgentOS considers a Worker assignment successfully terminal only after a current completion Artifact has been durably validated.
-
-DSH member inactivity, MCP transport state, tunnel health, or a returned prose message are not assignment completion.
-
-## Plugin usage
-
-Other AgentOS/DSH plugins may consume this API directly.
-
-A plugin does not need to know:
-
-- Website vendor;
-- tunnel implementation;
-- browser profile;
-- MCP session id;
-- DSH Team internals.
-
-It depends only on Worker capabilities, explicit handles, and canonical schemas.
-
-`attemptId` is an application-level provider-execution handle. It is never inferred from transport/session identity.
+Worker API does not define Team topology, detailed agent methodology, JSON field definitions, MCP tool names, provider session lifecycle, or server enforcement algorithms.

@@ -1,21 +1,28 @@
 # Skills
 
-Skill documents contain **agent operating guidance** for using AgentOS capabilities.
+Agent Skills contain procedural guidance for performing AgentOS work.
 
-They answer when an agent should call an operation, how operations should be composed, what working methodology applies, and when to contribute, wait, revise, or complete.
-
-Skills do **not** define AgentOS semantic identity, authorization, lifecycle, transport signatures, or canonical data shapes.
+The canonical Worker methodology is the executable [software-worker Skill](../../.agents/skills/software-worker/SKILL.md).
 
 ~~~text
-MCP       = callable operations
-Skill     = usage guidance
-Schema    = structural validation
-Contract  = shared semantic meaning
-Server    = current application truth
+Contract
+  = semantic meaning + minimum guarantees
+
+Schema
+  = exact data structure
+
+MCP
+  = Website-facing callable transport
+
+Skill
+  = how the agent should work
+
+Server invariant
+  = current durable application truth
 ~~~
 
-A provider may materialize this guidance as an Agent Skill `SKILL.md`, provider/system instructions, or another host-native mechanism. Skill support is optional.
+Skills never define semantic identity, authorization, lifecycle truth, transport signatures, or canonical JSON shape.
 
-- [Worker usage](worker-usage.md) — Website-backed Worker operating methodology.
+This directory is a documentation router only. Do not duplicate SKILL.md instructions here.
 
 See [Worker boundary model](../architecture/worker-boundaries.md).

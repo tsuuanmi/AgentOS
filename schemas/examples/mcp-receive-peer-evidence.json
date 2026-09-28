@@ -2,9 +2,9 @@
   "workerId": "worker-research-a",
   "assignmentId": "assignment-research-a",
   "attemptId": "attempt-research-a-1",
-  "inputs": [
+  "messages": [
     {
-      "inputId": "input-peer-evidence-1",
+      "messageId": "message-peer-evidence-1",
       "workerId": "worker-research-a",
       "assignmentId": "assignment-research-a",
       "inputBinding": "sha256:example-input-binding",

@@ -1,12 +1,12 @@
 {
-  "submissionId": "submission-contribution-1",
+  "artifactId": "artifact-contribution-1",
   "workerId": "worker-research-a",
   "assignmentId": "assignment-research-a",
   "attemptId": "attempt-research-a-1",
   "inputBinding": "sha256:example-input-binding",
   "kind": "contribution",
-  "outputSchemaRef": "urn:example:schema:research-contribution",
-  "output": {
+  "schemaRef": "urn:example:schema:research-contribution",
+  "data": {
     "recommendation": "Reconcile external state before retry.",
     "risks": [
       "Blind retry can duplicate side effects."

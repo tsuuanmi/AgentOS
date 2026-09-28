@@ -1,17 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:agentos:schema:worker-state",
-  "title": "AgentOS Worker Assignment State",
-  "description": "Current durable lifecycle projection for one Worker assignment.",
+  "$id": "urn:agentos:schema:worker-artifact",
+  "title": "AgentOS Worker Artifact",
+  "description": "Durable intermediate or terminal Worker work product.",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "artifactId",
     "workerId",
     "assignmentId",
+    "attemptId",
     "inputBinding",
-    "status"
+    "kind",
+    "schemaRef",
+    "data"
   ],
   "properties": {
+    "artifactId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    },
     "workerId": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
     },
@@ -24,34 +31,24 @@
     "inputBinding": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/inputBinding"
     },
-    "status": {
+    "kind": {
       "type": "string",
       "enum": [
-        "queued",
-        "active",
-        "input_required",
-        "completed",
-        "failed",
-        "cancelled",
-        "superseded"
+        "contribution",
+        "completion"
       ]
     },
-    "pendingMessageCount": {
-      "type": "integer",
-      "minimum": 0
+    "schemaRef": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/schemaRef"
     },
-    "lastArtifactId": {
-      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    "data": {
+      "description": "Artifact data validated by the server against schemaRef."
     },
-    "terminalArtifactId": {
-      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
-    },
-    "error": {
-      "$ref": "urn:agentos:schema:worker-common#/$defs/error"
-    },
-    "reason": {
-      "type": "string",
-      "minLength": 1
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:agentos:schema:worker-common#/$defs/reference"
+      }
     },
     "extensions": {
       "$ref": "urn:agentos:schema:worker-common#/$defs/extensions"

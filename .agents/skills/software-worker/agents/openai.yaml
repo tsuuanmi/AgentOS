@@ -1,0 +1,3 @@
+interface:
+  display_name: "Software Worker"
+  short_description: "Execute AgentOS Worker software assignments consistently"
