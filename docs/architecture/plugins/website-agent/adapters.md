@@ -4,155 +4,259 @@
 - **Owner:** Website Agent plugin
 - **Core:** [Website Agent Core](core.md)
 
-Website Agent exposes two orthogonal protocol ports:
+Adapters implement upstream protocols directly and call one shared Core.
 
-~~~text
-ACP = runtime/control port
-A2A = peer collaboration port
+> **Adapt behavior, not data models.**
+
+## Topology
+
+~~~mermaid
+flowchart LR
+    Runtime[DSH / ACP runtime]
+    ACPClient[ACP Client]
+    ACPAgent[Website ACP Agent]
+
+    Member[Agent Team Member]
+    A2AClient[A2A Client]
+    A2AServer[Website A2A Server]
+
+    Core[Website Agent Core]
+
+    Runtime --> ACPClient -->|native ACP| ACPAgent --> Core
+    Member --> A2AClient -->|native A2A| A2AServer --> Core
+    Core --> A2AServer -->|native A2A events| A2AClient --> Member
 ~~~
 
-Both adapters must use the **official protocol SDK/types directly**.
+## ACP Agent adapter
 
-> **Adapters are behavioral glue, not normalization layers.**
+Use the official ACP SDK/types directly.
 
-Do not create AgentOS copies of ACP sessions/updates or A2A Tasks/Messages/Artifacts.
+### ACP lifecycle
 
-## Direct-reuse rule
+~~~mermaid
+sequenceDiagram
+    participant C as ACP Client / Runtime
+    participant A as Website ACP Agent
+    participant Core as Website Core
 
-Prefer pass-through identities and native objects:
+    C->>A: initialize
+    A-->>C: protocolVersion + capabilities
+
+    alt new conversation
+        C->>A: session/new(cwd, mcpServers)
+        A->>Core: allocate/use conversation keyed by sessionId
+        A-->>C: NewSessionResponse(sessionId, modes?)
+    else resume supported
+        C->>A: session/load or supported resume method
+        A->>Core: recover same conversation
+        A-->>C: native ACP response
+    end
+
+    opt change mode
+        C->>A: session/set_mode(sessionId, modeId)
+        A->>Core: mode = chat/research
+        A-->>C: native ACP response
+    end
+
+    C->>A: session/prompt
+    A->>Core: execute turn
+    Core-->>A: retained result
+    A-->>C: session/update notifications
+    A-->>C: PromptResponse(stopReason)
+
+    opt cancellation
+        C->>A: session/cancel
+        A->>Core: cancel
+    end
+~~~
+
+### ACP direct-use rules
+
+Use directly:
+
+- `InitializeRequest/Response`;
+- `NewSessionRequest/Response`;
+- `LoadSessionRequest/Response` when supported;
+- `PromptRequest/Response`;
+- `SessionNotification/SessionUpdate`;
+- `CancelNotification`;
+- `SessionModeState` / `session/set_mode`;
+- ACP `StopReason`;
+- ACP MCP server declarations.
+
+Do not define equivalent Website/Worker protocol objects.
+
+### ACP session semantics
+
+`sessionId` is the conversation identity for the ACP boundary and should be used directly as the Core logical conversation key when possible.
+
+`cwd` and `mcpServers` remain ACP session inputs. Website Core must not reinterpret `cwd` as Website account/conversation identity.
+
+Website Agent may support MCP tools declared through ACP only when the implementation actually consumes them.
+
+### ACP chat/research modes
+
+Prefer native ACP modes:
 
 ~~~text
-ACP sessionId
-  -> use directly as Website Core conversation key when semantics match
+session/new response:
+  modes:
+    currentModeId: chat
+    availableModes:
+      - chat
+      - research
 
+session/set_mode(research)
+  -> Website Core mode = research
+~~~
+
+If a particular runtime client cannot select modes yet, pin a default adapter mode in deployment configuration. Do not invent `websiteMode` in ACP metadata.
+
+### ACP idempotency gap
+
+ACP session identity gives conversation continuity but does not necessarily give the Core a durable, semantic per-prompt idempotency id across a crash.
+
+For one-shot execution, adapter-local turn identity is enough.
+
+If durable cross-restart reconcile-before-resubmit requires more, persist only a minimal local turn/idempotency record keyed under the native ACP session. Do not create a parallel Task protocol.
+
+## A2A Agent adapter
+
+Use `@a2a-js/sdk` v1 types directly.
+
+### Server composition
+
+~~~mermaid
+flowchart LR
+    Transport[JSON-RPC initially]
+    Handler[DefaultRequestHandler]
+    Executor[Website AgentExecutor]
+    Bus[ExecutionEventBus]
+    Store[A2A TaskStore]
+    Core[Website Core]
+
+    Transport --> Handler
+    Handler --> Executor
+    Handler --> Store
+    Executor --> Core
+    Executor --> Bus
+    Bus --> Handler
+~~~
+
+Initial implementation should use JSON-RPC over HTTP for the smallest surface. REST/gRPC can be added later without changing Core semantics.
+
+### A2A Task lifecycle
+
+~~~mermaid
+stateDiagram-v2
+    [*] --> submitted
+    submitted --> working
+    working --> input_required
+    input_required --> working
+    working --> auth_required
+    auth_required --> working
+    working --> completed
+    working --> failed
+    working --> canceled
+    working --> rejected
+    completed --> [*]
+    failed --> [*]
+    canceled --> [*]
+    rejected --> [*]
+~~~
+
+Use the exact upstream enum/constants in code; this diagram is conceptual.
+
+### Native identity use
+
+A2A v1 semantics matter:
+
+- `contextId` groups related Tasks/Messages and may be accepted/preserved or server-generated;
+- a new `taskId` is server-generated by the A2A server;
+- `messageId` is created by the Message creator.
+
+For Website Core:
+
+~~~text
 A2A contextId
-  -> use directly as Website Core conversation key
+  -> Core conversation key
+
+A2A messageId
+  -> Core logical request / turn key
 
 A2A taskId
-  -> use directly as Website Core logical request key
+  -> native A2A stateful Task identity
 ~~~
 
-Only introduce local adapter state when the upstream protocol lacks information required for idempotency, recovery, authentication scope, or Website Core correctness.
+This avoids inventing AgentOS ids and avoids misusing `taskId` as a client-generated request id.
 
-## ACP adapter: Runtime <-> Website Agent
+### A2A result rule
 
-The Website ACP adapter implements the official ACP Agent interface directly.
+A2A Message is communication.
 
-~~~text
-ACP Client / runtime
-  -> native ACP request/session objects
-      -> Website ACP Agent implementation
-          -> Website Agent Core
-~~~
-
-### Direct ACP usage
-
-- implement ACP initialize/session/prompt/update/cancel/load with the upstream SDK;
-- keep ACP session state as ACP session state;
-- use ACP sessionId directly as the core conversation key when possible;
-- return ACP-native updates/results directly;
-- do not introduce WebsiteSession, WorkerSession, NormalizedUpdate, or equivalent mirror types.
-
-### Logical request identity
-
-ACP session identity is sufficient for conversation continuity, but ACP may not provide a durable per-prompt idempotency identity with the exact semantics required by Website Core reconciliation.
-
-For bounded one-shot execution, use the native ACP request/session identity directly where sufficient.
-
-If cross-restart reconcile-before-resubmit requires an additional stable prompt identity, persist only that minimal local idempotency key. Do not create a parallel ACP task model.
-
-### Runtime portability
-
-Nothing in Website Core assumes DSH.
+Task output should be native A2A Artifact/Part:
 
 ~~~text
-DSH ------------\
-Other runtime --- ACP ---> Website ACP Agent ---> Website Core
-Future runtime -/
-~~~
-
-Current DSH subagent-acp is the first ACP Client implementation.
-
-## A2A adapter: Website Agent <-> Agent Team Member
-
-The Website A2A adapter implements the official A2A server/agent SDK directly.
-
-~~~text
-Agent Team Member
-  <-> native A2A Task / Message / Artifact
-  <-> Website A2A Agent
-  <-> Website Core
-~~~
-
-### Direct A2A usage
-
-Use native A2A objects directly:
-
-- AgentCard / AgentSkill for discovery;
-- contextId for collaboration context;
-- Task / TaskStatus for peer work lifecycle;
-- Message / Part for peer input/context;
-- Artifact / Part for peer deliverables;
-- native cancellation/update mechanisms.
-
-Do not create AgentOSTask, WorkerMessage, WorkerArtifact, WebsiteArtifactEnvelope, or normalized A2A lifecycle types.
-
-### Identity pass-through
-
-Where semantics match, pass A2A ids straight into Website Core:
-
-~~~text
-contextId
-  -> core conversation key
-
-taskId
-  -> core logical request key
-~~~
-
-If contextId is absent where the protocol allows that state, the adapter may create/obtain it using normal A2A semantics; do not invent an AgentOS wire field.
-
-### Result projection
-
-Website Core has an internal operational result because it must retain full Website output.
-
-The A2A adapter constructs the native A2A Artifact/Part directly from that core result using the official SDK.
-
-There is no intermediate WorkerArtifact or AgentOSArtifact.
-
-~~~text
-Website Core result
+Website Core retained result
   -> A2A Artifact / Part
+  -> Task artifact update / final Task
 ~~~
 
-Likewise ACP adapter emits ACP-native output directly from the same core result.
+Do not return correctness-bearing task output only as a transient status Message.
 
-## Account / owner scope
+### A2A client side for Team Members
 
-Protocol authentication/deployment context should identify the owner/authority scope where possible.
+Use the official SDK client:
 
-Only keep a separate core owner key when Website account isolation requires a semantic that ACP/A2A does not represent directly.
+~~~text
+ClientFactory
+  -> AgentCard discovery
+  -> transport selection
+  -> sendMessage / sendMessageStream
+  -> getTask / cancelTask
+~~~
 
-That key remains private Core state; it is not added to protocol objects by default.
+The Team Member keeps A2A Task/context state as A2A state, not Team-specific copies.
 
-## One process may expose both
+### Cancellation and streaming
 
-A Website Agent instance may expose both ACP and A2A endpoints around one Core.
+Website `AgentExecutor.cancelTask` must signal the shared Core cancellation path.
 
-Protocol lifecycles remain independent, while account/provider/browser/conversation/reconciliation logic exists exactly once.
+For long-running research, publish native Task/status/artifact update events through the SDK event bus. Push notifications remain optional until a disconnected long-running use case requires them.
 
-## No duplicated logic
+## Authentication
 
-Neither adapter may duplicate:
+Protocol auth remains protocol-owned:
 
-- account/authentication state;
-- provider drivers;
-- browser automation;
-- native Website conversation binding;
-- Website completion detection;
-- reconcile-before-resubmit;
-- result retention;
-- upstream protocol data models.
+- ACP runtime/process/auth model for ACP;
+- A2A AgentCard security declarations + transport authentication for A2A.
 
-## Canonical invariant
+Website account credentials remain Core-owned and must never cross either protocol.
 
-> **Use ACP and A2A directly. Translate behavior into Website Core calls, not protocol data into AgentOS copies.**
+## Extension policy
+
+Initial ACP/A2A integration uses no AgentOS custom protocol extension.
+
+Only add an extension when a failing interoperability test proves that the remote peer itself must consume a semantic unavailable in the standard protocol.
+
+## TDD gates
+
+ACP tests:
+
+1. initialize/version/capability negotiation;
+2. new session uses native sessionId directly;
+3. prompt/update/stopReason use native types;
+4. chat/research uses native Session Modes;
+5. cancellation reaches Core;
+6. continuation capability is advertised only when actually implemented.
+
+A2A tests:
+
+1. AgentCard is valid and discoverable;
+2. new Task uses server-generated taskId;
+3. contextId/messageId are reused directly as Core identities;
+4. Task output is Artifact/Part, not only Message;
+5. streaming status/artifact events preserve native types;
+6. cancellation reaches Core;
+7. zero custom AgentOS extensions;
+8. JSON-RPC client/server integration passes with official SDK.
