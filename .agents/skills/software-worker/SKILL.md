@@ -1,11 +1,11 @@
 ---
 name: software-worker
-description: Execute AgentOS Worker assignments for software research, brainstorming, debate, implementation, TDD, review, and synthesis. Use when an agent receives a WorkerAssignment with one or more of the semantic capabilities research, brainstorm, debate, implement, tdd, review, or synthesize and must consume Messages and produce Artifacts without redefining the Worker Protocol.
+description: Procedural capability pack for AgentOS Workers handling the initial software capabilities research, brainstorm, debate, implement, tdd, review, and synthesize. Use only when a WorkerAssignment requires one or more of these capabilities; Worker itself remains capability-agnostic.
 ---
 
-# Software Worker
+# Software capability pack for Worker
 
-Follow the Worker Protocol as authority. Treat schemas as data-shape authority and provider/server responses as execution-state authority. Do not invent fields, lifecycle rules, transport behavior, or authorization semantics in this skill.
+This Skill is one capability-specific procedure pack, not the definition of Worker. Follow the Worker Protocol as semantic authority. Treat schemas as data-shape authority and Worker Exchange/provider responses as execution-state authority. Do not invent fields, lifecycle rules, transport behavior, authorization semantics, or a closed Worker capability taxonomy in this skill.
 
 ## Execution loop
 
@@ -72,3 +72,4 @@ Follow the Worker Protocol as authority. Treat schemas as data-shape authority a
 - MCP/ACP/A2A tool or session behavior belongs to provider transport documentation, not this skill.
 - Authorization, fencing, idempotency, durable persistence, and state transitions belong to server invariants, not this skill.
 - Team topology, Worker selection, barriers, and peer routing belong to the Agent Team contract/policy, not this skill.
+- Capabilities not covered here may use other Skills/procedure packs without changing Worker identity.
