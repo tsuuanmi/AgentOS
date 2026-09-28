@@ -1,60 +1,54 @@
 # Agent Team software flow v0
 
 - **Status:** active vertical-slice research
-- **Canonical semantics:** [Agent Team contract](../contracts/agent-team.md)
-- **Goal:** prove one DSH Team + Website Agent collaboration through research -> implementation -> review.
+- **Canonical semantics:** [Agent Team contract](../contracts/agent-team.md), [Worker Protocol](../contracts/worker-protocol.md)
+- **Goal:** prove one DSH Team + capability-driven Website Workers through research -> implementation -> review.
 
 ## Team run
 
-One dedicated DSH Team is created for the software collaboration and reused across phases.
+One dedicated DSH Team is reused across the collaboration.
 
 ~~~text
-Local / Workflow
-      |
-      v
-dedicated DSH Team
-  |
-  +-> RESEARCH
-  +-> IMPLEMENT
-  +-> REVIEW
+RESEARCH
+  2 x [research, brainstorm, debate]
+
+IMPLEMENT
+  1 x [implement, tdd]
+
+REVIEW
+  2 x [review, debate]
+
+SYNTHESIS
+  [synthesize]
 ~~~
 
-Local is outside the Team and receives typed synthesis/results.
+Worker identities/providers may vary; capability requirements and protocol schemas do not.
 
 ## Research
 
-### Independent brainstorm
+Two Workers satisfying `research + brainstorm + debate` receive the same bounded objective/input.
 
 ~~~text
-Researcher Primary    <-> Website Agent RP
-Researcher Challenger <-> Website Agent RC
+Worker A <-> Website Agent A
+Worker B <-> Website Agent B
 ~~~
 
-Both work independently against the same bounded semantic input.
+They complete independent assignments first.
 
-No peer evidence is shared before the barrier.
-
-### Peer debate
-
-After both initial results exist:
+After the barrier:
 
 ~~~text
-Researcher Primary <------ send_message ------> Researcher Challenger
-      |                                      |
-      v                                      v
-Website Agent RP                      Website Agent RC
-challenge/revise                       challenge/revise
+Worker A <------ structured send_message ------> Worker B
+      |                                            |
+      v                                            v
+Website Agent A                               Website Agent B
+continue same assignment                     continue same assignment
+with peer evidence                           with peer evidence
 ~~~
 
-The DSH teammates bridge peer evidence into their own Website Agent conversations and return revised positions directly to each other/Team.
+Debate uses the Worker message schema, not ad-hoc prompt text.
 
-Lead does not relay ordinary debate traffic.
-
-### Synthesis
-
-Distilled final positions reach the dedicated Lead.
-
-The Lead may use its own Website Agent S for synthesis.
+Required revised results go to the synthesis Worker/Lead.
 
 Output:
 
@@ -64,17 +58,19 @@ ResearchResult
 
 ## Implementation
 
-The same Team continues.
+A Worker satisfying `implement + tdd` receives accepted ResearchResult plus exact workspace/base input.
 
 ~~~text
-Implementer <-> Website Agent I
+Worker I <-> Website Agent I
 ~~~
 
-Implementation follows TDD:
+Implementation follows:
 
 ~~~text
 Red -> Green -> Refactor
 ~~~
+
+The Website Agent may request local tool actions through the DSH Worker bridge.
 
 Output:
 
@@ -82,98 +78,62 @@ Output:
 ImplementationReport
 ~~~
 
-The report is not effect authority.
-
-Actual workspace/repository state and deterministic validation establish correctness.
+Actual repository/test state remains correctness authority.
 
 ## Review
 
-Prefer independent review members:
+Two Workers satisfying `review + debate` receive the exact implementation + validation input.
 
 ~~~text
-Reviewer Correctness <-> Website Agent R1
-Reviewer Architecture <-> Website Agent R2
+Worker R1 <-> Website Agent R1
+Worker R2 <-> Website Agent R2
 ~~~
 
-Flow:
+They review independently, exchange structured peer evidence, continue their existing assignments, and revise.
+
+Output after synthesis:
 
 ~~~text
-independent review
-  -> direct peer debate
-  -> false-positive challenge / evidence strengthening
-  -> Lead synthesis
-  -> ReviewResult
+ReviewResult
 ~~~
-
-ReviewResult binds the exact implementation + validation input.
 
 ## Remediation
 
 For CHANGES_REQUIRED:
 
 ~~~text
-review findings
-  -> implementer remediation
-  -> validation
-  -> review again
+review result
+  -> Worker with [implement, tdd]
+  -> real validation
+  -> Workers with [review, debate]
+  -> ReviewResult
 ~~~
 
-Reuse the implementer where continuity helps.
+Reuse Worker bindings/conversations only when current input/recovery policy says it is safe.
 
-Bound remediation cycles prevent unbounded Team growth/work.
+## Completion
 
-## Phase completion rule
-
-Workflow never watches Website Agent UI/activity directly.
-
-For every Team phase:
+Workflow never watches Website Agent activity directly.
 
 ~~~text
-required Website assignments complete durably
-  -> corresponding DSH TeamTasks complete
-  -> Lead typed phase result commits
+Worker assignment completed durably
+  -> DSH TeamTask completed
+  -> typed phase result completed durably
   -> Workflow advances
 ~~~
 
-A member becoming inactive or a message being accepted/queued is not phase completion.
-
-## Workflow relationship
-
-When used by Workflow:
-
-~~~text
-Workflow
-  owns:
-    research WorkItem
-    implementation WorkItem
-    validation WorkItem
-    review WorkItem
-    restart/recovery/authority
-
-Agent Team
-  owns:
-    internal TeamTasks
-    mailbox
-    Website Agent member bindings
-    brainstorm/debate/work
-    synthesis
-~~~
-
-The same DSH Team provider context may be referenced across the three Team phases.
-
 ## Vertical-slice success criteria
 
-The slice is successful when:
-
-1. Local/Workflow can create one dedicated DSH Team run.
-2. Each Team member has its own Website Agent conversation.
-3. Research is independent-first.
-4. Debate is direct member-to-member through DSH messaging.
-5. Website Agents receive peer evidence and revise.
-6. ResearchResult is typed/durable.
-7. Implementation continues on the same Team and follows TDD.
-8. Real repository validation is authoritative.
-9. Review uses independent members + direct debate.
-10. ReviewResult is exact-input bound.
-11. Local receives synthesis rather than internal Team transcript.
-12. No AgentOS Team runtime state duplicates DSH.
+1. dedicated DSH Team exists;
+2. Worker capability requirements are stable;
+3. each Worker has its own Website Agent binding;
+4. WorkerRequest validates against canonical JSON Schema;
+5. research is independent-first;
+6. debate uses structured WorkerMessage through DSH messaging;
+7. debate continues the same Website assignment;
+8. ResearchResult is typed/durable;
+9. implementation follows TDD;
+10. real repository validation is authoritative;
+11. review uses two independent `review + debate` Workers;
+12. Local receives synthesis, not internal transcript;
+13. no AgentOS Team runtime state duplicates DSH.
