@@ -57,9 +57,10 @@ Test:
 1. Website ACP Agent can implement initialize/new/prompt/cancel over the Internet core;
 2. one-shot Worker research works end-to-end through DSH ACP;
 3. ACP session id never becomes native Website conversation identity;
-4. stable ACP v1 `session/load` can restore a core conversation in the Website ACP Agent;
-5. determine the smallest DSH change needed for its ACP client/provider to actually reuse/load that session;
-6. logical request reconciliation does not depend on ephemeral JSON-RPC request ids.
+4. Website ACP Agent can advertise native ACP Session Modes for `chat` and `research`;
+5. continuation/load/resume is advertised only for the exact client/agent path that implements it;
+6. determine the smallest DSH Worker-side ACP client change needed for multi-run continuation;
+7. logical request reconciliation does not depend on ephemeral JSON-RPC request ids.
 
 ## A2A proving questions
 
@@ -68,12 +69,13 @@ Use official `@a2a-js/sdk`.
 Test:
 
 1. Website core can be called from a thin `AgentExecutor`;
-2. `contextId` can be passed directly as Website Core conversation identity;
-3. `taskId` can be passed directly as the logical request identity for reconciliation;
-4. long Website results project into native A2A Artifact/Part;
-5. cancellation reaches the core;
-6. the first integration uses zero AgentOS A2A extensions;
-7. chat/research routing can be configured without inventing a custom A2A skill-selection extension.
+2. `contextId` is accepted/generated according to A2A v1 and can be used directly as Core conversation identity;
+3. native `messageId` is used as per-turn Core logical request identity;
+4. new `taskId` is server-generated and remains A2A Task identity;
+5. long Website results become native A2A Artifact/Part deliverables rather than only Messages;
+6. cancellation reaches the core;
+7. the first integration uses zero AgentOS A2A extensions;
+8. JSON-RPC client/server integration works through the official SDK.
 
 ## Core-vs-adapter invariant
 
@@ -93,8 +95,8 @@ ACP/A2A adapters should pass protocol identities/objects directly into Core wher
 2. expose/refine the smallest supported core API;
 3. ACP Agent adapter unit tests;
 4. DSH ACP one-shot integration test;
-5. Website A2A Agent adapter tests;
-6. Agent Team Member <-> Website Agent A2A peer integration test;
+5. Website A2A AgentExecutor + DefaultRequestHandler tests;
+6. Agent Team Member <-> Website Agent JSON-RPC A2A integration test;
 7. continuation/load conformance only after one-shot paths work;
 8. scientific literature-search Profile as a second-domain proof.
 
