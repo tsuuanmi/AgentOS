@@ -124,7 +124,7 @@ MRTR does not provide arbitrary future Website turn creation and does not replac
 
 Agent Skills teach the agent how to perform semantic capabilities; MCP tools expose callable operations.
 
-The current [software-worker Skill](../../.agents/skills/software-worker/SKILL.md) is an initial software capability procedure pack; Worker itself remains capability-agnostic.
+The current [software-development Skill](../../.agents/skills/software-development/SKILL.md) is an initial software capability procedure pack; Worker itself remains capability-agnostic.
 
 When a Website host supports the MCP Skills extension (`io.modelcontextprotocol/skills`), an adapter may serve that same Skill over MCP. Skill transport is optional and does not alter Worker semantics.
 
