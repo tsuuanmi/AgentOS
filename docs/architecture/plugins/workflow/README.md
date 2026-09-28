@@ -1,135 +1,141 @@
-# Workflow capability composition
+# Workflow plugin
 
 - **Status:** canonical architecture
-- **Role:** AgentOS durable long-running-work capability
-- **Shape:** composition of DSH persistence/execution/interaction plugins plus a thin durable semantic layer
+- **Owner:** AgentOS
+- **Host:** DSH / Cordis
+- **Role:** domain-agnostic durable sequencing, recovery, and acceptance semantics
 
-Workflow is **not a second general-purpose workflow engine built from scratch**.
+Workflow is an AgentOS semantic plugin.
 
-Its architecture has two independent layers:
+It is not a second general-purpose workflow engine.
+
+## Semantic model
 
 ~~~text
-Workflow Core
-  = fixed, domain-agnostic durable semantics
+Workflow plugin
+  = Definition/Profile validation
+  + semantic WorkItem/dependency/transition state
+  + exact Definition/input binding when required
+  + product recovery policy
+  + result/effect acceptance
+  + durable external-decision semantics when required
+  + terminal convergence / reattachment
 
-Workflow Definition/Profile
-  = declarative domain/product configuration interpreted by the core
+Workflow Profile
+  = declarative domain configuration
+
+runtime mechanics
+  = DSH capabilities by default
+  = optional external plugin only when a real gap is proven
 ~~~
 
-AgentOS Workflow supplies the durable semantics missing from DSH's existing bounded execution primitives and composes those primitives as WorkItem adapters.
+Software development is the first Profile. Scientific research is a second-domain proof.
 
-Software development is only the first Workflow Profile. Scientific research or another domain should reuse the same core and change configuration when existing capabilities/adapters are sufficient.
+## Dependencies
 
-## Core / Definition / Run
+Workflow composes:
+
+- [Agent Team plugin](../agent-team/README.md) for collaborative phases;
+- [Worker plugin](../worker/README.md) for simple delegated execution;
+- [DSH Workflow/runtime capabilities](../dsh/workflow-runtime.md) for storage/jobs/timers/interaction/tools.
+
+Workflow never branches directly on ACP/A2A/Website/local provider type.
+
+## Definition / Profile / Run
 
 ~~~mermaid
 flowchart LR
     Profile[Workflow Profile]
     Definition[Workflow Definition]
-    Core[Workflow Core]
+    Workflow[Workflow plugin]
     Run[WorkflowRun]
     Input[Exact input]
 
     Profile --> Definition
-    Definition --> Core
-    Input --> Core
-    Core --> Run
+    Definition --> Workflow
+    Input --> Workflow
+    Workflow --> Run
 ~~~
 
-A WorkflowRun binds to the exact Definition and exact input admitted at start. Mutable deployment configuration must not silently change an in-progress run after restart.
+A WorkflowRun binds to the exact admitted Definition and input. Mutable deployment configuration must not silently change an in-progress run after restart.
 
-See [Workflow definitions and profiles](definitions.md).
+See [Workflow definitions and Profiles](definitions.md).
 
-## Existing DSH building blocks
+## DSH substrate
 
-DSH already provides:
+Default reusable mechanics include:
 
-- `ctx.storageDomain` for durable schema-validated host records;
-- `ctx.workflowEngine` for bounded live model-authored fan-out orchestration;
-- `ctx.jobs` for process-local long-running jobs/progress;
-- `ctx.subagents` for delegated execution;
-- `ctx.agentTeams` for collaborative Team execution;
-- Schedule for persistent reminder delivery;
-- `ctx.approval` and `ctx.userQuestions` for human interaction presentation;
-- Session persistence/projections;
-- workspace/tools/effect providers.
+- `ctx.storageDomain`;
+- optional `ctx.jobs`;
+- optional `ctx.workflowEngine`;
+- Schedule;
+- approval/questions;
+- Session;
+- workspace/tools/effect capabilities.
 
-AgentOS should compose these rather than duplicate them.
-
-## AgentOS semantic delta
-
-Workflow owns only product semantics not supplied by the selected runtime:
-
-- Workflow Definition/Profile validation;
-- semantic WorkItem/dependency/transition meaning;
-- exact Definition/input snapshot or digest when durable correctness requires it;
-- mapping current WorkItem execution to a provider/runtime handle;
-- result acceptance and typed terminal outcome;
-- product recovery policy for unknown provider/effect outcome;
-- effect evidence/actual-state requirements;
-- reattachment semantics exposed to callers.
-
-Generic checkpointing, queueing, timers, retries, waits, and process-crash recovery are runtime mechanics. Reuse DSH primitives first; if a concrete requirement is better served by Inngest, Temporal, or another library/runtime, wrap it behind an optional Cordis plugin rather than reimplementing the engine.
-
-
+These are documented under [DSH Workflow/runtime capabilities](../dsh/workflow-runtime.md).
 
 ## Semantic invariants
 
-These invariants are the Workflow plugin contract; they should not live in a duplicate requirements tree.
+### Exact Definition/input
 
-### Exact Definition and input binding
+Persist or otherwise bind an immutable snapshot/digest/reference when durable correctness requires exact reproducibility.
 
-A run is admitted against one exact validated Workflow Definition/Profile and one exact input.
-
-Mutable deployment configuration must not silently change the semantics of an in-progress run after restart.
-
-An immutable snapshot, content digest, or immutable reference plus digest is sufficient; numeric version fields are not required.
+Numeric version fields are not inherently required.
 
 ### Admission before effects
 
-Admission fails before effects begin when the Definition references an invalid dependency/transition, unavailable adapter, unsatisfied capability, unresolved correctness-bearing schema, or invalid terminal target.
+Fail admission before effects when the Definition references invalid transitions, unavailable plugins/adapters, unsatisfied capabilities, unresolved correctness-bearing schemas, or invalid terminal targets.
 
-### WorkItem semantics
+### WorkItem identity
 
-A WorkItem is semantic workflow state, not a provider/runtime handle.
+A WorkItem is semantic Workflow state.
 
 ~~~text
 WorkItem
   != DSH Job
   != Team task
-  != subagent run
+  != Worker provider execution
   != ACP session
   != A2A Task
 ~~~
 
-The WorkItem owns exact input when needed, dependency/readiness meaning, recovery policy, current ExecutionBinding when needed, accepted result/evidence, and semantic completion.
+### Restart is reconciliation
 
-### Restart is reconciliation, not replay
+Missing live runtime/provider handles never prove work did not happen.
 
-A missing live runtime handle does not prove work never happened.
+Recovery first reconciles semantic state and current execution/effects, preserves accepted completion, then derives readiness.
 
-Recovery must preserve already accepted semantic completion, reconcile current provider/effect state, retain unresolved waiting/blocking conditions, and only then derive new readiness.
+### Replacement/fencing
 
-For unknown outcomes, policy may distinguish safe retry, reconcile-before-retry, and block-on-unknown. These labels are implementation choices; the invariant is that non-idempotent or effectful unknown work is never blindly replayed.
+Only keep binding generation/fence state when an old execution can race with its replacement.
 
-### Replacement and fencing
+Do not create attempt ids when the selected provider/runtime guarantees stale execution cannot survive.
 
-When a provider execution is replaced and the old execution can still race, the Workflow/phase owner must retain enough binding generation/fence state to reject stale results or effects.
+### Durable external decisions
 
-Do not create attempt ids when the selected runtime already makes stale execution impossible.
+A user/external decision that must survive restart is semantic Workflow state.
 
-### Durable interaction
+DSH approval/questions or another UI is presentation.
 
-A human/external decision that must survive disconnect/restart is semantic Workflow state, not merely a transient UI prompt.
-
-The durable record binds the exact subject, expected response, owning run/WorkItem, and status. DSH approval/questions or another UI is presentation.
-
-Authority to perform an effect is distinct from proof that the effect completed.
+Authority to perform an effect remains distinct from proof the effect completed.
 
 ### Terminal convergence
 
-A run reaches a terminal state only when durable semantic state proves no required WorkItem, durable external decision, or reconciliation remains unresolved.
+Terminal state requires durable semantic proof that no required WorkItem, reconciliation, or durable external decision remains unresolved.
 
 ### Reattachment
 
-A new Local client can inspect and continue the same durable Workflow state after disconnect/restart without reconstructing semantics from mutable deployment configuration.
+A new Local client can inspect and continue the same durable Workflow state without reconstructing semantics from mutable deployment configuration.
+
+## Runtime substitution
+
+DSH/Cordis remains the Host.
+
+Use DSH mechanics first.
+
+Only if a concrete requirement proves a generic durability gap may Workflow depend on a Cordis adapter around Inngest, Temporal, or another runtime.
+
+The external runtime implements mechanics; Workflow semantics remain AgentOS-owned.
+
+See [Composition](composition.md).
