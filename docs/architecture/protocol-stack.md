@@ -118,7 +118,7 @@ See [DSH plugins and capabilities](plugins/dsh/README.md).
 | Worker -> independent remote Agent | A2A provider |
 | Agent -> tool/data/capability | MCP/native DSH tool |
 | Agent Team peer mechanics | DSH `ctx.agentTeams` |
-| bounded Website execution | Worker -> DSH ACP -> Website Agent bridge |
+| bounded Website execution | Worker -> DSH ACP -> Website ACP Agent adapter -> shared Website core |
 | unsupported provider | narrow `ctx.subagents` provider |
 
 ## Identity rule
