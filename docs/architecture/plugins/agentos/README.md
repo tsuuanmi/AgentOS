@@ -16,7 +16,7 @@ flowchart TB
     AgentOS[AgentOS composition]
 
     Team[Agent Team capability composition]
-    Workflow[Workflow capability composition]
+    Workflow[Workflow capability composition\nCore + Definitions/Profiles]
     Worker[Worker capability / protocol]
 
     Host --> AgentOS
@@ -74,7 +74,7 @@ Current examples:
 - agnostic Worker Protocol and capability selection;
 - provider-neutral Worker Assignment / Message / Artifact exchange where upstream provider seams do not already satisfy it;
 - collaboration phase policy and typed phase results above generic Team mechanics;
-- durable WorkflowRun/WorkItem semantics above DSH's live workflow/jobs/subagent primitives;
+- domain-agnostic WorkflowRun/WorkItem semantics and exact Workflow Definition binding above DSH's live workflow/jobs/subagent primitives;
 - exact-input fencing and unknown-outcome reconciliation;
 - durable PendingAction semantics;
 - effect evidence/receipt binding;
@@ -107,7 +107,7 @@ Conceptually:
 ~~~text
 AgentOS bundle
   + Agent Team composition
-  + Workflow composition
+  + Workflow Core + Definitions/Profiles composition
   + Worker contracts/adapters
   + selected DSH provider plugins
 ~~~
