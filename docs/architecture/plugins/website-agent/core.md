@@ -1,79 +1,71 @@
-# Website Agent core
+# Website Agent Core
 
 - **Status:** canonical architecture
-- **Owner:** AgentOS Website Agent plugin
-- **Initial implementation source:** [`@tsuuanmi/internet`](https://github.com/tsuuanmi/internet)
-- **Browser substrate today:** `patchright-core`
-- **Scope:** protocol-neutral authenticated Website Agent execution
+- **Owner:** Website Agent plugin
+- **Initial implementation source:** @tsuuanmi/internet
+- **Current browser substrate:** patchright-core
 
-The Website Agent plugin should **reuse the existing Website participant/runtime core from `@tsuuanmi/internet`**, not build another browser-agent engine.
+Website Agent Core is the protocol-neutral execution engine that makes Website Agent behavior possible.
 
-`internet` already implements the difficult Website-specific mechanics AgentOS needs:
+It knows nothing about DSH, ACP, A2A, Agent Team, or Workflow semantics.
 
-- authenticated ChatGPT Web and Gemini Web accounts;
-- isolated browser/account state;
-- provider-native chat and Deep Research;
-- stable native conversation bindings;
-- per-account scheduling;
-- provider-specific completion detection;
-- reconcile-before-resubmit receipts;
-- durable owner-scoped result artifacts;
-- cancellation;
-- compact projection of long results.
+## Responsibilities
 
-The AgentOS Website Agent plugin should reuse/extract these layers while leaving `internet`'s Team/Workflow orchestration outside the core.
+~~~text
+WebsiteAgentCore
+  -> account / authentication
+  -> provider configuration
+  -> browser runtime
+  -> native Website conversation state
+  -> provider-specific execution
+  -> retry / reconciliation
+  -> result / artifact retention
+~~~
 
-## Source map
+## Reuse from tsuuanmi/internet
 
-The initial reusable implementation already exists in `tsuuanmi/internet`:
+The existing repository already implements the core mechanics AgentOS needs.
 
-| Source | Core responsibility |
+| Internet source | Core responsibility |
 |---|---|
-| `src/participant/service.ts` | protocol-neutral Website participant execution façade |
-| `src/participant/artifact-store.ts` | durable owner-scoped Website results |
-| `src/browser/runtime.ts` | browser/account runtime, chat/research execution, scheduling |
-| `src/browser/conversations.ts` | stable semantic-conversation -> native Website conversation binding |
-| `src/browser/turn-receipts.ts` | reconcile-before-resubmit and ambiguous-outcome handling |
-| `src/browser/chatgpt*.ts` | ChatGPT Web provider driver |
-| `src/browser/gemini*.ts` | Gemini Web provider driver |
-| `src/core/accounts.ts` | semantic authenticated accounts/capabilities |
-| `src/application/chat.ts` | host-neutral application service example |
-| `src/tools/*` | existing DSH tool adapters; not core |
-| `src/team/*` | standalone/legacy orchestration; not Website Agent core |
-| `src/workflow/*` | standalone/legacy orchestration; not Website Agent core |
+| src/participant/service.ts | protocol-neutral Website participant facade |
+| src/participant/artifact-store.ts | durable owner-scoped Website results |
+| src/browser/runtime.ts | browser/account execution and scheduling |
+| src/browser/conversations.ts | logical conversation -> native Website conversation binding |
+| src/browser/turn-receipts.ts | reconcile-before-resubmit / ambiguous-outcome handling |
+| src/browser/chatgpt*.ts | ChatGPT Web provider implementation |
+| src/browser/gemini*.ts | Gemini Web provider implementation |
+| src/core/accounts.ts | authenticated account/provider capabilities |
 
-## Core boundary
+Current WebsiteParticipantService is the closest existing facade to the desired Core API.
+
+## What is not Core
+
+Do not import Internet's higher-level orchestration as Website Agent Core:
+
+- internet_team;
+- Internet Team roster/task semantics;
+- Internet software Workflow;
+- Writer-specific policy.
+
+Those responsibilities belong to AgentOS Worker, Agent Team, Workflow, and Profiles.
+
+## Core request identity
 
 Conceptually:
 
 ~~~text
-WebsiteAgentCore
-  -> authenticated account registry
-  -> Website provider driver
-  -> conversation binding
-  -> turn reconciliation
-  -> result artifact retention
-~~~
-
-A protocol adapter calls the core with four semantic identities:
-
-~~~text
 owner key
-  = authority/tenant owning Website state
-
 conversation key
-  = stable Website conversation/thread identity
-
 logical request key
-  = stable unit of Website work used for reconciliation
-
 account/provider
-  = authenticated Website execution identity
+mode
+prompt
+cancellation
+  -> Website execution result
 ~~~
 
-The exact public TypeScript names are not frozen yet.
-
-The existing `WebsiteParticipantService` already demonstrates this model using:
+The existing Internet model already has equivalent concepts:
 
 ~~~text
 ownerSessionId
@@ -85,182 +77,109 @@ prompt
 signal
 ~~~
 
-AgentOS should generalize the naming only when extracting a supported core API; it should not rewrite the behavior merely to rename fields.
+Do not rewrite proven behavior merely to normalize names.
 
-## Execution model
+## Account and provider layer
 
-~~~mermaid
-flowchart LR
-    Adapter[ACP / A2A / DSH adapter]
-    Core[Website Agent core]
-    Account[Account scheduler + auth]
-    Driver[ChatGPT/Gemini driver]
-    Browser[Patchright browser]
-    Conv[Conversation store]
-    Receipt[Turn receipt store]
-    Artifact[Artifact store]
+An account identifies an authenticated Website execution identity.
 
-    Adapter --> Core
-    Core --> Account
-    Account --> Driver
-    Driver --> Browser
-    Core --> Conv
-    Core --> Receipt
-    Core --> Artifact
-~~~
-
-## Provider drivers
-
-Provider-specific Website behavior belongs below the core façade.
-
-Current drivers are:
+Provider drivers own Website-specific behavior such as:
 
 ~~~text
-chatgpt-web
-  -> ordinary ChatGPT conversation
-  -> provider-native Deep Research
-  -> reasoning-level selection
-  -> ChatGPT-specific completion semantics
+ChatGPT Web
+  -> login/session behavior
+  -> ordinary chat
+  -> Deep Research
+  -> reasoning/config options
+  -> completion semantics
 
-gemini-web
-  -> ordinary Gemini conversation
-  -> provider-native Deep Research
-  -> Gemini-specific completion semantics
+Gemini Web
+  -> login/session behavior
+  -> ordinary chat
+  -> Deep Research
+  -> provider-specific completion semantics
 ~~~
 
-Adding another Website AI product adds a provider driver, not another Worker/ACP/A2A architecture.
+Adding a Website provider adds a provider driver/configuration, not a new ACP/A2A architecture.
+
+## Browser layer
+
+The browser/runtime layer owns:
+
+- persistent authenticated browser state;
+- page/session management;
+- scheduling and concurrency;
+- provider UI automation;
+- cancellation propagation;
+- actual observation of Website state.
+
+ACP/A2A adapters never reproduce this logic.
 
 ## Conversation continuity
 
-The current `ConversationStore` gives one stable semantic conversation key one native Website conversation.
+The core owns the stable mapping:
 
 ~~~text
-conversation key
-  -> authenticated account
-  -> native provider conversation id/url
+core conversation key
+  -> account/provider
+  -> native Website conversation id/url
 ~~~
 
-The binding is one-way: once bound, the semantic conversation cannot silently rebind to another native conversation.
+Protocol identities are mapped into this key:
 
-ACP session ids and A2A context/task ids are adapter handles. Adapters map them to core conversation/request keys; they do not replace core ownership semantics.
+~~~text
+ACP sessionId ----\
+                   -> core conversation key
+A2A contextId ----/
+~~~
+
+Neither protocol id becomes native Website identity.
 
 ## Reconcile-before-resubmit
 
-The current `ProviderTurnReceiptStore` is a core invariant worth preserving.
-
-For an uncertain Website turn:
+The existing ProviderTurnReceiptStore behavior is a core correctness invariant:
 
 ~~~text
-inspect provider state
-  -> WAIT
-  -> RECOVER
-  -> bounded RESUBMIT
-  -> AMBIGUOUS / fail closed
+unknown submission outcome
+  -> inspect provider state
+  -> WAIT / RECOVER / bounded RESUBMIT
+  -> AMBIGUOUS -> fail closed
 ~~~
 
-A retry must not blindly submit the same logical prompt again after an unknown browser/provider outcome.
+ACP retry and A2A retry must reuse this same core mechanism.
 
-ACP and A2A adapters reuse this invariant rather than implementing Website retry semantics separately.
+## Result retention
 
-## Result artifacts
-
-Long Website outputs are retained before caller-facing compaction.
+Long Website outputs are retained before compact projection:
 
 ~~~text
-Website result
-  -> durable core artifact
-  -> compact Worker/protocol projection
-  -> targeted later reads when needed
+Website provider result
+  -> durable core result/artifact
+  -> ACP result projection
+  -> A2A Artifact projection
+  -> targeted later reads
 ~~~
 
-This directly supports AgentOS's token-cost goal: downstream agents should consume compact conclusions/evidence and selectively read full reports only when required.
+This is important for the AgentOS cost model: do not force downstream agents to repeatedly re-read the same large Website result.
 
-A core Website artifact is private execution evidence/storage. It is not the same object as an A2A Artifact.
+A core result/artifact is private execution storage. It is not the same object as an A2A Artifact.
 
-## Chat vs research mode
+## Protocol ports
 
-The core already distinguishes:
+Core exposes behavior to protocol adapters but does not depend on them:
 
 ~~~text
-chat
-research
+ACP Agent adapter
+      |
+      v
+Website Agent Core
+      ^
+      |
+A2A Agent adapter
 ~~~
 
-This distinction stays a core execution capability.
+See [Protocol adapters](adapters.md).
 
-Protocol adapters should expose it through provider/capability configuration, not by inventing a universal AgentOS wire field.
+## Canonical invariant
 
-Examples:
-
-~~~text
-ACP provider "website-chat"
-  -> core mode: chat
-
-ACP provider "website-research"
-  -> core mode: research
-
-A2A Website endpoint/card
-  -> advertises web-chat / deep-research capabilities
-  -> adapter/deployment maps accepted work to the configured core mode
-~~~
-
-A2A client-directed skill selection is not assumed as a required protocol feature.
-
-## What to reuse from `internet`
-
-Reuse/extract:
-
-- `BrowserManager` and provider drivers;
-- account/auth/session isolation;
-- `WebsiteParticipantService`;
-- `ConversationStore`;
-- `ProviderTurnReceiptStore`;
-- participant artifact store;
-- provider-native research behavior.
-
-Do **not** reuse as AgentOS architecture:
-
-- `internet_team`;
-- Internet's software workflow engine;
-- Internet Team identity/roster semantics;
-- Internet-specific Writer workflow policy.
-
-Those responsibilities belong to AgentOS Worker, Agent Team, Workflow, and Profiles.
-
-## Package direction
-
-Do not copy these modules into AgentOS.
-
-Preferred evolution:
-
-1. keep `@tsuuanmi/internet` as the implementation source initially;
-2. expose a small supported protocol-neutral Website core API from that package;
-3. make the AgentOS Website Agent plugin depend on that API;
-4. extract a separate package only if package ownership/release boundaries later justify it.
-
-Possible shape:
-
-~~~text
-@tsuuanmi/internet
-  -> Website core/browser implementation
-  -> existing DSH tool adapters
-
-AgentOS Website Agent plugin
-  -> Internet core API
-  -> ACP Agent adapter
-  -> A2A Agent adapter
-~~~
-
-Do not create a separate core package merely for symmetry.
-
-## General browser-agent runtimes
-
-Browser Use, Stagehand, or another general browser automation runtime may be useful later as **provider-driver implementations** for websites where deterministic native integration is not practical.
-
-They should not replace the initial core already implemented by `internet` unless they demonstrably remove more complexity than they add.
-
-The current AI Website integrations need provider-specific auth, conversation continuity, completion semantics, provider-native Deep Research, and exact retry/reconciliation behavior; `internet` already has these.
-
-## Canonical rule
-
-> **Website Agent core is protocol-neutral Website execution derived from `@tsuuanmi/internet`. ACP and A2A are adapters around that core, never forks of it.**
+> **Account, provider, browser, native conversation, reconciliation, and result retention exist exactly once in Website Agent Core.**
