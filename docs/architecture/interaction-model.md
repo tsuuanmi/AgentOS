@@ -132,7 +132,7 @@ For AgentOS architecture, the semantic capability should be called **Agent Team*
 
 Agent Team means:
 
-> a replaceable multi-agent/external-reasoning capability used for research, critique, review, synthesis, or other collaborative reasoning.
+> a replaceable multi-agent collaboration capability that can carry a software task through research, debate, implementation, and review while reusing DSH Agent Teams for runtime mechanics.
 
 It should **not** be tied to one provider or one runtime.
 
@@ -140,10 +140,14 @@ It should **not** be tied to one provider or one runtime.
 Agent Team capability
     |
     +-> research
-    +-> critique
+    |     +-> brainstorm
+    |     +-> debate
+    |     +-> synthesis
+    +-> implementation
     +-> review
-    +-> synthesis
-    +-> provider-native capabilities
+          +-> independent review
+          +-> debate
+          +-> synthesis
 ~~~
 
 V1 uses **DSH Agent Teams as the runtime/substrate** and adapts the useful Internet Team reasoning behavior on top.
@@ -172,10 +176,9 @@ User
         |
         +-> Agent Team
               |
-              +-> research
-              +-> review
-              +-> critique
-              +-> synthesis
+              +-> research: brainstorm + debate
+              +-> implementation
+              +-> review: independent review + debate
 ~~~
 
 Workflow use:
@@ -184,12 +187,11 @@ Workflow use:
 Workflow
    |
    +-> Agent Team
-   |      +-> research
-   |      +-> independent review
-   |      +-> synthesis
+   |      +-> research: brainstorm + debate + synthesis
+   |      +-> implementation
+   |      +-> review: independent review + debate + synthesis
    |
-   +-> Worker
-   +-> Validation
+   +-> deterministic/local Validation
    +-> Delivery
 ~~~
 
@@ -204,7 +206,7 @@ Local -> Agent Team
 Local -> Workflow -> Agent Team
 ~~~
 
-Workflow may request collaborative reasoning from Agent Team, but Workflow does not own Team members, provider routing, Team sessions, debate/review mechanics, or Team persistence.
+Workflow may request semantic Team phases from Agent Team, but Workflow does not own Team members, TeamTasks, provider routing, Team sessions, debate mechanics, or Team persistence. A DSH-backed provider may reuse one dedicated Team root across multiple Workflow phases.
 
 Likewise, Agent Team does not directly mutate WorkflowRun state. It returns a typed result to its caller; when the caller is Workflow, the Workflow reconciler validates and durably commits that result.
 
@@ -354,10 +356,11 @@ Local Agent
   |
   +-> start Workflow W1
          |
-         +-> Agent Team research
-         +-> local/external implementation worker
-         +-> local validation
-         +-> Agent Team review
+         +-> dedicated Agent Team
+         |     +-> research: brainstorm + debate
+         |     +-> implementation
+         |     +-> review: independent review + debate
+         +-> local/deterministic validation
          +-> remediation cycle
          +-> pending merge/authority action
 ~~~
@@ -427,6 +430,8 @@ Its existence should not change the v1 authority model:
 > **Local can do almost everything, but AgentOS should not force Local to do everything.**
 
 > **Workflow may call Agent Team directly; Local does not need to proxy every internal step.**
+
+> **Debate is Team policy, not a second runtime: preserve independent brainstorm -> peer challenge -> strongest-supported synthesis using DSH TeamTasks/mailbox.**
 
 > **Provider identity is not the architecture. Roles and contracts are.**
 
