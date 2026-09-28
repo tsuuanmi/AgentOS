@@ -15,6 +15,8 @@ Schemas are repository-level contracts and intentionally live outside `docs/`.
 
 MCP tool-envelope schemas live under [`schemas/mcp/`](mcp/README.md).
 
+Portable payload examples live under [`schemas/examples/`](examples/README.md).
+
 All Worker Protocol schemas declare JSON Schema Draft 2020-12 through `$schema`.
 
 That declaration identifies the JSON Schema dialect; it is not AgentOS product versioning.
