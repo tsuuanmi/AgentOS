@@ -2,5 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:agentos:schema:mcp-worker-inspect-request",
   "title": "AgentOS MCP Worker Inspect Request",
-  "$ref": "urn:agentos:schema:mcp-worker-common#/$defs/assignmentLookup"
+  "description": "Inspects one explicit Worker assignment without creating new work.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workerId",
+    "assignmentId"
+  ],
+  "properties": {
+    "workerId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    },
+    "assignmentId": {
+      "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
+    }
+  }
 }
