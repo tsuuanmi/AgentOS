@@ -47,7 +47,7 @@ Worker owns:
 - provider conformance;
 - dispatch;
 - ExecutionBinding when required;
-- provider-neutral result acceptance.
+- semantic acceptance of the native provider/protocol result.
 
 Agent Team must not branch directly on runtime/provider types. Participant execution goes through Worker; peer communication with Website Agent may use A2A.
 
