@@ -1,132 +1,88 @@
 # Workflow definitions and profiles
 
 - **Status:** canonical architecture
-- **Core rule:** Workflow Core is domain-agnostic; domain behavior is supplied by validated configuration.
+- **Rule:** domain behavior is declarative; the semantic Workflow plugin remains domain-agnostic.
 
 ## Mental model
 
 ~~~text
-Workflow Core
-  = fixed durable execution semantics
+Workflow semantic plugin
+  = validation + semantic WorkItem/transition/recovery/acceptance policy
 
 Workflow Definition
-  = declarative configuration interpreted by Workflow Core
+  = declarative graph/policy consumed by the plugin
 
 Workflow Profile
-  = reusable Definition plus its required capability packs, schemas, and adapter dependencies
+  = reusable Definition + Skills + schemas + adapter/provider dependencies
 
 WorkflowRun
-  = one runtime instance bound to one exact Definition and one exact input
+  = one durable semantic instance bound to one exact Definition and input
+
+runtime implementation
+  = DSH primitives by default; optional plugin-backed substitute
 ~~~
 
-Software development is therefore one Workflow Profile, not a special Workflow implementation.
+Software development is one Profile, not a special Workflow implementation.
 
-Scientific research, data analysis, operations, content production, or another domain should reuse the same Workflow Core whenever their required execution primitives already exist.
+## Semantic plugin owns
 
-## Core versus configuration
+- validation before effects;
+- exact Definition/input binding when reproducibility requires it;
+- semantic WorkItem/dependency/transition meaning;
+- current ExecutionBinding when recovery/replacement requires it;
+- product recovery policy;
+- typed result acceptance;
+- effect evidence requirements;
+- durable external-decision semantics when needed;
+- terminal convergence/reattachment.
 
-~~~mermaid
-flowchart TB
-    Input[Input]
-    Profile[Workflow Profile]
-    Definition[Workflow Definition]
-    Core[Workflow Core]
-    Run[WorkflowRun]
+It does not need to implement generic queue/checkpoint/timer machinery itself.
 
-    Capability[Capability packs]
-    Schemas[Schemas]
-    Adapters[Installed adapters]
-    Team[Agent Team]
+## Definition owns
 
-    Profile --> Definition
-    Profile --> Capability
-    Profile --> Schemas
-    Profile --> Adapters
+A Definition may declare:
 
-    Input --> Core
-    Definition --> Core
-    Core --> Run
-
-    Run --> Adapters
-    Run --> Team
-~~~
-
-### Workflow Core owns
-
-The core remains fixed across domains:
-
-- WorkflowRun and WorkItem runtime identity;
-- lifecycle/state-machine semantics;
-- dependency/readiness evaluation;
-- exact-input admission;
-- attempt fencing;
-- unknown-outcome recovery policy;
-- restart reconciliation;
-- durable PendingAction;
-- result/receipt binding;
-- reattachment;
-- terminal convergence;
-- validation of a Definition before a run starts.
-
-The core must not contain software-specific phase names such as `research`, `implement`, or `review`.
-
-### Workflow Definition owns
-
-A Definition declares domain/product policy such as:
-
-- accepted input contract;
+- input contract;
 - WorkItem graph;
-- dependencies and transitions;
-- execution adapter for each WorkItem;
-- required Worker capabilities;
+- dependencies/transitions;
+- execution adapter/provider kind;
+- required capabilities;
 - Agent Team collaboration policy;
-- expected output schema;
+- expected result schema;
 - recovery policy;
-- conditions that require human/external input;
-- terminal output contract.
+- human/external gates;
+- terminal result contract.
 
-A Definition is data/configuration, not a second workflow engine.
+Static Definition facts and runtime WorkItem state remain separate.
 
-### Workflow Profile owns
+## Profile owns
 
-A Profile is the deployable/reusable composition around a Definition.
+A Profile packages:
 
-It may declare:
-
-- the Definition itself;
-- capability/Skill packs required by its Worker assignments;
-- schemas referenced by its inputs/outputs;
-- required adapter plugins;
-- optional provider/preset preferences;
+- the Definition;
+- capability/Skill packs;
+- referenced schemas;
+- required plugins/adapters/providers;
+- optional provider preferences;
 - presentation metadata.
 
-Profile packaging is not Workflow semantic authority.
+Profile packaging is not runtime authority.
 
 ## Exact Definition binding
 
-Every WorkflowRun must bind to the exact Definition used to create it.
+Before work with effects begins, validate and bind the exact Definition and input used by the run.
 
-AgentOS does not need a numeric version field to achieve this.
+Use an immutable snapshot, content digest, or immutable resource reference plus digest.
 
-A run can bind to:
+Mutable deployment config affects new runs, not the semantics of an already admitted run unless an explicit migration mechanism exists.
 
-- an immutable Definition snapshot;
-- a content digest;
-- an immutable resource reference plus digest.
+Inspection/recovery must be able to identify the exact Definition/input without reconstructing them from current mutable config.
 
-~~~text
-WorkflowRun
-  -> definitionBinding
-  -> exact inputBinding
-~~~
+## Admission validation
 
-Changing the configured Definition affects new runs. Existing runs continue against the exact Definition they were admitted with unless an explicit migration/recovery mechanism is introduced later.
+Fail before effects begin when the Definition contains an invalid dependency/transition, unavailable adapter, unsatisfied required capability, unresolved correctness-bearing schema, invalid terminal target, or another semantic/structural error.
 
-This prevents restart behavior from silently changing because an operator edited config.
-
-## Declarative example: software development
-
-Illustrative configuration:
+## Software-development example
 
 ~~~yaml
 name: software-development
@@ -167,11 +123,9 @@ transitions:
   review.changes_required: implement
 ~~~
 
-This is an architecture example, not yet the canonical serialized schema.
+This is illustrative configuration, not yet the canonical serialized schema.
 
-The important property is that the software phases are configuration interpreted by the same core.
-
-## Declarative example: scientific research
+## Scientific-research example
 
 ~~~yaml
 name: scientific-research
@@ -181,55 +135,41 @@ capabilityPacks:
 workItems:
   literature:
     executor: agent-team
-    requires: [research, synthesize]
+    requires: [literature-search, evidence-extraction]
 
-  hypothesis:
+  synthesis:
     dependsOn: [literature]
     executor: agent-team
-    requires: [reason, critique]
-
-  experiment-design:
-    dependsOn: [hypothesis]
-    executor: agent-team
-    requires: [design, review]
+    requires: [research, synthesize]
 
   analysis:
-    dependsOn: [experiment-design]
+    dependsOn: [synthesis]
     executor: analysis-adapter
     requires: [data-analysis]
 
   peer-review:
     dependsOn: [analysis]
     executor: agent-team
-    requires: [review, debate]
+    requires: [scientific-review, debate]
 ~~~
 
-Workflow Core does not change.
+The same Worker/provider seams apply. A Website ACP provider may satisfy literature-search while a local tool-enabled provider handles analysis.
 
-If `reason`, `design`, `data-analysis`, or the `analysis-adapter` do not yet exist, the domain adds those capability packs/adapters as plugins. It still does not modify the core.
-
-## Capability pack binding
-
-Worker capabilities remain semantic guarantees such as `research`, `review`, or namespaced/plugin-defined capabilities.
-
-A domain procedure pack supplies the methodology for realizing those capabilities in a particular context.
+## Capability binding
 
 ~~~text
-Workflow Profile
+Profile
   -> WorkItem requires capabilities
-  -> composition selects capability packs/providers
-  -> Worker selector finds a binding that can satisfy them
+  -> Agent Team/selector evaluates available provider guarantees
+  -> provider execution
+  -> typed result acceptance
 ~~~
 
-The current `software-development` Skill is one such procedure pack.
-
-The WorkerAssignment does not need to become a "SoftwareWorkerAssignment"; Worker identity remains generic.
+No SoftwareWorker or ScientificWorker type is required.
 
 ## Adapter binding
 
-A Definition names semantic execution adapter kinds.
-
-Examples:
+A Definition names semantic execution kinds, for example:
 
 ~~~text
 agent-team
@@ -241,39 +181,18 @@ analysis-adapter
 external-service
 ~~~
 
-The Workflow Core resolves those names through an adapter registry.
+The Workflow plugin resolves them through installed adapters.
 
-If a Profile references an unavailable adapter or unsatisfied required capability, run admission fails explicitly before execution begins.
+An unavailable adapter fails admission rather than silently degrading.
 
 ## Config-only extension rule
 
-Adding a new domain should require **only a new Workflow Definition/Profile** when:
+Adding a domain should require only a new Profile when its capabilities, adapters, and schemas already exist.
 
-1. every required semantic capability is already available;
-2. every required execution adapter is already installed;
-3. referenced schemas are available.
+When something is missing:
 
-If one of those prerequisites is missing:
+- add a Skill/capability pack for methodology;
+- add a provider/adapter plugin for a new execution/effect mechanism;
+- add a domain result schema when structured validation is valuable.
 
-- add a capability/Skill pack for new methodology;
-- add an adapter plugin for a new execution/effect mechanism;
-- add schemas for new structured inputs/outputs.
-
-The Workflow Core still remains unchanged.
-
-## Boundaries
-
-Do not encode domain behavior in:
-
-- Workflow Core state-machine code;
-- WorkflowRun lifecycle enums;
-- generic WorkItem identity;
-- Worker identity;
-- provider-native session ids.
-
-Do encode domain behavior in:
-
-- Workflow Definitions/Profiles;
-- capability packs;
-- typed schemas;
-- adapter plugins where a genuinely new execution mechanism is required.
+Do not change the Workflow semantic plugin merely to add domain vocabulary.
