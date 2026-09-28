@@ -1,81 +1,73 @@
 # AgentOS Schemas
 
-This directory is the canonical machine-readable structure layer.
+This directory contains AgentOS-owned machine-readable contracts.
 
-Schemas define fields, types, required properties, discriminators, references, and structural validation. They do not define transport behavior, agent procedure, authorization, fencing, idempotency, or durable transaction rules.
+## Ownership rule
 
-## Worker Protocol
+AgentOS should define a JSON Schema only when AgentOS owns the structure.
 
-- [worker-common.schema.json](worker-common.schema.json)
-- [worker-capabilities.schema.json](worker-capabilities.schema.json)
-- [worker-assignment.schema.json](worker-assignment.schema.json)
-- [worker-message.schema.json](worker-message.schema.json)
-- [worker-artifact.schema.json](worker-artifact.schema.json)
-- [worker-state.schema.json](worker-state.schema.json)
-
-MCP tool-envelope schemas live under [`schemas/mcp/`](mcp/README.md).
-
-Portable examples live under [`schemas/examples/`](examples/README.md).
-
-All schemas declare JSON Schema Draft 2020-12 through `$schema`. That identifies the dialect, not AgentOS product versioning.
-
-## Object structure
-
-### WorkerAssignment
-
-Structured unit of work offered to a Worker.
-
-### Message
-
-Assignment-scoped non-authoritative communication.
-
-`kind` is intentionally open so plugins/providers can introduce namespaced Message kinds without changing the core schema.
-
-### Artifact
-
-Durable Worker work product.
-
-`kind` is closed to current core semantics:
+Prefer upstream schemas/types for upstream concepts:
 
 ~~~text
-contribution
-completion
+A2A Task / Message / Artifact / Part
+ACP protocol structures
+DSH service/provider structures
 ~~~
 
-### WorkerState
+Do not duplicate those models merely to normalize naming.
 
-Durable lifecycle projection shape.
+## Canonical AgentOS schema targets
 
-State-transition correctness is enforced by the local server, not by schema alone.
+Long-term schemas should focus on structures such as:
+
+- Workflow Definitions/Profiles;
+- domain/phase result contracts;
+- plugin configuration;
+- AgentOS-owned durable semantic records that conformance proves necessary.
+
+## Provisional legacy Worker schemas
+
+The current branch still contains:
+
+- worker-common.schema.json
+- worker-capabilities.schema.json
+- worker-assignment.schema.json
+- worker-message.schema.json
+- worker-artifact.schema.json
+- worker-state.schema.json
+- schemas/mcp/* Worker envelopes
+- related examples
+
+These were created before the architecture converged on DSH ctx.subagents + ACP + A2A reuse.
+
+They are **not implementation targets**.
+
+Before behavioral implementation, the protocol conformance spike must classify each schema:
+
+~~~text
+upstream A2A/ACP/DSH already owns it
+  -> delete
+
+purely internal implementation type, no wire contract required
+  -> keep in TypeScript, not JSON Schema
+
+real AgentOS-owned serialized semantic record
+  -> retain/minimize schema
+~~~
+
+In particular, current custom Message/Artifact/WorkerState and MCP Worker envelope schemas are expected to be removed unless a conformance test demonstrates an irreducible gap.
 
 ## Design rules
 
-- Schema resource ids use `urn:agentos:schema:...`.
-- Core objects reject unexpected fields.
-- Plugin-owned optional data belongs under namespaced `extensions`.
-- Provider/session/transport ids do not become semantic identity fields.
-- Dynamic Message/Artifact data pairs with explicit schema references.
-- MCP adapters reuse these schemas rather than maintaining semantic copies.
-- `format` annotations are not security boundaries by themselves.
-
-## Runtime validation beyond JSON Schema
-
-The following belong to [Worker Exchange invariants](../docs/reference/worker-exchange-invariants.md):
-
-- cross-object identity equality;
-- current-attempt fencing;
-- authorization;
-- dynamic schema resolution;
-- idempotency;
-- claim atomicity;
-- durable-before-ack;
-- lifecycle transitions;
-- local effect authority.
+- Schema resource ids use urn:agentos:schema:... only for AgentOS-owned serialized structures.
+- Domain result schemas may use JSON Schema when runtime validation is valuable.
+- Provider/session/protocol ids remain provider handles rather than AgentOS semantic identities.
+- Standard protocol extension metadata should follow the protocol's own extension mechanism.
+- JSON Schema does not define authorization, current binding, recovery, or effect correctness.
 
 ## Related reference
 
-- [Worker Protocol](../docs/reference/worker-protocol.md)
-- [Worker API](../docs/reference/worker-api.md)
-- [Worker Exchange invariants](../docs/reference/worker-exchange-invariants.md)
-- [MCP Worker transport](../docs/reference/mcp-worker-transport.md)
-- [software-development Skill](../.agents/skills/software-development/SKILL.md)
+- [Worker Contract](../docs/reference/worker-protocol.md)
+- [Execution binding invariants](../docs/reference/worker-exchange-invariants.md)
+- [Minimal semantic delta](../docs/architecture/minimal-semantic-delta.md)
+- [Protocol stack](../docs/architecture/protocol-stack.md)
