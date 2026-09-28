@@ -30,7 +30,7 @@ AgentOS should make it possible to:
 - delegate broad research or document synthesis to a Worker suited to that work;
 - keep repository/filesystem/terminal operations with a Worker that has the right local environment;
 - use stronger or more expensive reasoning where the decision actually benefits from it;
-- preserve useful results as Artifacts so downstream Workers do not have to repeat discovery;
+- preserve useful structured results/evidence so downstream Workers do not have to repeat discovery;
 - avoid forcing work through multiple agents when one agent is already the simplest and cheapest correct choice.
 
 The objective is therefore **not minimum token count at any cost**. The objective is to minimize waste while preserving or improving correctness.
@@ -71,8 +71,8 @@ AgentOS should therefore bind workflows to stable semantic contracts instead of 
 Prefer:
 
 ~~~text
-capability -> Worker binding
-Artifact contract -> provider output
+capability -> provider selection
+caller/domain result contract -> provider-native output
 Workflow Definition -> selected adapters/plugins
 ~~~
 
@@ -138,29 +138,30 @@ research question
   -> experiment/analysis
   -> statistical/domain review
   -> interpretation
-  -> research Artifact
+  -> typed research result/evidence
 ~~~
 
 The capabilities, schemas, and adapters differ. The generic Worker and Workflow semantics should not.
 
 A second real domain is an architectural test: if scientific research requires forking a software-specific Core, the abstraction is wrong.
 
-## 6. Prefer Artifacts over repeated context
+## 6. Prefer reusable results/evidence over repeated context
 
 Multi-agent collaboration should not mean every agent rereads the same source material.
 
-Useful work products should be durable and structured enough to reuse:
+Useful work products should be durable and structured enough to reuse without forcing every provider into one AgentOS envelope.
+
+Use the native deliverable/result model of the owning boundary:
 
 ~~~text
-Worker
-  -> Artifact
-      -> Worker
-          -> Artifact
+A2A -> Artifact / Part
+ACP / DSH / Website provider -> provider result
+AgentOS phase / Workflow -> typed domain result schema
 ~~~
 
-Research findings, evidence, architecture decisions, implementation results, test evidence, review findings, datasets, and effect receipts should cross boundaries as explicit Artifacts when they are correctness-bearing or reusable.
+Research findings, evidence, architecture decisions, implementation results, test evidence, review findings, datasets, and effect receipts should cross semantic boundaries as explicit reusable results/evidence when correctness or reuse requires it.
 
-Messages support collaboration. They are not a substitute for durable work products.
+Messages support collaboration. They are not a substitute for accepted durable work products.
 
 This helps reduce repeated discovery, unnecessary context growth, and provider-specific transcript coupling.
 
@@ -175,10 +176,10 @@ AgentOS should keep these concerns distinct:
 | Skill / capability pack | teaches domain procedure |
 | Workflow | determines durable sequencing and recovery |
 | Agent Team | determines collaboration and responsibility |
-| Message | carries non-authoritative communication |
-| Artifact | carries reusable work products/evidence |
-| Schema | enforces machine-readable structure |
-| MCP / A2A / ACP / provider adapter | transports or exposes capabilities across boundaries |
+| provider-native Message/update | carries non-authoritative communication |
+| provider/domain result | carries reusable work products/evidence |
+| Schema | enforces AgentOS-owned/domain machine-readable structure where useful |
+| ACP / A2A / MCP / provider adapter | owns protocol-specific execution, collaboration, or capability boundaries |
 | DSH/Cordis | supplies runtime/plugin mechanics that AgentOS should reuse |
 
 Do not encode the entire workflow into one provider prompt when the sequencing, ownership, or recovery rule belongs to the orchestration layer.
