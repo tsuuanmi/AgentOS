@@ -8,7 +8,7 @@ AgentOS is intentionally small. It is a DSH-native semantic composition layer, n
 
 > **Own AgentOS product semantics. Reuse DSH machinery. Keep provider details behind explicit boundaries.**
 
-## Current v1 shape
+## Current shape
 
 ~~~text
                          User
@@ -33,7 +33,7 @@ Roles:
 - **Agent Team** — collaborative work: research, debate, implementation, review, synthesis.
 - **Workflow** — durable lifecycle: sequencing, recovery, waiting, authority, reattachment, terminal convergence.
 - **DSH / Cordis** — runtime kernel and mechanics.
-- **Controller** — future optional interaction surface, not a v1 dependency.
+- **Controller** — future optional interaction surface, not a current dependency.
 
 See [interaction-model.md](interaction-model.md).
 
@@ -55,7 +55,7 @@ When DSH semantics fit, AgentOS consumes them directly.
 
 ## Agent Team: DSH core, AgentOS semantics
 
-DSH Agent Teams is the **working v1 Team core**.
+DSH Agent Teams is the **working Team core**.
 
 DSH owns:
 
@@ -135,6 +135,35 @@ DSH Worker R2 [review, debate]
 Not every member is active in every phase.
 
 The Website Agent performs the substantive provider-native reasoning/work. The DSH member participates in Team tasks/mailbox/lifecycle and bridges Team evidence to/from its Website Agent.
+
+### Website interoperability boundary
+
+When a Website host supports MCP, MCP is the default interoperability profile between Website Agent and local Worker bridge.
+
+~~~text
+Website Agent = MCP client
+local Worker bridge = MCP server
+~~~
+
+The Website side pulls/claims queued work and submits structured outputs. Local code does not assume it can push or wake an arbitrary Website conversation.
+
+~~~text
+local AgentOS
+  -> queue WorkerAssignment
+
+Website Agent
+  -> MCP claim
+  -> reason
+  -> submit WorkerSubmission
+  -> receive WorkerInput
+  -> revise
+~~~
+
+Worker identity and assignment identity are explicit AgentOS handles. MCP session ids, tunnel ids, browser tabs, Website conversation ids, and provider/model names never become semantic identity.
+
+Secure tunnels/public HTTPS provide reachability only.
+
+See [MCP Worker transport](../mcp/worker-transport.md).
 
 ### Completion ownership
 
@@ -291,9 +320,9 @@ authorization
 
 A durable PendingAction can capture authority. A consequential effect executes separately and requires its own reconciliation/evidence.
 
-## Provider-v1 decisions vs architecture
+## Current provider decisions vs architecture
 
-The following are useful **v1 provider choices**, not permanent architecture invariants:
+The following are useful **current provider choices**, not permanent architecture invariants:
 
 Workflow provider:
 
@@ -318,10 +347,10 @@ DSH Agent Teams is experimental today, so DSH-specific public types should stay 
 1. AgentOS owns semantics, not infrastructure already owned by DSH.
 2. Local remains directly usable.
 3. Workflow and Agent Team are peer capabilities.
-4. DSH Agent Teams is the practical v1 Team core; no second Team runtime is built.
+4. DSH Agent Teams is the practical current Team core; no second Team runtime is built.
 5. Team members may debate peer-to-peer; Lead is synthesis/coordination authority, not a message proxy.
 6. Worker capabilities and protocol shape are stable across runs; objectives/inputs change without inventing new Agent personas.
-7. DSH Worker <-> Website Agent communication follows a versioned JSON-Schema Worker Protocol; MCP is a preferred transport profile, not the semantic contract.
+7. DSH Worker <-> Website Agent communication follows the Worker Protocol; MCP is the default Website interoperability profile when supported, but not the semantic contract.
 8. Each semantic DSH Worker has an isolated Website Agent binding when website-backed work is used.
 9. Website Agent completion is explicit/durable and owned by the Agent Team provider; Workflow never infers it from DSH activity.
 10. Local receives synthesis/results by default rather than internal Team transcript.
@@ -330,7 +359,7 @@ DSH Agent Teams is experimental today, so DSH-specific public types should stay 
 13. Provider/transport identities stay below semantic identities.
 14. Unknown execution outcomes reconcile according to an admitted policy; missing handles never authorize blind retry.
 15. Authority and effect completion are distinct.
-16. Provider-v1 choices do not become permanent contract requirements without evidence.
+16. Current provider choices do not become permanent contract requirements without evidence.
 17. New abstractions require a real semantic/lifecycle/authority/replacement boundary.
 
 ## Documentation authority
