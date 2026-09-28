@@ -44,9 +44,17 @@ Human-readable semantics:
 - [Worker API](../docs/api/worker-api.md)
 - [MCP Worker transport](../docs/mcp/worker-transport.md)
 
+## Responsibility boundary
+
+Schemas are the source of truth for **structural representation**, not current application truth.
+
+A schema can prove required fields, types, discriminators, formats, and object shape. It cannot by itself prove that a Worker/assignment exists, an `attemptId` or `inputBinding` is current, a caller is authorized, a lifecycle transition is allowed, an idempotency key is fresh/content-consistent, a result was durably committed, or a structurally valid model output is semantically correct.
+
+Those are server/domain invariants declared by the Worker contract and enforced by runtime code/tests. Skills do not replace either schema validation or server enforcement.
+
 ## Design rules
 
-- Machine validation uses files in this directory as the source of truth.
+- Structural machine validation uses files in this directory as the source of truth.
 - Documentation must link here rather than embed divergent schema copies.
 - Core schemas use explicit opaque application handles rather than transport/session identity.
 - Core capability and message/input kinds are open semantic names unless AgentOS correctness requires a closed discriminator.
