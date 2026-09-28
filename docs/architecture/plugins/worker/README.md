@@ -30,7 +30,7 @@ The Worker plugin owns:
 - provider capability/conformance projection;
 - dispatch through the installed provider seam;
 - ExecutionBinding only when retry/recovery/replacement needs one;
-- provider-neutral result acceptance against the caller's contract;
+- semantic acceptance of native provider/protocol results against the caller's contract;
 - effect/evidence validation hooks where the caller requires them.
 
 The Worker plugin does **not** own:
@@ -95,11 +95,11 @@ statistical-analysis
 scientific-review
 ~~~
 
-Capability truth may be derived from:
+Capability truth may be read directly from:
 
 - DSH provider metadata;
 - ACP negotiated capabilities;
-- A2A AgentCard/AgentSkill;
+- A2A AgentCard/AgentSkill when evaluating peer capabilities;
 - configured policy;
 - available tools/environment;
 - conformance tests.
@@ -142,7 +142,7 @@ Worker acceptance checks only the caller-visible execution contract:
 3. output satisfies the caller/domain result contract;
 4. required evidence/effects are present and valid.
 
-Provider output stays provider-native until mapped into the caller's typed result.
+Provider output stays native. Validate it directly against the caller/domain contract; create a new typed object only when that object is itself a domain-owned result, not a protocol mirror.
 
 ## Website Agent
 
@@ -204,9 +204,14 @@ It must not create a new Worker runtime type.
 ## Canonical references
 
 - [Worker boundaries](boundaries.md)
-- [Worker Contract](../../../reference/worker/contract.md)
-- [Execution binding](../../../reference/worker/execution-binding.md)
+- [Worker contract](contract.md)
+- [Execution binding](execution-binding.md)
 - [DSH subagents](../dsh/subagents.md)
 - [DSH ACP](../dsh/acp.md)
 - [Website Agent](../website-agent/README.md)
 - [A2A](../a2a/README.md)
+
+
+## Direct protocol reuse
+
+Worker must not normalize ACP/A2A/DSH objects into AgentOS mirror types. Consume the native SDK/runtime object directly and add only AgentOS-owned semantic state. See [Worker contract](contract.md).
