@@ -18,7 +18,9 @@ For non-trivial work:
 - Prioritize the v1 interaction model: Local Agent + Workflow + Agent Team.
 - Local Agent is directly usable and is the current environment-native/user-facing surface.
 - Workflow is the durable coordination boundary and may outlive the originating Local connection when the provider contract claims durability.
-- Agent Team is the AgentOS semantic capability for collaborative/external reasoning; DSH Agent Teams and Internet-backed teams are implementations/substrates, not the semantic definition.
+- Agent Team is the AgentOS semantic capability for collaborative/external reasoning; v1 uses DSH Agent Teams as the runtime/substrate while keeping DSH Team types below the AgentOS semantic contract.
+- Adapt Internet Team's independent-analysis, peer-evidence, research/review policy, and strongest-synthesis behavior; do not port its Team runtime in parallel.
+- Treat an Internet-backed continuable teammate provider as a future provider bridge behind DSH Agent Teams, not as a second Team engine.
 - Treat Workflow and Agent Team as peer capabilities: Local can call Agent Team directly; Workflow can invoke Agent Team through its semantic contract.
 - Workflow must not own Team roster/member/provider lifecycle, and Agent Team must not directly mutate WorkflowRun/WorkItem state.
 - A Workflow may compose Agent Team and other capabilities directly; do not force every internal step through the Local Agent.
