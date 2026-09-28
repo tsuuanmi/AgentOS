@@ -103,6 +103,33 @@ Terminology is intentional:
 
 See [Local Agent, Workflow, and Agent Team interaction model](interaction-model.md) for the complete rationale and flow.
 
+## Workflow and Agent Team are peers
+
+Workflow and Agent Team are independent AgentOS capabilities.
+
+```text
+Local Agent
+  +-> Agent Team
+  +-> Workflow
+        +-> Agent Team
+```
+
+The second path means **Workflow invokes Agent Team as a capability**. It does not mean Workflow owns or controls Agent Team internals.
+
+Ownership is:
+
+- **Workflow** owns durable coordination semantics for a WorkflowRun: sequencing, dependencies, waiting, authority, recovery, result binding, and convergence.
+- **Agent Team** owns collaborative reasoning semantics: member/provider selection, team interaction, research/review strategy, synthesis, and provider-native execution details.
+- **Local Agent** may call Agent Team directly without creating a Workflow.
+- A Workflow may call Agent Team when one WorkItem requires collaborative reasoning.
+- Agent Team returns a typed semantic result; only the Workflow owner/reconciler commits that result into Workflow state.
+- Workflow must not mutate Team roster/mailbox/member lifecycle directly.
+- Agent Team must not mutate WorkflowRun/WorkItem state directly.
+
+A durable Agent Team implementation may have its own independent lifecycle. When used by Workflow, it is observed through an execution/capability adapter just like any other replaceable provider.
+
+V1 does not require Agent Team to start or control Workflows. If that direction is added later, it must use the same public Workflow contract rather than privileged internal mutation.
+
 ## Ownership
 
 ### DSH / Cordis owns the host kernel
@@ -166,7 +193,9 @@ None of these ids or state machines should automatically become WorkflowRun/Work
 
 Current DSH Workflow is a live, holder-owned orchestration primitive; shipped Jobs are process-local; Goal is state rather than scheduling; Schedule is reminder delivery; Approval is in-turn only. However, DSH Storage Domain already solves the durable persistence substrate and DSH can cold-resume persisted Sessions.
 
-AgentOS therefore does **not** need a custom storage backend or second Session runtime. The v1 Workflow provider should be a thin single-Host durable coordination layer over DSH Storage Domain, rebuilding only its derived scheduler/live handles after Host restart and reconciling before resubmitting uncertain work.
+AgentOS therefore does **not** need a custom storage backend or second Session runtime for the first provider.
+
+**Provider v1 decision, not permanent architecture:** the initial Workflow implementation may be a thin single-Host durable coordination layer over DSH Storage Domain, rebuilding derived scheduler/live handles after Host restart and reconciling before resubmitting uncertain work. Another provider may use a different durable runtime/storage topology while preserving the same Workflow semantics.
 
 See [Workflow DSH reuse](../research/workflow-dsh-reuse.md) and [Durable long-running Workflow over DSH](../research/workflow-long-running-dsh-runtime.md).
 
@@ -446,9 +475,9 @@ AgentOS follows Internet's ownership principles, not its product-specific object
 Do **not** introduce by default:
 
 - Internet's browser/account/session model;
-- its coding workflow graph;
-- Workstream/WorkflowRun/Need/WorkItem/Artifact vocabulary;
-- PR/head/CI/merge semantics;
+- its coding workflow graph as a mandatory generic model;
+- its full Workstream/Need/InputBundle/Artifact/Assessment object model;
+- PR/head/CI/merge semantics as generic Workflow concepts;
 - handoff stores;
 - execution leases/fencing;
 - website reconciliation state;
@@ -456,7 +485,7 @@ Do **not** introduce by default:
 
 MCP Tasks may later be a first-class transport for portable long-running AgentOS capabilities if a concrete cross-host surface requires it, but it remains a projection/adapter rather than AgentOS semantic authority.
 
-An analogous AgentOS concept should appear only when a concrete AgentOS requirement proves that semantic ownership is necessary.
+AgentOS may still adopt a concept independently when AgentOS use cases prove it necessary. Current research has already provided strong evidence for WorkflowRun, WorkItem, PendingAction, durable result/evidence, and execution-recovery semantics; that does not imply adopting Internet's full object model.
 
 ## Under active proposal
 
