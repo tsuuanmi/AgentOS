@@ -3,9 +3,24 @@
 - **Status:** canonical architecture
 - **Scope:** communication among Local Agent, Agent Team participants, agnostic Workers, and provider-backed agents
 
-AgentOS does **not** define one universal agent-to-agent transport.
+AgentOS does **not** invent a new universal agent wire protocol.
 
-Communication follows the boundary that owns the interaction.
+The protocol stack is boundary-driven:
+
+~~~text
+ACP
+  = Client <-> Agent
+  = interchangeable Worker execution/control
+
+A2A
+  = Agent <-> Agent
+  = Task / Message / Artifact collaboration
+
+MCP
+  = Agent <-> Tool / Capability / Data
+~~~
+
+See [Protocol stack](protocol-stack.md).
 
 ## Participants
 
@@ -19,7 +34,7 @@ It does not depend on provider-native Worker sessions.
 
 ### Agent Team Lead / teammate
 
-When DSH `ctx.agentTeams` is the Team runtime, Lead and teammates are DSH Agent participants that own Team collaboration mechanics:
+When DSH `ctx.agentTeams` is the Team runtime, Lead and teammates are DSH Agent participants that own local Team mechanics:
 
 - roster membership;
 - Team tasks;
@@ -40,25 +55,31 @@ Worker is an agnostic semantic execution role selected by capabilities.
 Worker
   -> required capabilities
   -> exact Assignment
-  -> Messages / Artifacts
+  -> provider binding
+  -> execution
 ~~~
 
-A Worker can be realized by:
+For software-development Workers, ACP is the preferred standard provider boundary when the selected agent supports it.
 
-- DSH agent/subagent;
-- Codex;
-- Claude Code;
-- Website Agent;
-- ACP/DSH SDK;
-- future provider.
+A Worker can therefore be realized by:
+
+- a DSH agent/subagent;
+- an ACP-compatible coding agent such as Codex, Claude Agent, Gemini CLI, Cursor, OpenCode, or another implementation;
+- a Website Agent;
+- a remote A2A agent;
+- another provider adapter when a standard boundary is unavailable.
+
+Worker remains domain-agnostic even though ACP itself is currently coding-agent oriented.
 
 ### Website Agent
 
-Website Agent is a first-class remote Worker provider participant.
+A Website Agent is a first-class remote Worker/provider participant.
 
-It is an MCP client of the AgentOS Website Worker bridge.
+When the Website host only supports MCP-client integration, it uses the AgentOS MCP Worker compatibility bridge.
 
-It does not own Team identity, Workflow identity, or AgentOS completion authority.
+When an independently hosted Website/remote Agent supports A2A directly, A2A is the preferred agent-to-agent boundary.
+
+The Website conversation id remains provider-local and never becomes AgentOS semantic identity.
 
 ## Protocol/interface map
 
@@ -68,89 +89,104 @@ It does not own Team identity, Workflow identity, or AgentOS completion authorit
 | Local Agent -> Agent Team | AgentOS Agent Team semantic service | phase objective/input and typed result |
 | Local Agent -> Workflow | AgentOS Workflow semantic service | start/inspect/respond/cancel/reattach |
 | Workflow <-> Agent Team | typed AgentOS phase interface | exact phase input and typed phase result |
-| Agent Team semantics <-> DSH Team runtime | `ctx.agentTeams` service API | roster/tasks/mailbox/team lifecycle |
-| DSH Team member <-> DSH Team member | `ctx.agentTeams` durable Team mailbox | peer collaboration |
-| Agent Team -> DSH/local Worker provider | Worker provider adapter, commonly `ctx.subagents` | Worker assignment/result lifecycle |
-| Agent Team -> Website Worker | Worker Exchange + MCP transport | Assignment/Message/Artifact/State |
-| Worker provider -> tools/environment | provider-native tools or scoped DSH capabilities | reasoning/effects/observations |
+| Agent Team semantics <-> DSH Team runtime | `ctx.agentTeams` service API | local roster/tasks/mailbox/team lifecycle |
+| DSH Team member <-> DSH Team member | `ctx.agentTeams` durable mailbox | optimized in-runtime collaboration |
+| AgentOS/DSH -> interchangeable coding Worker | **ACP**, normally through `ctx.subagents` | Worker session/execution/control |
+| independent Agent <-> independent Agent | **A2A** | Task / Message / Artifact collaboration |
+| Agent -> tool/data/capability | **MCP** or native runtime capability | callable tool/resource access |
+| Website Agent with MCP-only integration -> AgentOS | MCP Worker compatibility bridge | projection of AgentOS Worker semantics |
+| provider without standard support | narrow provider adapter | provider-specific lifecycle only |
 
 The distinction is:
 
 ~~~text
 AgentOS semantic service
-  = product capability boundary
+  = product/workflow authority
 
-ctx.agentTeams
-  = DSH Team collaboration domain
+Worker Contract
+  = provider-neutral Assignment/capability/completion guarantees
 
-ctx.subagents / provider adapter
-  = concrete Worker execution lifecycle
+ACP
+  = interchangeable Worker execution/control boundary
 
-Worker Protocol
-  = provider-neutral Worker Assignment / Message / Artifact meaning
+A2A
+  = cross-agent collaboration boundary
 
 MCP
-  = Website-facing Worker transport
+  = tool/capability boundary
+
+ctx.agentTeams / ctx.subagents
+  = optimized DSH-local runtime seams
 ~~~
 
-## Communication topology
+## Local Worker provider flow with ACP
 
-~~~mermaid
-flowchart TB
-    User[User] <--> Local[Local Agent]
-
-    Local --> TeamService[Agent Team semantic service]
-    Local --> Workflow[Workflow semantic service]
-    Workflow <--> TeamService
-
-    TeamService --> TeamRuntime[DSH ctx.agentTeams]
-
-    subgraph Team["DSH Team runtime"]
-        Lead[Lead]
-        MemberA[Teammate A]
-        MemberB[Teammate B]
-        Mailbox[durable mailbox + task board]
-        Lead <--> Mailbox
-        MemberA <--> Mailbox
-        MemberB <--> Mailbox
-    end
-
-    TeamRuntime --> Lead
-
-    TeamService --> Selector[Worker capability selector]
-
-    Selector --> DSHProvider[DSH subagent provider]
-    Selector --> Codex[Codex provider]
-    Selector --> Claude[Claude provider]
-    Selector --> WebProvider[Website Worker provider]
-
-    WebProvider <-->|MCP Worker transport| Website[Website Agent]
-~~~
-
-The Team runtime and Worker provider are independent axes.
-
-## Local Worker provider flow
-
-For a DSH/Codex/Claude provider exposed through `ctx.subagents`:
+For an ACP-compatible coding Worker:
 
 ~~~mermaid
 sequenceDiagram
     participant T as Agent Team
     participant S as Worker Selector
-    participant P as ctx.subagents
-    participant W as Selected Worker Provider
+    participant P as DSH ctx.subagents / ACP client
+    participant W as ACP Agent
 
-    T->>S: required capabilities + exact assignment
-    S->>P: choose/start provider binding
-    P->>W: provider-native execution
-    W-->>P: result / continuation state
-    P-->>T: provider adapter result
-    T->>T: validate Worker Artifact / phase policy
+    T->>S: required capabilities + exact Assignment
+    S->>P: bind selected ACP provider
+    P->>W: ACP session / prompt / control
+    W-->>P: streamed updates / result / session state
+    P-->>T: provider result
+    T->>T: validate Worker completion / Artifact / effect evidence
 ~~~
 
-Worker Protocol semantics can still define the assignment/result contract even when the transport is in-process.
+The ACP session is a provider handle:
 
-## Website Worker flow
+~~~text
+ACP session id != workerId
+ACP session id != assignmentId
+ACP session id != attemptId
+~~~
+
+## Cross-agent flow with A2A
+
+When two independently hosted agents collaborate:
+
+~~~mermaid
+sequenceDiagram
+    participant A as Agent A
+    participant B as Agent B
+
+    A->>B: A2A Message
+    B-->>A: A2A Task
+    B-->>A: Task status updates
+    B-->>A: A2A Message / input request
+    A->>B: A2A Message / additional input
+    B-->>A: A2A Artifact
+    B-->>A: terminal Task status
+~~~
+
+AgentOS should reuse native A2A Task/Message/Artifact structures rather than create a competing horizontal protocol.
+
+AgentOS-specific correctness facts may be carried through an A2A extension or adapter metadata:
+
+~~~text
+assignmentId
+attemptId
+inputBinding
+expected output schema
+completion role
+evidence / effect receipt references
+~~~
+
+A2A Task identity remains a remote execution/collaboration handle:
+
+~~~text
+A2A taskId != AgentOS assignmentId
+A2A taskId != AgentOS attemptId
+~~~
+
+## Website MCP compatibility flow
+
+MCP remains useful when a Website Agent cannot expose or consume A2A directly.
 
 ~~~mermaid
 sequenceDiagram
@@ -159,108 +195,79 @@ sequenceDiagram
     participant M as MCP Worker bridge
     participant W as Website Agent
 
-    T->>X: enqueue current WorkerAssignment
-    W->>M: capabilities / claim
-    M->>X: claim
-    X-->>M: Assignment + current attempt
+    T->>X: enqueue current Assignment
+    W->>M: claim
+    M->>X: claim current work
+    X-->>M: Assignment + attempt
     M-->>W: Assignment
 
-    W->>M: publish contribution Artifact
-    M->>X: validate + durable accept
-    X-->>T: current contribution
-
-    T->>X: append later Worker Message
-    W->>M: receive
-    M->>X: read current Messages
-    X-->>M: Message[]
-    M-->>W: Message[]
-
-    W->>M: publish completion Artifact
-    M->>X: completion candidate
-    X->>X: schema + auth + attempt + input + lifecycle checks
-    X-->>T: accepted current completion Artifact
+    W->>M: publish result/evidence
+    M->>X: validate current binding
+    X-->>T: accepted current result
 ~~~
 
-The Website conversation id remains provider-local.
+This is a compatibility transport, not the canonical general agent-to-agent protocol.
 
-## Peer communication across different Worker providers
+## DSH-local optimization
 
-Website Workers do not need a direct Website-to-Website protocol.
+AgentOS should not force A2A/ACP/MCP over boundaries already inside one runtime when DSH owns an equivalent typed service.
 
-Agent Team remains the collaboration owner.
-
-~~~mermaid
-sequenceDiagram
-    participant WA as Website Worker A
-    participant XA as Worker Exchange
-    participant A as Team member A
-    participant Team as ctx.agentTeams mailbox
-    participant B as Team member B
-    participant XB as Worker Exchange
-    participant WB as Website Worker B
-
-    WA->>XA: Worker Message / peer evidence
-    XA-->>A: accepted current message
-    A->>Team: Team peer message
-    Team-->>B: durable peer message
-    B->>XB: append target Worker Message
-    WB->>XB: receive current Messages
-    XB-->>WB: peer evidence
-~~~
-
-If both Workers are local DSH teammates, the provider adapter may collapse this path and use the Team mailbox directly. The semantic requirement is preserved without forcing every provider through MCP.
-
-## Worker execution versus Team collaboration
-
-These are intentionally separate:
+Examples:
 
 ~~~text
-Team member
-  = collaboration participant in the selected Team runtime
+DSH teammate <-> DSH teammate
+  -> ctx.agentTeams mailbox
 
-Worker
-  = capability-driven execution role
+AgentOS -> DSH subagent registry
+  -> ctx.subagents
 
-Worker Provider
-  = concrete runtime execution
+AgentOS -> ACP coding agent
+  -> ctx.subagents ACP provider
 ~~~
 
-Possible mappings include:
+This is an implementation optimization. External semantics must remain provider-neutral.
+
+## Worker execution versus Agent collaboration
+
+These are intentionally different axes:
 
 ~~~text
-Team member A -> DSH subagent provider
-Team member B -> Website Worker provider
+Worker execution/control
+  -> ACP or provider adapter
 
-or
+Agent collaboration
+  -> A2A or optimized local Team runtime
 
-Team member A -> Codex
-Team member B -> Claude Code
+Tool access
+  -> MCP or native runtime capability
 ~~~
 
-The Team runtime does not need to change when the Worker provider changes.
+Changing the Worker provider must not require changing Workflow or Team semantics.
 
 ## Completion propagation
 
 ~~~mermaid
 flowchart LR
-    Provider[Provider output]
-    Worker[Current Worker Artifact accepted]
+    Provider[Provider/A2A task output]
+    Worker[Current Worker result accepted]
     Team[Agent Team policy satisfied]
     Result[Typed phase result committed]
     Workflow[Workflow WorkItem may complete]
+    Effect[Actual effect validated]
 
-    Provider --> Worker --> Team --> Result --> Workflow
+    Provider --> Worker --> Team --> Result --> Workflow --> Effect
 ~~~
 
-DSH Team task state may be part of Team policy/runtime mechanics, but it is not the typed AgentOS phase result by itself.
+A provider turn, ACP session completion, A2A Task completion, MCP response, or DSH Team task state is not by itself sufficient AgentOS semantic completion when stronger completion/effect invariants are required.
 
 ## Architectural rules
 
-1. Worker is not equivalent to DSH teammate.
-2. Team runtime and Worker provider are independently replaceable.
-3. Local Agent and Workflow never depend on provider-native Worker handles.
-4. DSH peer communication uses `ctx.agentTeams` when DSH Team is selected.
-5. Website Worker communication uses MCP only at the Website boundary.
-6. Worker Protocol defines semantics; it does not require one universal transport.
-7. Provider limitations determine which Worker capabilities may be advertised.
-8. Provider responses become AgentOS truth only through the owning semantic boundary.
+1. **A2A is the preferred agent-to-agent interoperability protocol.**
+2. **ACP is the preferred interchangeable coding-Worker provider protocol when supported.**
+3. **MCP is the tool/capability protocol and Website compatibility boundary, not the universal agent protocol.**
+4. Worker is not equivalent to DSH teammate, ACP session, or A2A Task.
+5. Team runtime and Worker provider remain independently replaceable.
+6. Local Agent and Workflow never depend on provider-native handles.
+7. DSH-native services may collapse protocol boundaries in-process without changing semantic ownership.
+8. Provider limitations determine which Worker capabilities may be advertised.
+9. Provider/protocol completion becomes AgentOS truth only through the owning semantic boundary.
