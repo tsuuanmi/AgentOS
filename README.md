@@ -6,25 +6,34 @@ The project is intentionally small. AgentOS should not become a second harness, 
 
 ## Interaction
 
-AgentOS separates four roles so each can use the environment where it is strongest:
+AgentOS v1 is centered on three capabilities:
 
 ```text
-Controller
-  access / human interaction / cloud-native capabilities
-
 Local Agent
-  repository / files / shell / local data / local runtime
-
-Internet Team
-  external research / critique / synthesis / native ecosystems
+  direct interaction + environment-native execution
 
 Workflow
-  durable coordination / recovery / authority
+  durable coordination + recovery + authority
+
+Agent Team
+  research + critique + review + synthesis
 ```
 
-The user may interact through a Controller or directly with Local. Controller can research and use cloud capabilities before Local is needed; Local can call Internet Team or start a durable Workflow; Workflow can compose Local/external workers, Internet Team, validation, and review.
+The primary v1 flow is:
 
-**Local can do almost everything, but AgentOS should not force Local to do everything.** Optional planes should degrade gracefully rather than becoming universal hard dependencies.
+```text
+User
+  <-> Local Agent
+        +-> Agent Team
+        +-> Workflow
+              +-> Agent Team
+              +-> Local/external workers
+              +-> Validation / Review
+```
+
+**Local can do almost everything, but AgentOS should not force Local to do everything.**
+
+"Agent Team" is the semantic capability name. DSH Agent Teams is a possible substrate; the current Internet-backed behavior is one possible implementation. A remote Controller may be added later without changing these boundaries.
 
 See [the interaction model](docs/architecture/interaction-model.md).
 
