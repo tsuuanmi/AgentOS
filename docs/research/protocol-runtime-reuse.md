@@ -27,7 +27,7 @@ AgentOS
 
 The practical rule remains:
 
-> **Keep correctness state with the semantic plugin that owns it; do not promote local bookkeeping into protocol wire formats.**
+> **Use upstream protocol/runtime objects directly; keep only irreducible AgentOS correctness state with the semantic plugin that owns it.**
 
 ## A2A
 
@@ -35,7 +35,7 @@ Native A2A already provides AgentCard/AgentSkill, Task/TaskStatus, Message, Arti
 
 Initial AgentOS A2A peer integration uses **zero custom protocol extensions**.
 
-Keep WorkItem/phase ids, exact-input digests, binding generations, recovery policy, and acceptance state local unless the remote peer genuinely needs them.
+Pass native A2A Task/Message/Artifact/context objects directly. Keep only WorkItem/phase ids, exact-input digests, binding generations, recovery policy, and acceptance state local unless the remote peer genuinely needs them.
 
 See [A2A plugin](../architecture/plugins/a2a/README.md).
 
@@ -43,7 +43,7 @@ See [A2A plugin](../architecture/plugins/a2a/README.md).
 
 ACP is the preferred compatible Agent execution/control protocol.
 
-Current DSH already exposes ACP through its provider/server plugins; AgentOS should consume those rather than wrap ACP again.
+Current DSH already exposes ACP through its provider/server plugins; AgentOS should consume native ACP SDK/runtime types directly rather than wrap or normalize ACP into another AgentOS model.
 
 See [DSH ACP](../architecture/plugins/dsh/acp.md).
 
@@ -84,3 +84,8 @@ Add a custom mechanism only when:
 2. the missing behavior protects a concrete plugin invariant;
 3. a thinner adapter/configuration cannot preserve it;
 4. owned complexity is lower than reuse alternatives.
+
+
+## No-shadow-model research rule
+
+A conformance spike fails if its implementation requires structurally equivalent AgentOS copies of ACP/A2A/DSH Task/Message/Artifact/Session/Status/Result objects without a demonstrated semantic gap.
