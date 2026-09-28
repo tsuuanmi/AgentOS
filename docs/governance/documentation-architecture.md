@@ -29,10 +29,15 @@ A proposal is not architecture merely because implementation is planned.
 For AgentOS, the initial structure is intentionally minimal:
 
 ```text
+schemas/
+└── ... machine-readable contracts
+
 docs/
 ├── README.md
 ├── architecture/
 ├── contracts/
+├── api/
+├── mcp/
 ├── proposals/
 ├── research/
 └── governance/
@@ -41,6 +46,18 @@ docs/
 Contracts have now graduated because Workflow and Agent Team have stable AgentOS-owned semantics that implementation and conformance tests will target.
 
 Add requirements, design, decisions/ADR, reference, validation, engineering, security, or operations only when real artifacts need those homes.
+
+### Machine-readable schemas
+
+Repository-level JSON Schemas live under `/schemas`, outside `docs/`.
+
+Human-readable contracts link to them. API and transport docs reuse them rather than maintaining copies.
+
+### API and transport documentation
+
+- `docs/api/` defines transport-neutral callable interfaces.
+- `docs/mcp/` defines MCP-specific mappings only.
+- Contracts must not absorb transport-specific behavior unless it is truly semantic.
 
 ## README files are routers
 
