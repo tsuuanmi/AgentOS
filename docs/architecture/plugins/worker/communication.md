@@ -4,7 +4,7 @@
 - **Owner:** AgentOS Worker plugin
 - **Scope:** provider execution and communication boundaries used by Worker
 
-Worker normalizes **semantic execution**, not wire formats.
+Worker coordinates **semantic execution** without normalizing wire formats.
 
 Each protocol/runtime keeps the data model it owns:
 
@@ -37,10 +37,10 @@ sequenceDiagram
     W->>W: select provider
     W->>S: dispatch through provider seam
     S->>P: provider-native execution
-    P-->>S: provider-native updates/result
-    S-->>W: provider result
-    W->>W: binding / result acceptance
-    W-->>C: typed accepted result
+    P-->>S: native provider/protocol result
+    S-->>W: native result
+    W->>W: binding / semantic acceptance
+    W-->>C: native result or domain-owned result
 ~~~
 
 Agent Team and Workflow do not branch on concrete runtime/provider types. A2A peer communication is handled by Agent Team/Website adapters rather than by Worker dispatch.
@@ -112,8 +112,8 @@ It does not become a Worker transport.
 ## Completion propagation
 
 ~~~text
-provider terminal/result
-  -> Worker acceptance
+native provider/protocol terminal/result
+  -> Worker semantic acceptance
   -> Agent Team phase result or Workflow WorkItem result
   -> Workflow transition/completion
   -> verified effect when required
@@ -131,3 +131,8 @@ Provider terminal state alone is not semantic completion.
 6. Website-specific transport stays inside Website Agent plugin.
 7. Provider/protocol ids remain implementation handles.
 8. Add ExecutionBinding/fencing only for demonstrated recovery/replacement needs.
+
+
+## Direct-type rule
+
+At each boundary, use the SDK/runtime type owned by that boundary directly. Do not convert ACP/A2A/DSH traffic into generic Worker message/status/artifact/result types before processing it.
