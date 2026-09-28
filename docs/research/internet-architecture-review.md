@@ -368,3 +368,64 @@ A concise target:
 > **AgentOS is a thin semantic composition plugin for DSH: it owns only the contracts that define AgentOS behavior, uses DSH/public capabilities for mechanics, and makes independently owned implementations replaceable behind explicit, conformance-tested boundaries.**
 
 This is both smaller and more faithful to the desired Internet architecture than modeling AgentOS as a new runtime or as a fixed collection of policy packages.
+
+## 16. Transport lifecycle is a projection, not the workflow/domain object
+
+A further Internet design refinement makes the transport boundary explicit:
+
+```text
+MCP Task / host task handle
+      |
+      | projects lifecycle
+      v
+Internet Workflow / domain operation
+```
+
+The generic task lifecycle can expose coarse states such as working, input-required, completed, failed, or cancelled while the underlying product state remains richer and independently retained.
+
+The key architectural lesson is identity separation:
+
+```text
+transportTaskId != domainOperationId
+```
+
+The task may have a shorter TTL than the domain record. Reconnection, polling, or UI projection should not redefine product history.
+
+### AgentOS implication
+
+If AgentOS later exposes portable long-running capabilities through MCP Tasks, DSH Jobs, or another host-specific task API:
+
+- the host task is an edge adapter/projection;
+- AgentOS semantic identity remains independent when AgentOS actually owns such state;
+- the adapter maps status, input-required interactions, cancellation, and results without collapsing semantic state into transport state;
+- trusted host interaction establishes provenance; model text cannot self-assert protected user authority.
+
+If the underlying operation is fully owned by DSH and AgentOS has no separate semantic state, use the DSH owner directly rather than inventing an AgentOS record.
+
+## 17. Execution workers are implementations below a semantic capability
+
+Internet's target worker model also reinforces the contract-first boundary:
+
+```text
+ImplementationCapability
+      |
+      +-> DSH worker
+      +-> Codex worker
+      +-> future worker
+```
+
+The workflow depends on the capability contract, not on which worker executes it.
+
+### AgentOS implication
+
+A generic AgentOS worker abstraction should **not** be created immediately. It becomes justified only when one AgentOS-owned semantic capability genuinely needs multiple worker implementations.
+
+When that happens:
+
+- semantic inputs/outputs belong to the AgentOS capability;
+- DSH/Codex/external task/session IDs remain adapter-local;
+- worker replacement must preserve side-effect, cancellation, provenance, and result-contract semantics;
+- shared conformance tests prove substitution.
+
+This is a stronger boundary than a generic "delegation policy" package and may become relevant earlier if AgentOS begins composing heterogeneous execution backends.
+
