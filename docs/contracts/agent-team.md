@@ -33,13 +33,43 @@ REVIEW
 
 Workflow may checkpoint those phases durably, but the Team collaboration is internally owned by DSH Agent Teams.
 
+## Dedicated Lead and Website Agent topology
+
+A semantic Agent Team run uses a dedicated DSH root Team rather than the user's Local Agent as Team Lead.
+
+The default topology is:
+
+~~~text
+Local / Workflow
+      |
+      v
+dedicated DSH Team Lead
+      |
+      +-> Website Agent S (synthesis / Lead reasoning)
+      |
+      +-> DSH teammate A <-> Website Agent A
+      +-> DSH teammate B <-> Website Agent B
+      +-> DSH implementer <-> Website Agent I
+      +-> DSH reviewer A <-> Website Agent RA
+      +-> DSH reviewer B <-> Website Agent RB
+~~~
+
+Not every phase needs every member. Members are provisioned/reused according to the software flow.
+
+Local is outside the Team collaboration. By default it receives only typed synthesis/progress projections rather than all Team messages.
+
+The dedicated Lead coordinates DSH Team state and owns the final synthesis boundary, but substantive synthesis reasoning may also be delegated to its own bound Website Agent.
+
 ## Website Agent binding
 
 A DSH teammate is primarily a **local coordination proxy** for one Website Agent, not the place where all substantive reasoning must happen.
 
-Each semantic teammate has its own binding:
+Each semantic Team member, including the dedicated Lead when synthesis is provider-backed, has its own isolated binding:
 
 ~~~text
+DSH Lead
+  <-> Website Agent S / synthesis conversation
+
 DSH teammate A
   <-> Website Agent A / conversation A
 
@@ -49,7 +79,7 @@ DSH teammate B
 
 The Website Agents may be ChatGPT, Gemini, Claude, Grok, or another supported website/provider.
 
-The DSH teammate owns local Team participation:
+The DSH member is primarily the local coordination bridge. It owns Team participation:
 
 - DSH Team identity and membership;
 - TeamTask ownership/status;
@@ -59,13 +89,13 @@ The DSH teammate owns local Team participation:
 
 The Website Agent owns the source-heavy/provider-native reasoning work assigned to that teammate.
 
-A teammate may perform minimal local coordination/reasoning when necessary, but the architecture should not require it to duplicate the Website Agent's research or analysis.
+A DSH member may perform minimal local coordination/reasoning when necessary, but the architecture should not require it to duplicate the Website Agent's substantive research, implementation reasoning, review, or synthesis.
 
 ## Peer-to-peer debate
 
 Research and review members communicate directly through DSH Team messaging.
 
-DSH already supports durable peer messaging with `send_message`; delivery can reach running members, wake idle members, or cold-resume inactive teammates. citeturn691680search0turn691680search2
+DSH already supports durable peer messaging with `send_message`; delivery can reach running members, wake idle members, or cold-resume inactive teammates.n691680search0turn691680search2
 
 The default collaboration pattern is:
 
@@ -80,11 +110,12 @@ A <-> B through DSH send_message
   each Website Agent challenges/revises
   revised conclusions return peer-to-peer
 
-Lead/synthesizer receives distilled final positions
+dedicated Team Lead receives distilled final positions
+  -> its own Website Agent/synthesizer produces the synthesis
   -> typed phase result
 ~~~
 
-Lead does not need to proxy every debate message.
+Lead does not proxy normal debate messages. Research/review peers communicate directly through DSH `send_message`; each peer passes received evidence to its own Website Agent and returns revised conclusions through the Team mailbox.
 
 The independent-first barrier remains important so early peer influence does not collapse diversity.
 
@@ -163,7 +194,7 @@ Website Agents
   -> Local
 ~~~
 
-Local may inspect progress/debug information when requested, but compact synthesis is the default product surface.
+Local may inspect progress/debug information when requested, but compact typed synthesis is the default product surface. Raw peer discussion stays inside the dedicated Team unless explicitly requested.
 
 ## DSH ownership
 
@@ -177,7 +208,7 @@ AgentOS must not introduce a second:
 - Team event journal;
 - Team persistence layer.
 
-DSH Agent Teams is currently experimental, so AgentOS should keep DSH-specific types behind the implementation boundary. DSH publishes Agent Teams as experimental packages and explicitly does not provide a stability promise yet. citeturn691680search1turn691680search3
+DSH Agent Teams is currently experimental, so AgentOS should keep DSH-specific types behind the implementation boundary. DSH publishes Agent Teams under experimental package names and does not provide a stable-package promise yet.n691680search1turn691680search3
 
 ## Replaceability
 
