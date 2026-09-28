@@ -31,11 +31,11 @@ The practical rule remains:
 
 ## A2A
 
-Native A2A already provides AgentCard/AgentSkill, Task/TaskStatus, Message, Artifact/Part, context, auth, cancellation, update delivery, structured data, metadata, and extension points.
+Native A2A v1 already provides AgentCard/AgentSkill, server-generated Task identity, TaskStatus, Message/messageId, Artifact/Part, contextId, auth, cancellation, streaming/update delivery, structured data, metadata, and extension points.
 
 Initial AgentOS A2A peer integration uses **zero custom protocol extensions**.
 
-Pass native A2A Task/Message/Artifact/context objects directly. Keep only WorkItem/phase ids, exact-input digests, binding generations, recovery policy, and acceptance state local unless the remote peer genuinely needs them.
+Pass native A2A Task/Message/Artifact/context objects directly; use contextId for peer conversation continuity, messageId for per-turn correlation, and keep taskId as server-owned Task identity. Keep only WorkItem/phase ids, exact-input digests, binding generations, recovery policy, and acceptance state local unless the remote peer genuinely needs them.
 
 See [A2A plugin](../architecture/plugins/a2a/README.md).
 
@@ -70,7 +70,7 @@ See [DSH Workflow/runtime capabilities](../architecture/plugins/dsh/workflow-run
 ## Remaining proving questions
 
 1. Which DSH `ctx.subagents` capabilities must Worker project into semantic capability selection?
-2. Is one-shot ACP sufficient for initial Website/software/scientific Profiles?
+2. Can native ACP Session Modes remove all custom chat/research routing fields, and is one-shot ACP sufficient for initial Profiles?
 3. Can Website Agent <-> Agent Team Member A2A collaboration remain extension-free?
 4. Which Agent Team semantics remain after DSH Team + Worker reuse?
 5. Which Workflow semantic records remain after DSH runtime reuse?
