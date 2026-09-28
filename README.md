@@ -30,7 +30,7 @@ Start at [docs/README.md](docs/README.md).
 - [Worker model](docs/architecture/worker-model.md) — agnostic capability-driven Worker and provider bindings.
 - [Reference](docs/reference/README.md) — Worker protocol/API/Exchange/MCP contracts.
 - [JSON Schemas](schemas/README.md) — machine-readable Worker structures.
-- [software-worker Skill](.agents/skills/software-worker/SKILL.md) — initial software capability procedure pack, not Worker identity.
+- [software-development Skill](.agents/skills/software-development/SKILL.md) — initial software capability procedure pack, not Worker identity.
 - [Initial implementation proposal](docs/proposals/initial-implementation.md) — composition-first TDD sequence.
 
 Research is temporary evidence for unresolved conformance/gap questions and is pruned once promoted.
