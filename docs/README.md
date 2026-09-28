@@ -15,7 +15,7 @@ AgentOS applies the documentation lifecycle defined by [Governance](governance/R
 | [Research](research/README.md) | temporary evidence for unresolved provider/runtime questions | exploratory |
 | [Governance](governance/README.md) | local application of the shared documentation standard | canonical / living |
 | [JSON Schemas](../schemas/README.md) | machine-readable structural contracts | canonical / executable reference |
-| [Agent Skills](../.agents/skills/software-worker/SKILL.md) | capability-specific procedural guidance | executable guidance; not Worker identity or correctness authority |
+| [Agent Skills](../.agents/skills/software-development/SKILL.md) | capability-specific procedural guidance | executable guidance; not Worker identity or correctness authority |
 | source + tests | implementation and executable specification | executable reality |
 
 Only create additional standard areas such as `design/`, `decisions/`, `validation/`, `engineering/`, `operations/`, or `security/` when real knowledge needs those homes.
