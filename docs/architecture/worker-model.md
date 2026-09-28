@@ -180,7 +180,7 @@ The initial software profile uses capabilities such as `research`, `brainstorm`,
 
 Future domains add capabilities such as `design`, `security-audit`, `data-analysis`, `documentation`, or other namespaced capabilities without changing Worker identity or protocol structure.
 
-The current `software-worker` Skill is one procedural capability pack for the initial software profile; it is not the definition of Worker.
+The current `software-development` Skill is one procedural capability pack for the initial software profile; it is not the definition of Worker.
 
 ## Provider capability projection
 
