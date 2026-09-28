@@ -4,9 +4,9 @@
 - **Runtime:** Cordis / DeepSeek Harness
 - **Role:** product composition layer
 
-AgentOS is best understood as a **composition plugin/bundle**, not as a new agent runtime.
+AgentOS is a **composition plugin/bundle**, not a new agent runtime.
 
-It assembles AgentOS-owned semantic capabilities with existing DSH/Cordis plugins and provider plugins.
+It assembles thin AgentOS semantic plugins with existing DSH/Cordis capabilities and standard protocol/provider plugins.
 
 ## Composition model
 
@@ -15,82 +15,79 @@ flowchart TB
     Host[DSH / Cordis Host]
     AgentOS[AgentOS composition]
 
-    Team[Agent Team capability composition]
-    Workflow[Workflow capability composition\nCore + Definitions/Profiles]
-    Worker[Worker capability policy / provider bindings]
-    Website[Website Agent provider]
+    Team[Agent Team semantic plugin]
+    Workflow[Workflow semantic plugin]
+    Website[Website ACP bridge]
     A2A[A2A adapter]
+    Profiles[Profiles / Skills]
 
     Host --> AgentOS
     AgentOS --> Team
     AgentOS --> Workflow
-    AgentOS --> Worker
     AgentOS -. optional .-> Website
     AgentOS -. optional .-> A2A
+    AgentOS --> Profiles
 
-    subgraph DSH["DSH capability plugins"]
-        AT[experimental agent-team / ctx.agentTeams]
-        Sub[subagent / ctx.subagents]
-        Store[storage-domain / ctx.storageDomain]
-        Jobs[jobs / ctx.jobs]
-        Wf[workflow / ctx.workflowEngine]
-        Int[approval + userQuestions]
-        Session[session persistence / projection]
-        Tools[workspace / fs / shell / web / skills / ...]
+    subgraph DSH["DSH capabilities"]
+        AT[ctx.agentTeams]
+        Sub[ctx.subagents]
+        ACP[ACP provider]
+        Store[ctx.storageDomain]
+        Runtime[jobs / workflowEngine / schedule]
+        Int[approval / userQuestions]
+        Session[Session]
+        Tools[workspace / fs / shell / web / MCP / skills]
     end
 
     Team --> AT
     Team --> Sub
-    Team --> Session
-    Team --> Worker
-
+    Website --> ACP
+    ACP --> Sub
     Workflow --> Store
-    Workflow -. optional .-> Jobs
-    Workflow -. optional .-> Wf
-    Workflow -. optional .-> Sub
-    Workflow -. presentation .-> Int
     Workflow --> Team
-
-    Worker --> Sub
-    Worker --> Tools
-    Website --> Sub
-    A2A --> Worker
+    Workflow -.-> Runtime
+    Workflow -.-> Int
+    Team --> Session
+    Team --> Tools
 ~~~
 
-AgentOS therefore adds the smallest missing semantic layer and configuration/composition needed to make these capabilities behave as one product.
+A2A uses the official protocol/SDK for independent remote agents rather than a parallel AgentOS wire model.
 
-## Composition versus implementation
-
-A component in AgentOS docs can be one of three things:
+## Component kinds
 
 | Kind | Meaning | Example |
 |---|---|---|
-| composition/bundle | mounts and configures existing plugins together | AgentOS, much of Agent Team |
-| semantic plugin/module | implements AgentOS-owned policy/invariants not supplied upstream | Agent Team capability policy, Workflow semantic policy |
-| provider plugin | registers an implementation into an existing DSH seam | Website Agent provider on `ctx.subagents` |
-| adapter plugin | maps a protocol/runtime/library into a DSH/AgentOS boundary | A2A adapter, optional Inngest/Temporal Workflow runtime adapter |
+| composition/bundle | mounts/configures capabilities | AgentOS |
+| semantic plugin | owns AgentOS-specific policy/invariants | Agent Team policy, Workflow semantic policy |
+| provider/bridge plugin | exposes execution through a DSH seam | Website ACP bridge / future continuable ACP provider |
+| protocol adapter plugin | integrates a standard protocol not already provided by DSH | A2A adapter |
+| runtime adapter plugin | delegates generic mechanics to another runtime behind Cordis | optional Inngest/Temporal Workflow adapter |
+| Profile/Skill | domain configuration/procedure | software-development, scientific-research |
 
-Do not assume every box in an AgentOS architecture diagram implies a new package containing a full implementation.
+Do not create packages merely to mirror architecture nouns.
 
 ## AgentOS-owned semantic delta
 
-AgentOS should implement only semantics not already guaranteed by DSH, A2A, ACP, MCP, or a selected plugin implementation.
+AgentOS owns only what remains after DSH/protocol reuse:
 
-The current minimal delta is:
+- capability requirements and right-agent-right-job policy;
+- cost/context-aware selection policy;
+- collaboration barriers and typed phase acceptance;
+- Workflow Definition/Profile semantics;
+- exact Definition/input ownership where reproducibility requires it;
+- local ExecutionBinding/fencing only when recovery/replacement needs it;
+- typed result acceptance;
+- effect/evidence validation;
+- composition/provider limitation projection.
 
-- capability requirements and **right-agent-right-job** selection policy;
-- current semantic-work -> provider **ExecutionBinding** only when durable/retriable correctness needs it;
-- exact Definition/input binding at the Workflow/phase owner, not repeated across generic Worker wire objects;
-- result acceptance against the caller's declared output contract;
-- stale-binding fencing only where provider replacement can race with old results/effects;
-- collaboration phase policy and typed phase outcome;
-- Workflow Definition/Profile semantics and product-level recovery policy;
-- effect evidence/actual-state validation where side effects matter;
-- cross-plugin composition and provider limitation projection.
+AgentOS does **not** own by default:
 
-AgentOS does **not** assume it needs its own universal WorkerAssignment, Message, Artifact, WorkerState, stable Worker identity, or generic Worker Exchange service.
+- universal Worker identity;
+- WorkerAssignment;
+- custom Worker Message/Artifact/State;
+- Worker Exchange;
+- a custom MCP Worker transport;
+- A2A extensions;
+- a second agent/workflow runtime.
 
-See [Minimal semantic delta](../../minimal-semantic-delta.md).
-
-
-See [Plugin inventory and reuse map](../inventory.md) for the canonical plugin list and substitution candidates.
+See [Minimal semantic delta](../../minimal-semantic-delta.md) and [Plugin inventory](../inventory.md).
