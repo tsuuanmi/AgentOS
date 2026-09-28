@@ -86,22 +86,27 @@ Local/Workflow invocation bridge
 
 Canonical semantics: [Agent Team contract](../contracts/agent-team.md).
 
-### Stable member roles
+### Capability-driven Workers
 
-Software Team roles are stable product contracts, not generated ad hoc per run:
+Team members are Worker instances selected by capabilities rather than permanent semantic personas.
 
 ~~~text
-Lead / Synthesizer
-Researcher Primary
-Researcher Challenger
-Implementer
-Reviewer Correctness
-Reviewer Architecture
+RESEARCH
+  2 Workers: research + brainstorm + debate
+
+IMPLEMENT
+  1 Worker: implement + tdd
+
+REVIEW
+  2 Workers: review + debate
+
+SYNTHESIS
+  Lead/Worker: synthesize
 ~~~
 
-Objectives and exact inputs vary by run. Role mission, responsibilities, peer relationships, and expected output schema do not.
+The Worker instances/providers and objective may vary. Capability requirements and the structured Worker Protocol remain stable.
 
-This makes Team behavior predictable and testable while still allowing Website Agent/provider choice below each role.
+Canonical protocol: [Worker Protocol](../contracts/worker-protocol.md).
 
 ### Website Agent topology
 
@@ -111,20 +116,20 @@ A dedicated DSH Team member is primarily a **coordination proxy for one isolated
 dedicated DSH Team Lead
   <-> Website Agent S / synthesis
 
-DSH researcher A
+DSH Worker A [research, brainstorm, debate]
   <-> Website Agent A
 
-DSH researcher B
+DSH Worker B [research, brainstorm, debate]
   <-> Website Agent B
 
-DSH implementer
+DSH Worker I [implement, tdd]
   <-> Website Agent I
 
-DSH reviewer A
-  <-> Website Agent RA
+DSH Worker R1 [review, debate]
+  <-> Website Agent R1
 
-DSH reviewer B
-  <-> Website Agent RB
+DSH Worker R2 [review, debate]
+  <-> Website Agent R2
 ~~~
 
 Not every member is active in every phase.
@@ -315,17 +320,18 @@ DSH Agent Teams is experimental today, so DSH-specific public types should stay 
 3. Workflow and Agent Team are peer capabilities.
 4. DSH Agent Teams is the practical v1 Team core; no second Team runtime is built.
 5. Team members may debate peer-to-peer; Lead is synthesis/coordination authority, not a message proxy.
-6. Software Team roles are stable across runs; task inputs change, role responsibilities do not.
-7. Each semantic DSH Team member has an isolated Website Agent binding when website-backed work is used.
-8. Website Agent completion is explicit/durable and owned by the Agent Team provider; Workflow never infers it from DSH activity.
-9. Local receives synthesis/results by default rather than internal Team transcript.
-10. Workflow owns durable lifecycle; Agent Team owns collaborative work inside phases.
-11. Validation/effects are established from the real environment, not model claims.
-12. Provider/transport identities stay below semantic identities.
-13. Unknown execution outcomes reconcile according to an admitted policy; missing handles never authorize blind retry.
-14. Authority and effect completion are distinct.
-15. Provider-v1 choices do not become permanent contract requirements without evidence.
-16. New abstractions require a real semantic/lifecycle/authority/replacement boundary.
+6. Worker capabilities and protocol shape are stable across runs; objectives/inputs change without inventing new Agent personas.
+7. DSH Worker <-> Website Agent communication follows a versioned JSON-Schema Worker Protocol; MCP is a preferred transport profile, not the semantic contract.
+8. Each semantic DSH Worker has an isolated Website Agent binding when website-backed work is used.
+9. Website Agent completion is explicit/durable and owned by the Agent Team provider; Workflow never infers it from DSH activity.
+10. Local receives synthesis/results by default rather than internal Team transcript.
+11. Workflow owns durable lifecycle; Agent Team owns collaborative work inside phases.
+12. Validation/effects are established from the real environment, not model claims.
+13. Provider/transport identities stay below semantic identities.
+14. Unknown execution outcomes reconcile according to an admitted policy; missing handles never authorize blind retry.
+15. Authority and effect completion are distinct.
+16. Provider-v1 choices do not become permanent contract requirements without evidence.
+17. New abstractions require a real semantic/lifecycle/authority/replacement boundary.
 
 ## Documentation authority
 
