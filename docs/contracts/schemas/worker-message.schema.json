@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentos.dev/schemas/worker-message.v1.json",
+  "title": "AgentOS Worker Message v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "messageId",
+    "kind",
+    "phase",
+    "fromWorker",
+    "toWorker",
+    "inputBinding",
+    "payload"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "const": "1"
+    },
+    "messageId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "peer_evidence",
+        "peer_challenge",
+        "peer_revision",
+        "phase_control"
+      ]
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "research",
+        "implementation",
+        "review",
+        "synthesis"
+      ]
+    },
+    "fromWorker": {
+      "type": "string",
+      "minLength": 1
+    },
+    "toWorker": {
+      "type": "string",
+      "minLength": 1
+    },
+    "inputBinding": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceAssignmentId": {
+      "type": "string"
+    },
+    "payload": {}
+  }
+}
