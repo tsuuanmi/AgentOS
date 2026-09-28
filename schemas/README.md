@@ -78,4 +78,4 @@ The following belong to [Worker Exchange invariants](../docs/reference/worker-ex
 - [Worker API](../docs/reference/worker-api.md)
 - [Worker Exchange invariants](../docs/reference/worker-exchange-invariants.md)
 - [MCP Worker transport](../docs/reference/mcp-worker-transport.md)
-- [software-worker Skill](../.agents/skills/software-worker/SKILL.md)
+- [software-development Skill](../.agents/skills/software-development/SKILL.md)
