@@ -172,6 +172,58 @@ AgentOS may own a contract when the behavior:
 
 Implementation is not automatically ownership.
 
+## Workflow contract, durable model, and provider are different layers
+
+Workflow has three distinct layers that must not drift into one another.
+
+### Public semantic contract
+
+What Local or a future Controller depends on:
+
+```text
+start
+inspect
+respond
+cancel
+reattach semantics
+WorkflowRun identity/lifecycle
+pending actions
+results / authority / terminal outcome
+```
+
+The exact public API remains under proposal, but callers should not depend on DSH Jobs, storage rows, subagent ids, or provider handles.
+
+### Internal durable correctness model
+
+A Workflow provider may need internal durable concepts such as:
+
+```text
+WorkItem
+ExecutionRef
+PendingAction
+ResultRef
+ReceiptRef
+unknown-outcome recovery policy
+```
+
+These concepts exist to preserve correctness. They are not automatically public API types.
+
+### Provider implementation
+
+The first DSH-backed provider may use:
+
+```text
+ctx.storageDomain
+single-Host ownership
+one aggregate record per run
+derived in-memory scheduling
+DSH execution adapters
+```
+
+These are v1 implementation decisions. A replacement provider may implement the same semantic contract using a different durable runtime or storage topology.
+
+Architecture should promote a provider detail only when cross-provider/product evidence proves callers rely on it.
+
 ## Workflow and DSH reuse
 
 The Workflow capability should own **durable coordination semantics**, not generic execution mechanics.
