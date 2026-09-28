@@ -33,7 +33,7 @@ User
 
 **Local can do almost everything, but AgentOS should not force Local to do everything.**
 
-"Agent Team" is the semantic capability name. It is independently usable from Local and may also be invoked by Workflow. Workflow does not own Team members or Team lifecycle; it consumes Agent Team through a semantic request/result boundary. DSH Agent Teams is a possible substrate, and the current Internet-backed behavior is one possible implementation. A remote Controller may be added later without changing these boundaries.
+"Agent Team" is the semantic capability name. It is independently usable from Local and may also be invoked by Workflow. Workflow does not own Team members or Team lifecycle; it consumes Agent Team through a semantic request/result boundary. V1 uses DSH Agent Teams as the Team runtime and adapts Internet Team's research/review reasoning policies on top. A future Internet-backed teammate provider can restore website-native members without introducing a second Team runtime. A remote Controller may be added later without changing these boundaries.
 
 See [the interaction model](docs/architecture/interaction-model.md).
 
