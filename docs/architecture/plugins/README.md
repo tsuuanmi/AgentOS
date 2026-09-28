@@ -1,33 +1,52 @@
 # AgentOS plugin architecture
 
-AgentOS is implemented as a small set of Cordis plugins that add product semantics on top of DSH capability seams.
+AgentOS follows DSH's **everything-is-a-plugin** composition model.
 
-## Current plugins
+The important distinction is between a product composition, a capability composition, and an underlying capability plugin.
 
-| Plugin | Purpose | Canonical architecture |
-|---|---|---|
-| Agent Team | collaborative execution, Worker selection/binding, phase policy, typed phase completion | [Agent Team plugin](agent-team.md) |
-| Workflow | durable long-running lifecycle, sequencing, recovery, waiting, authority, reattachment | [Workflow plugin](workflow.md) |
+## Composition hierarchy
 
-Shared Worker semantics are defined by [Worker model](../worker-model.md) and [Worker boundary model](../worker-boundaries.md).
+~~~mermaid
+flowchart TB
+    Host[DSH / Cordis Host]
+    AgentOS[AgentOS composition plugin / bundle]
 
-DSH dependencies are centralized in [DSH capability reuse](../dsh-reuse.md).
+    Team[Agent Team capability composition]
+    Workflow[Workflow capability composition]
+    Worker[Worker contracts + adapters]
 
-## Plugin rule
+    Host --> AgentOS
+    AgentOS --> Team
+    AgentOS --> Workflow
+    AgentOS --> Worker
 
-Each plugin owns one product capability and consumes DSH services through explicit seams.
-
-~~~text
-Local Agent
-  +-> Agent Team plugin
-  +-> Workflow plugin
-         -> Agent Team plugin
-
-Agent Team plugin
-  -> Worker providers / DSH capability seams
-
-Workflow plugin
-  -> durable storage + execution/presentation adapters
+    Team --> DSHAT[DSH ctx.agentTeams]
+    Team --> Sub[DSH ctx.subagents]
+    Workflow --> Store[DSH ctx.storageDomain]
+    Workflow -.-> Jobs[DSH ctx.jobs]
+    Workflow -.-> DSHWF[DSH ctx.workflowEngine]
+    Workflow --> Team
 ~~~
 
-Plugins may be mounted in the same DSH process. Plugin boundaries are responsibility/API boundaries, not deployment boundaries.
+## Current AgentOS capability compositions
+
+| Capability | Shape | Canonical architecture |
+|---|---|---|
+| AgentOS | top-level composition/bundle | [AgentOS composition](agentos/README.md) |
+| Agent Team | DSH Team/Subagent composition + AgentOS semantic delta | [Agent Team](agent-team/README.md) |
+| Workflow | DSH persistence/execution/interaction composition + AgentOS durable semantic delta | [Workflow](workflow/README.md) |
+| Worker | provider-neutral contracts, capability model, exchange/adapters | [Worker model](../worker-model.md) |
+
+Agent Team and Workflow may eventually ship as separate installable bundles/plugins, but architecture does not require each to be a monolithic package.
+
+## Rule
+
+Before building a new AgentOS subsystem:
+
+1. identify the required product semantic;
+2. find existing DSH capability seams/plugins that already implement the mechanics;
+3. compose those capabilities;
+4. add only the missing semantic state/invariants;
+5. isolate experimental/provider-specific dependencies behind adapters.
+
+Shared DSH dependencies are mapped in [DSH capability reuse](../dsh-reuse.md).
