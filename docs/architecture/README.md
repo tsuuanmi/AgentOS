@@ -106,24 +106,26 @@ See [Local Agent, Workflow, and Agent Team interaction model](interaction-model.
 
 ## DSH Agent Teams is the v1 Team runtime
 
-AgentOS v1 should reuse `ctx.agentTeams` for Team mechanics instead of carrying forward Internet's custom Team runtime.
+AgentOS v1 should treat `ctx.agentTeams` as the **core Team runtime** instead of carrying forward Internet's custom Team runtime.
 
 ```text
-Agent Team semantic contract
+AgentOS research/review semantics
+        |
+        +-> policy / Skills
+        +-> typed completion boundary
         |
         v
-AgentOS research/review policy adapter
-        |
-        v
-DSH Agent Teams
+DSH Agent Teams core
+  Team identity
   roster
-  mailbox
-  task board
-  continuable teammates
-        |
-        +-> DSH/local teammate providers
-        +-> future Internet-backed teammate provider
+  durable mailbox
+  Team task DAG
+  teammate authority
+  continuable teammate lifecycle
+  cold resume / recovery
 ```
+
+AgentOS should be materially smaller than DSH Agent Teams. It does not wrap or mirror those mechanics; it adds only product reasoning semantics and the minimal bridge needed to return typed research/review results to Local or Workflow.
 
 Adapt from Internet Team:
 
@@ -138,7 +140,38 @@ Do not port Internet Team's TeamPlan persistence, mailbox/session runtime, accou
 
 DSH Agent Teams remains an implementation substrate behind the AgentOS semantic contract because it is currently experimental and its public types may evolve.
 
-See [DSH Agent Teams first adaptation](../research/agent-team-dsh-first-adaptation.md).
+### Current v1 teammate transports
+
+DSH Agent Teams requires the continuable subagent creation seam. Current DSH evidence shows only the in-process `spawn` and `fork` providers implement that seam today.
+
+One-shot Codex, Claude Code, ACP, or other product subagent providers must not be documented as directly rosterable Team members unless they gain continuable support.
+
+A future website/native external teammate therefore remains a transport/provider research item rather than a v1 assumption.
+
+See:
+
+- [DSH Agent Teams first adaptation](../research/agent-team-dsh-first-adaptation.md)
+- [DSH Agent Teams core deep dive](../research/agent-team-dsh-core-deep-dive.md).
+
+### AgentOS must not duplicate DSH Team state
+
+AgentOS must not introduce its own:
+
+```text
+TeamId
+roster/member store
+mailbox
+Team task DAG
+member availability state
+teammate resume manager
+Team event journal
+Team projection
+Team persistence
+```
+
+AgentOS semantic roles such as researcher/reviewer/synthesizer are initially policy/prompt concepts layered on DSH teammate name/description/task/prompt rather than new durable roster fields.
+
+Workflow WorkItem identity remains distinct from DSH TeamTask identity.
 
 ## Workflow and Agent Team are peers
 
