@@ -8,6 +8,8 @@ Exact payloads, APIs, transports, and schemas live in [reference](../reference/R
 
 > **AgentOS is a thin semantic composition over DSH plugins. Reuse existing capability seams; implement only missing product semantics.**
 
+Product motivation and the cost/context model are canonicalized in [Product principles](product-principles.md): **right agent, right job; spend intelligence where intelligence matters**.
+
 AgentOS is not a new agent runtime.
 
 It is a product composition/bundle on top of Cordis/DeepSeek Harness.
@@ -451,6 +453,7 @@ The smallest implementation should start from what DSH already provides:
 
 ## Canonical neighbors
 
+- [Product principles](product-principles.md)
 - [Plugin architecture](plugins/README.md)
 - [AgentOS composition](plugins/agentos/README.md)
 - [Agent Team composition](plugins/agent-team/README.md)
