@@ -19,6 +19,8 @@ Accepted direction lives in:
 - [Agent Team plugin](../architecture/plugins/agent-team/README.md)
 - [Workflow plugin](../architecture/plugins/workflow/README.md)
 - [Website Agent plugin](../architecture/plugins/website-agent/README.md)
+- [Website Agent core](../architecture/plugins/website-agent/core.md)
+- [Website Agent adapters](../architecture/plugins/website-agent/adapters.md)
 - [A2A plugin](../architecture/plugins/a2a/README.md)
 - [DSH reused plugins](../architecture/plugins/dsh/README.md)
 
@@ -121,49 +123,94 @@ Keep ACP/A2A/Website/local provider branching below Worker.
 
 Do not add Worker Assignment/Message/Artifact/State protocols.
 
-## 4. Website Agent plugin
+## 4. Website Agent core reuse
 
-Build the smallest Website ACP Agent adapter over the shared Website core.
+Do not begin with ACP or A2A protocol code.
 
-~~~text
-Agent Team / Workflow
-  -> Worker
-      -> ctx.subagents
-          -> dsh-subagent-acp
-              -> Website ACP Agent adapter over the shared Website core
-                  -> Website Agent
-~~~
+First characterize and expose the smallest supported protocol-neutral core API from `@tsuuanmi/internet`.
 
-Tests cover:
+Reuse the existing behavior around:
 
-- ACP initialize/session/prompt mapping;
-- Website conversation creation;
-- streamed/final result mapping;
-- cancellation/failure mapping;
-- Website ids hidden below plugin boundary;
-- non-coding research;
-- scientific literature/research;
-- result acceptance through Worker;
-- optional MCP tool attachment.
+- `WebsiteParticipantService`;
+- authenticated account/provider routing;
+- `ConversationStore`;
+- `ProviderTurnReceiptStore`;
+- participant result artifacts;
+- provider-native ChatGPT/Gemini research;
+- cancellation and completion semantics.
 
-Start one-shot.
+### Red
 
-## 5. A2A plugin
+Characterization tests first for:
 
-Implement an A2A provider/adapter behind the Worker provider seam using the official A2A SDK.
+- stable conversation binding;
+- same logical request cannot silently change prompt/conversation;
+- uncertain Website submission reconciles before resubmit;
+- ambiguous outcome fails closed;
+- full result is retained before compact projection;
+- chat and research modes remain distinct;
+- cancellation reaches provider execution.
 
-The first Red tests assume **zero AgentOS A2A extensions**.
+### Green
 
-Prove native AgentCard/AgentSkill/Task/TaskStatus/Message/Artifact/Part are sufficient while exact-input/recovery/acceptance state stays local.
+Expose/refine only the core façade needed by external adapters.
+
+Do not copy Internet source into AgentOS and do not import Internet Team/Workflow orchestration.
+
+### Refactor
+
+Keep Website provider drivers/browser internals below the core API.
+
+## 5. Website ACP + A2A adapters
+
+Build both protocol adapters over the **same core**.
+
+### ACP Agent adapter
 
 ~~~text
 Worker
   -> ctx.subagents
-      -> A2A provider
-          -> remote Agent
+      -> DSH ACP provider/client
+          -> Website ACP Agent adapter
+              -> Website Agent core
 ~~~
 
-Only add an A2A extension after a failing interoperability test proves the remote peer needs information missing from standard A2A input/result structures.
+Tests cover:
+
+- ACP initialize/new/prompt/cancel mapping;
+- ACP session -> core conversation mapping;
+- core logical-request reconciliation independent of ephemeral JSON-RPC ids;
+- Website/core ids hidden above Worker;
+- one-shot research through current DSH ACP provider;
+- stable v1 session loading in the Website ACP Agent;
+- exact gap preventing current DSH ACP client/provider from reusing that session across Worker runs.
+
+Start with bounded one-shot execution.
+
+### A2A Agent adapter
+
+~~~text
+Worker
+  -> AgentOS A2A provider/client
+      -> A2A
+          -> Website A2A Agent adapter/server
+              -> same Website Agent core
+~~~
+
+Use the official A2A SDK.
+
+Tests cover:
+
+- thin `AgentExecutor` -> core mapping;
+- AgentCard/AgentSkill capability discovery;
+- `contextId` -> continued core conversation context;
+- task/request mapping for reconciliation;
+- native Artifact/Part result projection;
+- cancellation -> core AbortSignal;
+- zero AgentOS protocol extensions;
+- chat/research routing without inventing a custom A2A skill-selection extension.
+
+The generic A2A Worker provider/client and the Website A2A server adapter are separate sides of the protocol but share no Website browser logic.
 
 ## 6. Agent Team plugin
 
@@ -250,13 +297,14 @@ DSH/Cordis remains the Host.
 1. DSH conformance.
 2. ACP provider conformance.
 3. Worker plugin.
-4. Website Agent plugin.
-5. A2A plugin.
-6. Agent Team plugin.
-7. software-development Profile.
-8. Workflow plugin.
-9. scientific-research Profile.
-10. deferred continuation/runtime adapters only after failing real requirements.
+4. characterize/refine the protocol-neutral Website core in `@tsuuanmi/internet`.
+5. Website ACP Agent adapter.
+6. generic A2A Worker provider/client + Website A2A Agent adapter.
+7. Agent Team plugin.
+8. software-development Profile.
+9. Workflow plugin.
+10. scientific-research Profile.
+11. deferred continuation/runtime adapters only after failing real requirements.
 
 ## Deferred
 
