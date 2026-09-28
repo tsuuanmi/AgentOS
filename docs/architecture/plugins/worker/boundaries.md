@@ -14,7 +14,7 @@ This document classifies Worker-related responsibilities so provider/runtime/pro
 | cost/context selection policy | Worker plugin |
 | delegated provider registry/lifecycle | DSH `ctx.subagents` |
 | local/compatible Agent execution protocol | ACP / DSH ACP plugin |
-| remote independent Agent protocol | A2A |
+| peer Agent-to-Agent collaboration | A2A plugin / Agent Team peer adapter |
 | Website transport/session mapping | Website Agent plugin |
 | tools/data/capabilities | MCP or native DSH tools |
 | domain procedure | Skill/capability pack |
@@ -42,7 +42,7 @@ See [DSH ACP](../dsh/acp.md).
 
 ## A2A boundary
 
-A2A owns independent Agent <-> Agent interoperability:
+A2A owns horizontal Agent <-> Agent interoperability, especially Website Agent <-> Agent Team Member collaboration:
 
 - AgentCard / AgentSkill;
 - Task / TaskStatus;
@@ -59,12 +59,18 @@ See [A2A plugin](../a2a/README.md).
 
 ## Website boundary
 
-Website Agent is exposed through a Worker provider integration.
+Website Agent exposes two separate ports: ACP for runtime control and A2A for peer collaboration.
 
-Preferred bounded path:
+Runtime path:
 
 ~~~text
-Worker -> ctx.subagents -> DSH ACP provider -> Website ACP Agent adapter -> shared Website core
+Worker -> ctx.subagents -> DSH ACP provider -> ACP -> Website ACP Agent adapter -> Website Core
+~~~
+
+Peer path:
+
+~~~text
+Agent Team Member <-> A2A <-> Website A2A Agent adapter -> Website Core
 ~~~
 
 Website conversation/session ids stay below the plugin boundary.
@@ -86,7 +92,7 @@ The Worker caller contract must not change when an execution moves among:
 - DSH-native provider;
 - ACP provider;
 - Website ACP Agent adapter over the shared Website core;
-- A2A provider;
+- ACP-controlled Website Agent with optional A2A peer port;
 - future provider.
 
 Provider limitations are exposed as capability/conformance facts rather than provider-specific branches in Agent Team/Workflow.
