@@ -7,36 +7,43 @@ This file routes coding agents to authoritative AgentOS knowledge and records re
 For non-trivial work:
 
 1. Read `README.md` and `docs/README.md`.
-3. Read `docs/architecture/` for ownership and dependency direction.
-4. Read `docs/reference/` when exact protocols, APIs, schemas, MCP mappings, or Exchange invariants matter.
-5. Load the relevant `.agents/skills/` Skill only when procedural agent methodology matters.
+2. Read the relevant `docs/architecture/` plugin documents for current behavior, ownership, and dependency direction.
+3. Read `docs/reference/` only when an exact AgentOS-owned semantic contract/invariant matters.
+4. Read `schemas/` only for AgentOS-owned serialized contracts; do not expect copies of ACP/A2A/MCP/DSH models.
+5. Load the relevant `.agents/skills/` Skill when procedural methodology matters.
 6. Read `docs/proposals/` only for the unresolved change being implemented.
-7. Read `docs/research/` only for evidence or alternatives.
+7. Read `docs/research/` only for evidence or open proving questions.
 8. When implementation exists, read the nearest source README, source, and tests.
 
 ## Authority
 
 - Architecture, reference, governance, source, and tests describe current truth within their stated scope.
-- Agent Skills under `.agents/skills/` are executable procedural guidance; proposals are evolutionary; research is non-normative.
-- Machine-readable JSON shapes are canonical under repository-root `/schemas`.
+- Plugin architecture documents include the behavioral invariants for the capability they define.
+- Skills are executable procedural guidance; proposals are evolutionary; research is non-normative.
+- JSON Schema exists only for AgentOS-owned serialized structures.
 - Do not duplicate a fact across documents. Link to its canonical home.
 
 ## Repository-wide invariants
 
-- Keep AgentOS smaller than DSH/Cordis; do not build a parallel runtime for mechanics DSH already owns.
-- Workflow and Agent Team are peer AgentOS capability compositions with explicit ownership boundaries.
-- DSH `ctx.agentTeams` is the primary current Team capability seam (experimental); AgentOS must not shadow DSH Team identity, roster, mailbox, Team task graph, member lifecycle, or Team persistence.
-- Worker integration keeps `Contract / Schema / Transport / Skill / Exchange invariant` responsibilities separate; canonical ownership is routed by `docs/architecture/worker-boundaries.md`.
-- Website-backed Worker communication follows the provider-neutral Worker Protocol; transport/provider/session identity never silently becomes AgentOS semantic identity.
-- Workflow Core is domain-agnostic and binds each run to an exact validated Workflow Definition/Profile; domain phase graphs belong to configuration, not Core code.
-- Workflow observes typed Agent Team phase completion rather than polling individual Website Agents or inferring completion from activity.
-- Model output is evidence, not authority for real effects. Validate effects against actual repository/environment state and explicit receipts.
-- User authority and side-effect completion are distinct.
-- Unknown execution outcomes require reconciliation; missing handles never authorize blind retry.
+- DSH/Cordis remains the Host. Keep AgentOS smaller than the Host and its plugin ecosystem.
+- "Everything Is A Plugin" means behavior/implementations are composable behind Cordis boundaries; it does not mean every noun becomes a package.
+- Agent Team is thin policy above DSH `ctx.agentTeams` + `ctx.subagents`; do not shadow DSH Team identity, roster, mailbox, task graph, member lifecycle, or Team persistence.
+- Workflow owns semantic Definition/Profile, WorkItem, recovery, acceptance, and effect policy; generic durable runtime mechanics come from DSH first or an optional plugin-backed runtime only when justified.
+- Worker is a capability-driven semantic execution role, not a runtime identity or standalone protocol.
+- DSH `ctx.subagents` is the default delegated-provider seam.
+- ACP is the preferred execution/control protocol for compatible providers; reuse the existing DSH ACP provider before product-specific integrations.
+- Website Agent should enter through the DSH provider seam, initially via a Website ACP bridge for bounded work.
+- A2A owns independent Agent-to-Agent Task/Message/Artifact collaboration. Start with zero AgentOS A2A extensions.
+- MCP owns Agent-to-tool/capability/data access; do not recreate an MCP Worker protocol.
+- Provider/protocol ids remain implementation handles. Add local ExecutionBinding/fencing only for a demonstrated retry/replacement/reconciliation invariant.
+- Provider terminal output is evidence, not automatic AgentOS phase/WorkItem completion.
+- Validate consequential effects against actual repository/environment/external state or trustworthy receipts.
+- Exact Definition/input state belongs to the semantic owner when reproducibility/recovery needs it; do not echo local bookkeeping across every wire object.
+- New domains add Profiles, Skills, tools, and domain result schemas before changing Agent Team/Workflow semantics.
 - New abstractions require a concrete semantic, lifecycle, authority, or replacement boundary.
 - Behavioral implementation uses tests as executable specifications and follows **Red -> Green -> Refactor**.
 - When behavior, ownership, interfaces, or validation expectations change, update affected canonical documentation in the same change set.
 
 ## Documentation
 
-Follow [AgentOS governance](docs/governance/README.md). README files are routers. Implementation details belong with implementation rather than in a hand-maintained `docs/src/` shadow tree.
+Follow [AgentOS governance](docs/governance/README.md). README files are routers. Implementation details belong with implementation rather than in a hand-maintained shadow tree.
