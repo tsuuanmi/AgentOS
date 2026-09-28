@@ -1,57 +1,36 @@
-# Agent Team composition map
+# Agent Team composition
 
-This document maps Agent Team needs to reusable plugins/protocols and the remaining AgentOS policy layer.
+## Dependency map
 
-## Composition inventory
+| Need | Owner / reuse |
+|---|---|
+| plugin lifecycle | Cordis |
+| Team roster/tasks/mailbox/lifecycle | [DSH Agent Team](../dsh/agent-team.md) |
+| participant execution | [Worker plugin](../worker/README.md) |
+| delegated provider registry | [DSH subagents](../dsh/subagents.md), behind Worker |
+| ACP execution | [DSH ACP](../dsh/acp.md), behind Worker |
+| Website execution | [Website Agent plugin](../website-agent/README.md), behind Worker |
+| remote A2A execution | [A2A plugin](../a2a/README.md), behind Worker |
+| typed phase result | Agent Team plugin |
+| collaboration barriers | Agent Team plugin |
 
-| Need | Reuse | AgentOS responsibility |
-|---|---|---|
-| plugin/service runtime | Cordis | composition only |
-| Team domain | DSH experimental ctx.agentTeams | conformance adapter + phase policy |
-| roster/tasks/mailbox | ctx.agentTeams + Session persistence | none unless a proven gap |
-| delegated provider registry | DSH ctx.subagents | capability selection |
-| local continuable agents | DSH spawn/fork providers | provider choice |
-| ACP-compatible agents | DSH ACP provider | provider conformance |
-| Website bounded work | DSH ACP provider + Website ACP bridge | bridge mapping only |
-| Website/remote A2A agent | official A2A SDK adapter | capability mapping + acceptance |
-| tools | DSH tools / MCP | scoping/policy |
-| AgentOS semantic records | ctx.storageDomain | only state uniquely owned by AgentOS |
-
-## What not to rebuild
-
-AgentOS should not independently implement:
-
-- Team roster/identity;
-- Team task DAG;
-- peer mailbox;
-- teammate spawn/resume/wait/interrupt;
-- Team event journal/projection;
-- generic delegated-agent registry;
-- generic Worker Message/Artifact/State protocol;
-- generic Worker Exchange.
-
-## Thin AgentOS modules
-
-A likely implementation is:
+## Thin implementation shape
 
 ~~~text
 agent-team/
   service
   phase-policy
-  capability-selector
-  provider-conformance
-  execution-binding?   # only for demonstrated retry/replacement race
+  collaboration-barrier
   phase-result
   validation
   adapters/
     dsh-agent-team
-    a2a?                # only when remote Agent-to-Agent is needed
 ~~~
 
-Website-over-ACP normally does not need a second Agent Team adapter because it appears through ctx.subagents.
+Capability selection/provider conformance/ExecutionBinding belong in Worker, not duplicated here.
 
-## Experimental dependency boundary
+## Experimental DSH boundary
 
-DSH ctx.agentTeams is experimental.
+`ctx.agentTeams` is experimental.
 
-Keep its concrete API behind one AgentOS adapter/conformance suite so upstream changes affect the adapter rather than Agent Team callers.
+Keep its concrete API behind one AgentOS adapter/conformance suite so upstream changes affect only the DSH adapter, not the Agent Team caller contract.
