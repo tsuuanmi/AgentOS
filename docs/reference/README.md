@@ -1,12 +1,13 @@
 # Reference
 
-Reference owns exact AgentOS-specific lookup material that is not already defined by DSH or an upstream protocol.
+Reference contains exact AgentOS-owned contracts that are more precise than architecture prose.
 
-- [Worker Contract](worker-contract.md) — minimum provider-neutral capability, input, execution, output, and effect guarantees.
-- [Execution binding](execution-binding.md) — residual cross-provider recovery/replacement/result-acceptance invariants.
-- [Protocol stack](../architecture/protocol-stack.md) — canonical ACP / A2A / MCP ownership.
-- [JSON Schemas](../../schemas/README.md) — AgentOS-owned serialized structures only.
+## Current reference groups
 
-Do not duplicate ACP, A2A, MCP, or DSH protocol/runtime references here. Link to upstream specifications and keep only AgentOS-specific semantic mappings.
+- [Worker](worker/README.md)
+  - [Contract](worker/contract.md)
+  - [Execution binding](worker/execution-binding.md)
 
-Procedural methodology belongs in Skills; see the [software-development Skill](../../.agents/skills/software-development/SKILL.md).
+Protocol/runtime specifications owned by A2A, ACP, MCP, or DSH are linked from architecture rather than copied here.
+
+Add a new reference group only when AgentOS owns an exact reusable contract that does not belong directly in one plugin architecture document.
