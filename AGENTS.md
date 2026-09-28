@@ -21,11 +21,11 @@ For non-trivial work:
 - Workflow and Agent Team are peer capabilities.
 - Workflow owns durable lifecycle/recovery/authority semantics.
 - Agent Team owns collaborative software work inside Team phases.
-- V1 uses DSH Agent Teams as the Team core.
+- DSH Agent Teams is the current Team core.
 - Do not duplicate DSH Team identity, roster, mailbox, Team task DAG, member lifecycle, Team persistence, or cold-resume mechanics.
 - Do not create permanent semantic personas such as Primary/Challenger or Correctness/Architecture reviewers. Use Worker instances selected by stable capability requirements.
-- Software-v0 capability profiles: research uses two Workers with `research + brainstorm + debate`; implementation uses a Worker with `implement + tdd`; review uses two Workers with `review + debate`; synthesis requires `synthesize`.
-- DSH Worker <-> Website Agent communication must use the versioned Worker Protocol. Keep the structured control shape stable; objectives/context values vary by run.
+- Current software capability profiles: research uses two Workers with `research + brainstorm + debate`; implementation uses a Worker with `implement + tdd`; review uses two Workers with `review + debate`; synthesis requires `synthesize`.
+- DSH Worker <-> Website Agent communication must use the Worker Protocol. Keep the structured control shape stable; objectives/context values vary by run.
 - Canonical machine-readable JSON Schemas live only under repository-root `/schemas`; do not create schema copies under `docs/`.
 - Transport-neutral callable operations belong in `docs/api/`.
 - MCP-specific mapping belongs in `docs/mcp/`; MCP is not the semantic contract and must reuse the canonical root schemas.
@@ -46,7 +46,7 @@ For non-trivial work:
 - Provider/transport/conversation ids stay implementation-local unless the identity itself is the product semantic object.
 - User authority and side-effect completion are distinct.
 - Unknown execution outcomes never authorize blind retry.
-- Treat DSH Storage Domain/single-Host/aggregate-run scheduling as Workflow provider-v1 choices, not permanent architecture.
+- Treat DSH Storage Domain/single-Host/aggregate-run scheduling as current Workflow provider choices, not permanent architecture.
 - DSH Agent Teams is core now because a working version has higher ROI than building theoretical alternative runtimes; keep AgentOS contracts above DSH-specific types so later replacement remains possible.
 - Controller is future/optional.
 - Do not add an abstraction until a concrete semantic/lifecycle/authority/replacement boundary proves it necessary.
