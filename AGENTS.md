@@ -1,44 +1,54 @@
 # AGENTS.md
 
-This file routes coding agents to the repository's authoritative knowledge.
+This file routes coding agents to authoritative AgentOS knowledge.
 
 ## Read before changing
 
 For non-trivial work:
 
-1. Read `README.md` for project scope.
-2. Read `docs/README.md` for the knowledge map and authority rules.
-3. Read current architecture before implementation.
-4. Read relevant proposals and research only as change context; they are not current production truth.
-5. When implementation exists, read the nearest source README, source, and tests before changing behavior.
+1. Read `README.md`.
+2. Read `docs/README.md`.
+3. Read current architecture.
+4. Read the relevant canonical contract.
+5. Read proposals/research only for unresolved change context or evidence.
+6. When implementation exists, read nearest source README/source/tests.
 
-## Invariants
+## Core invariants
 
-- Keep AgentOS smaller than the harness it runs on.
-- Prioritize the v1 interaction model: Local Agent + Workflow + Agent Team.
-- Local Agent is directly usable and is the current environment-native/user-facing surface.
-- Workflow is the durable coordination boundary and may outlive the originating Local connection when the provider contract claims durability.
-- Agent Team is the AgentOS semantic capability for collaborative/external reasoning; v1 uses DSH Agent Teams as the runtime/substrate while keeping DSH Team types below the AgentOS semantic contract.
-- Adapt Internet Team's independent-analysis, peer-evidence, research/review policy, and strongest-synthesis behavior; do not port its Team runtime in parallel.
-- Treat an Internet-backed continuable teammate provider as a future provider bridge behind DSH Agent Teams, not as a second Team engine.
-- Treat Workflow and Agent Team as peer capabilities: Local can call Agent Team directly; Workflow can invoke Agent Team through its semantic contract.
-- Workflow must not own Team roster/member/provider lifecycle, and Agent Team must not directly mutate WorkflowRun/WorkItem state.
-- A Workflow may compose Agent Team and other capabilities directly; do not force every internal step through the Local Agent.
-- Treat "Local can do almost everything, but should not be forced to do everything" as a design principle.
-- Keep Local, Workflow, and Agent Team as replaceable roles/contracts rather than provider identities.
-- Preserve graceful degradation when optional Agent Team/provider capabilities are unavailable.
-- Treat Controller integration as future/optional unless a concrete v1 requirement promotes it.
-- Do not build a second plugin runtime, loader, lifecycle manager, or configuration system beside DSH/Cordis.
-- Prefer DSH-native plugins, services, events, and bundles.
-- Own AgentOS semantics; compose DSH/public/external implementations.
-- Keep host task/session/worker handles as adapter-local identities unless the external identity itself is the semantic object.
-- Split a capability into separate contract/provider/consumer packages only when those roles have independent lifecycle, authority, failure, or replacement pressure and the boundary can be conformance-tested.
-- Avoid privileged core behavior that ordinary plugins cannot replace.
-- Keep architecture invariants separate from provider-v1 choices. Single-Host ownership, DSH Storage Domain, one-run aggregate storage, and derived scheduling are implementation decisions until cross-provider evidence promotes them.
-- Keep one canonical home for each fact; link instead of duplicating.
-- Update documentation with architecture, contract, or behavioral changes.
-- Use tests as executable specifications once production behavior is introduced.
+- Keep AgentOS smaller than DSH.
+- DSH/Cordis is the runtime kernel; do not build a parallel runtime/lifecycle/configuration system.
+- Local is the current user-facing/environment-native surface.
+- Workflow and Agent Team are peer capabilities.
+- Workflow owns durable lifecycle/recovery/authority semantics.
+- Agent Team owns collaborative software work inside Team phases.
+- V1 uses DSH Agent Teams as the Team core.
+- Do not duplicate DSH Team identity, roster, mailbox, Team task DAG, member lifecycle, Team persistence, or cold-resume mechanics.
+- A semantic DSH Team member is primarily a coordination proxy for one isolated Website Agent/conversation when website-backed work is used.
+- Do not silently share one Website Agent conversation between semantic teammates.
+- Research/review peers may debate directly through DSH `send_message`; Lead does not proxy ordinary peer debate.
+- Preserve independent-first analysis before peer debate.
+- Adapt Internet Team methodology (independent analysis, evidence-based debate, strongest-supported synthesis), not its parallel Team runtime.
+- The same dedicated Team may span research -> implementation -> review for one software collaboration.
+- Local receives typed synthesis/results by default rather than the full Team transcript.
+- Typed phase completion is the AgentOS semantic bridge above DSH Team mechanics.
+- Model/Website Agent output is data/evidence, not correctness authority.
+- Implementation effects are established through actual repository/environment validation.
+- Workflow must not mutate Team internals directly; Agent Team must not mutate Workflow state directly.
+- Provider/transport/conversation ids stay implementation-local unless the identity itself is the product semantic object.
+- User authority and side-effect completion are distinct.
+- Unknown execution outcomes never authorize blind retry.
+- Treat DSH Storage Domain/single-Host/aggregate-run scheduling as Workflow provider-v1 choices, not permanent architecture.
+- DSH Agent Teams is core now because a working version has higher ROI than building theoretical alternative runtimes; keep AgentOS contracts above DSH-specific types so later replacement remains possible.
+- Controller is future/optional.
+- Do not add an abstraction until a concrete semantic/lifecycle/authority/replacement boundary proves it necessary.
+- Use tests as executable specifications and follow Red -> Green -> Refactor for behavioral implementation.
 
-## Authority
+## Documentation authority
 
-Current architecture and contracts outrank proposals and research. Proposals describe intended change; research provides evidence and alternatives.
+`architecture/` and `contracts/` are canonical.
+
+`proposals/` is evolutionary.
+
+`research/` is evidence/non-normative.
+
+When documents overlap, canonical architecture/contracts win.
