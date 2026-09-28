@@ -10,4 +10,4 @@ Reference owns exact stable lookup material: protocols, callable interfaces, tra
 
 Machine-readable shapes remain authoritative under repository-root `/schemas`.
 
-Procedural agent methodology is executable guidance, not reference authority; see the [software-worker Skill](../../.agents/skills/software-worker/SKILL.md).
+Procedural agent methodology is executable guidance, not reference authority; see the [software-development Skill](../../.agents/skills/software-development/SKILL.md).
