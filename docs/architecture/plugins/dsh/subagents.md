@@ -21,8 +21,7 @@ Provider examples include:
 
 - DSH-native providers;
 - ACP provider;
-- Website Agent through ACP bridge;
-- AgentOS A2A provider;
+- Website Agent through the DSH ACP Client -> Website ACP Agent adapter path;
 - future providers.
 
 The Worker plugin owns semantic selection/acceptance.
@@ -36,3 +35,6 @@ Do not build an AgentOS provider registry beside `ctx.subagents`.
 When a new provider integration is needed, register it here where practical.
 
 See [Worker plugin](../worker/README.md).
+
+
+A2A peer communication is not a ctx.subagents provider requirement in the primary AgentOS architecture. It connects Website Agent and Agent Team Members horizontally through the A2A plugin.
