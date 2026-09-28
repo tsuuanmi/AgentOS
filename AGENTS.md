@@ -32,7 +32,7 @@ For non-trivial work:
 - Worker is an AgentOS semantic plugin whose invocations are capability-driven execution roles; it owns provider selection/binding/acceptance, not provider runtime identity.
 - Worker uses DSH `ctx.subagents` as the default delegated-provider seam.
 - ACP is the preferred execution/control protocol for compatible providers; reuse the existing DSH ACP provider before product-specific integrations.
-- Website Agent should enter through the DSH provider seam, initially via a Website ACP bridge for bounded work.
+- Website Agent should enter through the DSH provider seam, initially via a Website ACP Agent adapter -> shared Website core for bounded work.
 - A2A owns independent Agent-to-Agent Task/Message/Artifact collaboration. Start with zero AgentOS A2A extensions.
 - MCP owns Agent-to-tool/capability/data access; do not recreate an MCP Worker protocol.
 - Provider/protocol ids remain implementation handles. Add local ExecutionBinding/fencing only for a demonstrated retry/replacement/reconciliation invariant.
