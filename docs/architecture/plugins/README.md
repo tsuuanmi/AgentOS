@@ -28,6 +28,8 @@ docs/architecture/plugins/
 
   website-agent/
     README.md
+    core.md
+    adapters.md
 
   a2a/
     README.md
@@ -50,7 +52,7 @@ docs/architecture/plugins/
 | [Worker](worker/README.md) | capability-driven provider selection, execution binding, result acceptance |
 | [Agent Team](agent-team/README.md) | collaboration policy above DSH Team mechanics |
 | [Workflow](workflow/README.md) | durable sequencing/recovery semantics + declarative Profiles |
-| [Website Agent](website-agent/README.md) | Website execution bridge/provider integration |
+| [Website Agent](website-agent/README.md) | Internet-derived protocol-neutral Website core + ACP/A2A adapters |
 | [A2A](a2a/README.md) | remote independent-agent provider/protocol adapter |
 
 ### Reused DSH plugins/services
