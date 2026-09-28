@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentos.dev/schemas/worker-capabilities.schema.json",
+  "title": "AgentOS Worker Capabilities",
+  "description": "Capabilities advertised by a Worker adapter for capability-based selection.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "capabilities"
+  ],
+  "properties": {
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "worker-common.schema.json#/$defs/capability"
+      }
+    },
+    "extensions": {
+      "$ref": "worker-common.schema.json#/$defs/extensions"
+    }
+  }
+}
