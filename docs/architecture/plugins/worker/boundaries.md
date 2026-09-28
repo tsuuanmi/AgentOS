@@ -64,7 +64,7 @@ Website Agent is exposed through a Worker provider integration.
 Preferred bounded path:
 
 ~~~text
-Worker -> ctx.subagents -> DSH ACP provider -> Website ACP bridge
+Worker -> ctx.subagents -> DSH ACP provider -> Website ACP Agent adapter -> shared Website core
 ~~~
 
 Website conversation/session ids stay below the plugin boundary.
@@ -85,7 +85,7 @@ The Worker caller contract must not change when an execution moves among:
 
 - DSH-native provider;
 - ACP provider;
-- Website ACP bridge;
+- Website ACP Agent adapter over the shared Website core;
 - A2A provider;
 - future provider.
 
