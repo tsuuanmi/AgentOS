@@ -62,9 +62,25 @@ Worker instances, Website providers, and objectives may vary.
 
 The capability requirements and canonical schemas stay stable.
 
+## Canonical vocabulary
+
+AgentOS uses the same high-value semantic distinction as A2A:
+
+~~~text
+Message
+  = communication / contextual exchange
+
+Artifact
+  = durable Worker work product / deliverable
+~~~
+
+This is a semantic boundary, not merely naming.
+
+The current `worker-input.schema.json` and `worker-submission.schema.json` filenames are transitional. Before the schema conformance suite freezes the contract, they should be normalized so communication becomes Message, durable contribution/completion becomes Artifact, and lifecycle/control state remains in WorkerState or Message rather than Artifact.
+
 ## Canonical objects
 
-The Worker Protocol has three work-exchange objects plus capability discovery.
+The Worker Protocol has Assignment, Message, Artifact, WorkerState, and capability discovery.
 
 ### WorkerAssignment
 
@@ -93,9 +109,9 @@ The objective is the primary run-specific field.
 
 No MCP session, tunnel, Website conversation, model, or provider identity becomes assignment identity.
 
-### WorkerInput
+### Message
 
-Additional structured input for an existing assignment.
+Structured communication associated with an existing assignment.
 
 Canonical schema:
 
@@ -111,33 +127,34 @@ remediation
 control
 ~~~
 
-`kind` is intentionally open so plugins can add namespaced input kinds without changing the core schema.
+`kind` is intentionally open so plugins can add namespaced message kinds without changing the core schema.
 
-A WorkerInput never changes `assignmentId` or `inputBinding`.
+Typical Messages include peer evidence, local tool results, clarification, remediation, input requests, and control/diagnostic communication.
 
-### WorkerSubmission
+Message delivery is not semantic completion and never changes `assignmentId` or `inputBinding`.
 
-Website-backed Worker -> Local AgentOS output.
+### Artifact
+
+Durable Worker-produced work product.
 
 Canonical schema:
 
 [`worker-submission.schema.json`](../../schemas/worker-submission.schema.json)
 
-Core kinds:
+Canonical Artifact kinds begin with:
 
 ~~~text
 contribution
 completion
-input_required
-failure
-cancelled
 ~~~
 
 The distinction between contribution and completion is important.
 
-An independent brainstorm/review result can be a durable `contribution` before debate while the same Website assignment remains active.
+An independent brainstorm/review result can be a durable contribution Artifact before debate while the same assignment remains active.
 
-Only `completion`, `failure`, or `cancelled` is terminal.
+A completion Artifact is the terminal work product accepted for the assignment.
+
+The current WorkerSubmission schema also carries `input_required`, `failure`, and `cancelled`. That is transitional: these are lifecycle/control semantics, not Artifacts, and should move to Message/WorkerState during the schema normalization pass.
 
 ### WorkerCapabilities
 
@@ -157,7 +174,7 @@ The Website Agent receives:
 
 1. one stable operating contract derived from its required capabilities;
 2. one structured WorkerAssignment;
-3. later WorkerInput objects when new evidence/context arrives.
+3. later Message objects when new evidence/context arrives.
 
 Provider adapters may render structured JSON into host-friendly prompt text, but they must preserve the fields and semantics.
 
@@ -205,7 +222,7 @@ The objective/context change; the control protocol does not.
 
 ### synthesize
 
-- combine required Worker submissions;
+- combine required current Worker Artifacts;
 - prefer strongest-supported conclusions;
 - preserve unresolved disagreement when evidence does not converge;
 - emit the expected phase output schema.
@@ -252,7 +269,7 @@ Do not derive `attemptId` from an MCP session, tunnel, browser tab, conversation
 
 A Website response is not automatically assignment completion.
 
-A terminal WorkerSubmission is current only when:
+A terminal completion Artifact is current only when:
 
 1. `workerId` and `assignmentId` match the active assignment;
 2. `attemptId` matches the current Website execution attempt;
@@ -267,13 +284,13 @@ Intermediate `contribution` does not terminate the assignment.
 
 DSH Team mailbox remains the local Worker-to-Worker collaboration transport.
 
-Peer evidence is represented as structured WorkerInput at the Website boundary.
+Peer evidence is represented as a structured Message at the Worker/provider boundary.
 
 ~~~text
 DSH Worker A
   -> DSH send_message
   -> DSH Worker B
-  -> WorkerInput(kind = peer_evidence)
+  -> Message(kind = peer_evidence)
   -> Website Agent B
 ~~~
 
@@ -305,7 +322,7 @@ DSH owns:
 Worker Protocol adds:
 
 - capability selection;
-- structured Website assignments/inputs/submissions;
+- structured assignments/Messages/Artifacts;
 - Website binding below Worker identity;
 - typed completion.
 
@@ -338,10 +355,10 @@ Tests should prove:
 - different objectives preserve the same protocol shape;
 - Worker selection satisfies required capabilities;
 - multiple Workers with the same capabilities remain isolated by explicit ids/bindings;
-- peer evidence arrives as structured WorkerInput;
+- peer evidence arrives as a structured Message;
 - debate continues the same assignment;
 - stale worker/assignment/attempt/input bindings cannot commit;
-- contributions do not terminate assignments;
+- contribution Artifacts do not terminate assignments;
 - terminal output validates against its expected schema;
 - direct API and MCP adapters preserve the same Worker semantics;
 - Workflow sees only typed Agent Team phase completion.
