@@ -63,7 +63,7 @@ If a future A2A extension is required, use A2A's native extension/metadata mecha
 
 ## Related reference
 
-- [Worker Contract](../docs/reference/worker-contract.md)
-- [Execution binding](../docs/reference/execution-binding.md)
+- [Worker Contract](../docs/reference/worker/contract.md)
+- [Execution binding](../docs/reference/worker/execution-binding.md)
 - [Minimal semantic delta](../docs/architecture/plugins/agentos/semantic-delta.md)
 - [Protocol stack](../docs/architecture/protocol-stack.md)
