@@ -2,6 +2,7 @@
 
 - **Owner:** DeepSeek Harness + ACP upstream
 - **AgentOS consumers:** Worker plugin, Website Agent plugin
+- **Role in Website architecture:** first ACP Runtime/Client implementation
 
 DSH already provides ACP on both sides.
 
@@ -21,7 +22,7 @@ Current behavior:
 - cancellation/permission handling;
 - teardown after the run.
 
-AgentOS should reuse this provider before creating product-specific ACP clients.
+AgentOS should reuse this provider as the first runtime-side ACP Client for Website Agent. The Website ACP contract must not depend on DSH-specific semantics so another ACP-compatible runtime can connect later.
 
 ## Website Agent composition
 
@@ -37,7 +38,7 @@ Worker
 
 The Website core owns browser/auth/native-conversation/reconciliation behavior.
 
-ACP owns the protocol lifecycle.
+ACP owns the runtime/client <-> Agent protocol lifecycle. A2A peer communication is a separate boundary and is not routed through this DSH ACP plugin.
 
 See [Website Agent adapters](../website-agent/adapters.md#acp-adapter).
 
