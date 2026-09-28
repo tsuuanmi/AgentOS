@@ -3,215 +3,225 @@
 - **Status:** canonical architecture
 - **Owner:** AgentOS
 - **Host:** DSH / Cordis
-- **Role:** capability-driven execution selection, provider binding, and result acceptance
+- **Role:** right-agent-right-job selection and semantic acceptance of delegated execution
 
-Worker is an **AgentOS semantic plugin**.
+A Worker invocation is a capability-driven semantic execution request. Worker is not a model, provider, session, protocol, or permanent role such as Developer/Researcher.
 
-A Worker invocation means: execute one semantic unit of work with a provider that can satisfy the required capabilities.
-
-Worker is not a model, provider, session, teammate, or protocol.
-
-~~~text
-semantic work
-  -> Worker plugin
-      -> capability requirements
-      -> provider selection
-      -> provider execution
-      -> result acceptance
-~~~
-
-## Responsibilities
-
-The Worker plugin owns:
-
-- semantic capability requirements;
-- right-agent-right-job provider selection;
-- cost/context/provider policy when configured;
-- provider capability/conformance projection;
-- dispatch through the installed provider seam;
-- ExecutionBinding only when retry/recovery/replacement needs one;
-- semantic acceptance of native provider/protocol results against the caller's contract;
-- effect/evidence validation hooks where the caller requires them.
-
-The Worker plugin does **not** own:
-
-- provider session/task lifecycle;
-- Team collaboration policy;
-- Workflow sequencing/recovery policy;
-- A2A Message/Artifact definitions;
-- ACP protocol definitions;
-- MCP tool protocol;
-- domain procedure/Skills;
-- provider-native identities.
-
-## Provider seam
-
-The default execution registry is DSH `ctx.subagents`.
+## Architecture
 
 ~~~mermaid
 flowchart LR
-    Caller[Agent Team / Workflow]
+    Caller[Workflow / Agent Team]
     Worker[Worker plugin]
-    Registry[DSH ctx.subagents]
 
-    Native[DSH providers]
-    ACP[DSH ACP provider]
-    Website[Website Agent bridge]
-    Future[future provider]
+    Req[Capability requirements]
+    Select[Provider selection]
+    Bind[Optional ExecutionBinding]
+    Accept[Semantic acceptance]
+
+    Registry[DSH ctx.subagents]
+    Native[DSH-native provider]
+    ACP[DSH ACP provider/client]
+    Website[Website ACP Agent]
+    Other[future provider]
 
     Caller --> Worker
-    Worker --> Registry
-
+    Worker --> Req --> Select
+    Select --> Registry
     Registry --> Native
     Registry --> ACP
     ACP --> Website
-    Registry -.-> Future
+    Registry -.-> Other
+
+    Registry --> Bind
+    Bind --> Accept
+    Accept --> Caller
 ~~~
 
-The Worker plugin should prefer one provider seam rather than branching Agent Team/Workflow on provider type.
+A2A is intentionally absent from this dispatch graph. A2A belongs to peer collaboration between Website Agent and Agent Team Members.
 
-## Capability model
+## Public semantic boundary
 
-Capabilities are semantic guarantees, not provider names.
-
-Software examples:
+Conceptually, callers provide:
 
 ~~~text
-research
-brainstorm
-implement
-tdd
-review
-synthesize
+work input
+required capabilities
+selection policy / preferences
+acceptance contract
+cancellation
+optional recovery context
 ~~~
 
-Scientific examples:
+Worker returns either:
 
 ~~~text
-literature-search
-evidence-extraction
-data-analysis
-statistical-analysis
-scientific-review
+native provider/protocol result
+or
+domain-owned result when the caller explicitly defines one
 ~~~
 
-Capability truth may be read directly from:
+The exact TypeScript interface is intentionally not frozen before TDD.
 
-- DSH provider metadata;
+## Selection flow
+
+~~~mermaid
+flowchart TD
+    Start[Semantic work]
+    R[Read required capabilities]
+    Candidates[Enumerate installed providers]
+    Conformance[Filter by proven capability / lifecycle / tools]
+    Policy[Apply explicit provider + cost/context policy]
+    Pick{Candidate available?}
+    Dispatch[Dispatch through ctx.subagents]
+    Fail[Capability unavailable]
+
+    Start --> R --> Candidates --> Conformance --> Policy --> Pick
+    Pick -- yes --> Dispatch
+    Pick -- no --> Fail
+~~~
+
+Selection must use actual guarantees, not provider brand assumptions.
+
+Sources of truth may include:
+
+- DSH provider metadata/conformance;
 - ACP negotiated capabilities;
-- A2A AgentCard/AgentSkill when evaluating peer capabilities;
-- configured policy;
-- available tools/environment;
-- conformance tests.
+- configured tools/environment;
+- explicit Profile/provider preferences;
+- test-proven lifecycle behavior.
 
-A provider may be selected only when its real behavior satisfies the required capability.
+A2A AgentSkill may inform Agent Team peer selection, but A2A is not Worker runtime dispatch.
+
+## Execution flow
+
+~~~mermaid
+sequenceDiagram
+    participant C as Caller
+    participant W as Worker
+    participant S as ctx.subagents
+    participant P as Provider / ACP Agent
+
+    C->>W: semantic work + capabilities + acceptance
+    W->>W: select conforming provider
+    W->>S: native provider request
+    S->>P: execute using provider-native lifecycle
+    P-->>S: native result / updates
+    S-->>W: native result
+    W->>W: validate current execution if required
+    W->>W: validate caller/domain contract
+    W->>W: validate required effect/evidence
+    W-->>C: accepted native/domain result
+~~~
+
+## Native protocol rule
+
+Worker must use owning types directly.
+
+~~~text
+ACP session / prompt / update / stopReason
+  -> ACP types
+
+DSH provider/run result
+  -> DSH types
+
+MCP tool/resource
+  -> MCP types
+~~~
+
+Do not introduce generic WorkerMessage, WorkerArtifact, WorkerTask, WorkerStatus, WorkerResult, or normalized copies of upstream objects.
+
+See [Worker contract](contract.md).
 
 ## ExecutionBinding
 
-Most one-shot work does not need another durable entity.
+The default is **no extra binding object**.
 
-When retry, continuation, replacement, or reconciliation requires it, the semantic owner may persist:
+Use native lifecycle/identity directly when sufficient.
 
-~~~text
-ExecutionBinding
-  semanticWorkId
-  provider
-  providerHandle
-  optional generation/fence
+Create a minimal local [Execution binding](execution-binding.md) only when AgentOS semantic recovery/replacement must associate a WorkItem/phase invocation with a provider execution across a boundary the provider does not own.
+
+~~~mermaid
+flowchart LR
+    Semantic[Workflow WorkItem / Team phase invocation]
+    Need{Recovery association needed?}
+    Native[Use native provider handle directly]
+    Binding[Persist minimal ExecutionBinding]
+    Fence{Old execution can race?}
+    Generation[Add generation/fence]
+
+    Semantic --> Need
+    Need -- no --> Native
+    Need -- yes --> Binding --> Fence
+    Fence -- no --> Native
+    Fence -- yes --> Generation
 ~~~
-
-Provider handles remain provider-native:
-
-~~~text
-DSH SubagentRun
-ACP session/run
-A2A taskId/contextId
-Website conversation/session behind provider
-~~~
-
-A generation/fence exists only if an older execution can race with a replacement.
 
 ## Result acceptance
 
-Provider terminal state is evidence, not automatic semantic completion.
+~~~mermaid
+flowchart TD
+    Result[Native provider result]
+    Current{Current execution?}
+    Lifecycle{Native lifecycle acceptable?}
+    Contract{Caller/domain contract valid?}
+    Effect{Required real effect/evidence valid?}
+    Accept[Accept semantic result]
+    Reject[Reject / reconcile]
 
-Worker acceptance checks only the caller-visible execution contract:
+    Result --> Current
+    Current -- no --> Reject
+    Current -- yes --> Lifecycle
+    Lifecycle -- no --> Reject
+    Lifecycle -- yes --> Contract
+    Contract -- no --> Reject
+    Contract -- yes --> Effect
+    Effect -- no --> Reject
+    Effect -- yes --> Accept
+~~~
 
-1. current binding, when binding matters;
-2. acceptable provider terminal state;
-3. output satisfies the caller/domain result contract;
-4. required evidence/effects are present and valid.
+Provider/model success text is never proof of a consequential external effect.
 
-Provider output stays native. Validate it directly against the caller/domain contract; create a new typed object only when that object is itself a domain-owned result, not a protocol mirror.
-
-## Website Agent
-
-Website Agent is not a Worker type. It is a protocol-neutral Website execution core exposed to runtimes through ACP.
-
-The preferred runtime-control path is:
+## Website Agent runtime path
 
 ~~~text
-Worker plugin
-  -> ctx.subagents
-      -> DSH ACP provider/client
+Worker
+  -> DSH ctx.subagents
+      -> DSH ACP Client/provider
           -> ACP
-              -> Website ACP Agent adapter
+              -> Website ACP Agent
                   -> Website Agent Core
 ~~~
 
-See [Website Agent plugin](../website-agent/README.md) and [Website adapters](../website-agent/adapters.md).
+Website Agent peer A2A traffic does not flow back through Worker.
 
-## A2A
+## Error classes
 
-A2A is not the primary Worker provider transport in AgentOS.
+Names are not frozen, but implementation must distinguish at least:
 
-Its primary role is horizontal peer communication between the Website Agent and Agent Team Members:
+- no conforming provider;
+- provider unavailable/start failure;
+- cancellation;
+- provider-native failure;
+- invalid semantic/domain result;
+- stale/replaced execution when a real race exists;
+- unknown effect outcome requiring reconciliation;
+- unverified effect.
 
-~~~text
-Worker/runtime
-  -> ACP -> Website Agent
-               <-> A2A <-> Agent Team Member
-~~~
+Do not collapse these into one generic failed status if recovery behavior differs.
 
-Worker owns execution selection/control. A2A owns peer collaboration.
+## Implementation gates
 
-See [A2A plugin](../a2a/README.md).
+Worker is ready when tests prove:
 
-## Relationship to Agent Team and Workflow
+1. capability requirement selects only conforming providers;
+2. provider replacement does not change caller semantics;
+3. ACP/DSH native result objects are consumed directly;
+4. no protocol mirror model is introduced;
+5. no ExecutionBinding is created for simple one-shot work;
+6. minimal binding/fencing rejects a demonstrated stale race;
+7. invalid domain result is rejected;
+8. claimed effects require real evidence;
+9. unsupported capabilities fail explicitly rather than degrading silently.
 
-~~~text
-Agent Team
-  -> Worker plugin
-      -> execute selected work
-
-Workflow
-  -> Agent Team for collaborative phases
-  -> Worker plugin directly for simple delegated WorkItems when appropriate
-~~~
-
-Agent Team owns collaboration policy.
-
-Workflow owns durable sequencing/recovery policy.
-
-Worker owns provider-neutral execution selection and acceptance.
-
-## Domain rule
-
-Adding a software, scientific, security, or data-analysis domain changes capabilities, Skills, tools, Profiles, and result contracts.
-
-It must not create a new Worker runtime type.
-
-## Canonical references
-
-- [Worker boundaries](boundaries.md)
-- [Worker contract](contract.md)
-- [Execution binding](execution-binding.md)
-- [DSH subagents](../dsh/subagents.md)
-- [DSH ACP](../dsh/acp.md)
-- [Website Agent](../website-agent/README.md)
-- [A2A](../a2a/README.md)
-
-
-## Direct protocol reuse
-
-Worker must not normalize ACP/A2A/DSH objects into AgentOS mirror types. Consume the native SDK/runtime object directly and add only AgentOS-owned semantic state. See [Worker contract](contract.md).
+Related: [Contract](contract.md), [Boundaries](boundaries.md), [Communication](communication.md), [Execution binding](execution-binding.md).
