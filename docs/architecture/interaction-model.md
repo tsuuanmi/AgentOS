@@ -1,11 +1,11 @@
 # Interaction model
 
-- **Status:** canonical v1 interaction model
+- **Status:** canonical interaction model
 - **Date:** 2026-09-28
 
 ## Primary entry
 
-V1 is directly usable through Local:
+AgentOS is directly usable through Local:
 
 ~~~text
 User <-> Local Agent
@@ -72,7 +72,7 @@ The same Team may be reused across the software collaboration for continuity. Re
 
 ## Team communication
 
-Each DSH Team Worker can bind to a separate Website Agent/conversation and communicates with it through the versioned Worker Protocol.
+Each DSH Team Worker can bind to a separate Website Agent/conversation and communicates with it through the Worker Protocol.
 
 Normal peer debate is direct:
 
@@ -88,6 +88,23 @@ Each DSH Worker validates the structured peer message, continues its existing We
 Lead does not proxy every peer message.
 
 Lead/synthesizer gathers distilled conclusions and produces the typed phase result.
+
+## Website Worker exchange
+
+For MCP-backed Website Workers, Website Agent is the MCP client and the local Worker bridge is the MCP server.
+
+~~~text
+local Worker state
+  -> queued WorkerAssignment
+
+Website Agent
+  -> claim
+  -> submit contribution
+  -> receive peer/local WorkerInput
+  -> submit completion
+~~~
+
+The local runtime does not rely on transport sessions to identify work and does not assume it can wake a Website conversation.
 
 ## Ownership
 
