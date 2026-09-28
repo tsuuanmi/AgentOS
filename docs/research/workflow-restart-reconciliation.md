@@ -1,7 +1,7 @@
 # Workflow restart and reconciliation
 
 - **Status:** active proving research
-- **Canonical semantics:** [Workflow requirements](../requirements/workflow/README.md)
+- **Canonical semantics:** [Workflow plugin contract](../architecture/plugins/workflow/README.md)
 - **Scope:** crash-window evidence for the first Workflow durable semantic layer and its TDD suite.
 
 ## Core rule
