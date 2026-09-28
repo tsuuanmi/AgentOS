@@ -2,7 +2,7 @@
 
 This is the canonical knowledge router for AgentOS.
 
-AgentOS follows [Documentation Architecture](governance/documentation-architecture.md): current truth, change, exploration, procedural guidance, and executable reality must not silently substitute for one another.
+AgentOS applies the documentation lifecycle defined by [Governance](governance/README.md): current truth, change, exploration, procedural guidance, and executable reality must not silently substitute for one another.
 
 ## Current map
 
@@ -13,7 +13,7 @@ AgentOS follows [Documentation Architecture](governance/documentation-architectu
 | [Reference](reference/README.md) | exact protocols, APIs, transport mappings, server invariants, and schemas | canonical / living |
 | [Proposals](proposals/README.md) | unresolved changes being prepared for implementation | evolutionary |
 | [Research](research/README.md) | temporary evidence for unresolved provider/runtime questions | exploratory |
-| [Governance](governance/README.md) | documentation policy and lifecycle | canonical / living |
+| [Governance](governance/README.md) | local application of the shared documentation standard | canonical / living |
 | [JSON Schemas](../schemas/README.md) | machine-readable structural contracts | canonical / executable reference |
 | [Agent Skills](../.agents/skills/software-worker/SKILL.md) | procedural agent methodology | executable guidance; not correctness authority |
 | source + tests | implementation and executable specification | executable reality |

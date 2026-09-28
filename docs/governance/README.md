@@ -1,9 +1,16 @@
 # Governance
 
-Governance owns repository-wide documentation policy and knowledge lifecycle.
+AgentOS follows the shared [DNA Documentation Architecture Standard](https://github.com/tsuuanmi/DNA/blob/main/docs/governance/documentation-architecture.md) instead of copying that repository-wide standard into AgentOS.
 
-- [Documentation Architecture](documentation-architecture.md) — the shared taxonomy AgentOS follows.
+AgentOS-specific application:
 
-AgentOS instantiates only categories that contain real knowledge. Repository-root `/schemas` remains the canonical machine-readable contract location, and executable Agent Skills live under repository-root `.agents/skills/`.
+- README files route; they do not become parallel specifications.
+- Canonical machine-readable structures live at repository-root `/schemas`.
+- Executable Agent Skills live at repository-root `.agents/skills/`; do not create a `docs/skills/` shadow router.
+- Requirements, architecture, and reference own current product truth within their scopes.
+- Proposals contain unresolved changes only.
+- Research is temporary evidence. Once accepted conclusions are fully promoted, delete the redundant research document and rely on Git history for archaeology.
+- Implementation documentation belongs with implementation rather than in a hand-maintained `docs/src/` shadow tree.
+- Behavioral changes update affected canonical docs and executable tests in the same change set.
 
-Keep governance small and stable. Feature behavior and implementation details belong in their semantic homes. Research is temporary: once its accepted conclusions are fully represented by canonical docs, source/tests, or an active proposal, delete the redundant research document and rely on Git history for archaeology.
+Keep governance small and stable. Feature behavior and implementation details belong in their semantic homes.

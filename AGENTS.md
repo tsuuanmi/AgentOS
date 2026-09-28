@@ -39,4 +39,4 @@ For non-trivial work:
 
 ## Documentation
 
-Follow `docs/governance/documentation-architecture.md`. README files are routers. Implementation details belong with implementation rather than in a hand-maintained `docs/src/` shadow tree.
+Follow [AgentOS governance](docs/governance/README.md). README files are routers. Implementation details belong with implementation rather than in a hand-maintained `docs/src/` shadow tree.
