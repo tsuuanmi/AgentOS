@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agentos.dev/schemas/worker-submission.schema.json",
+  "$id": "urn:agentos:schema:worker-submission",
   "title": "AgentOS Worker Submission",
   "description": "Intermediate or terminal output submitted by a Website-backed Worker.",
   "oneOf": [
@@ -32,16 +32,16 @@
       ],
       "properties": {
         "submissionId": {
-          "$ref": "worker-common.schema.json#/$defs/identifier"
+          "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
         },
         "workerId": {
-          "$ref": "worker-common.schema.json#/$defs/identifier"
+          "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
         },
         "assignmentId": {
-          "$ref": "worker-common.schema.json#/$defs/identifier"
+          "$ref": "urn:agentos:schema:worker-common#/$defs/identifier"
         },
         "inputBinding": {
-          "$ref": "worker-common.schema.json#/$defs/inputBinding"
+          "$ref": "urn:agentos:schema:worker-common#/$defs/inputBinding"
         },
         "kind": {
           "type": "string",
@@ -56,11 +56,11 @@
         "evidence": {
           "type": "array",
           "items": {
-            "$ref": "worker-common.schema.json#/$defs/reference"
+            "$ref": "urn:agentos:schema:worker-common#/$defs/reference"
           }
         },
         "extensions": {
-          "$ref": "worker-common.schema.json#/$defs/extensions"
+          "$ref": "urn:agentos:schema:worker-common#/$defs/extensions"
         }
       }
     },
@@ -76,7 +76,7 @@
               "const": "contribution"
             },
             "outputSchemaRef": {
-              "$ref": "worker-common.schema.json#/$defs/schemaRef"
+              "$ref": "urn:agentos:schema:worker-common#/$defs/schemaRef"
             },
             "output": {
               "description": "Intermediate typed output validated against outputSchemaRef."
@@ -102,7 +102,7 @@
               "const": "completion"
             },
             "outputSchemaRef": {
-              "$ref": "worker-common.schema.json#/$defs/schemaRef"
+              "$ref": "urn:agentos:schema:worker-common#/$defs/schemaRef"
             },
             "output": {
               "description": "Terminal typed output validated against outputSchemaRef."
@@ -136,14 +136,14 @@
               ],
               "properties": {
                 "kind": {
-                  "$ref": "worker-common.schema.json#/$defs/semanticName"
+                  "$ref": "urn:agentos:schema:worker-common#/$defs/semanticName"
                 },
                 "message": {
                   "type": "string",
                   "minLength": 1
                 },
                 "schemaRef": {
-                  "$ref": "worker-common.schema.json#/$defs/schemaRef"
+                  "$ref": "urn:agentos:schema:worker-common#/$defs/schemaRef"
                 }
               }
             }
@@ -167,7 +167,7 @@
               "const": "failure"
             },
             "error": {
-              "$ref": "worker-common.schema.json#/$defs/error"
+              "$ref": "urn:agentos:schema:worker-common#/$defs/error"
             }
           },
           "required": [
