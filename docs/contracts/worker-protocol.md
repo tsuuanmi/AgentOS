@@ -94,38 +94,25 @@ Run-specific values may change:
 
 The adapter may render the JSON into provider-specific text when necessary, but it must preserve the protocol fields and semantics.
 
-## Transport-neutral API
+## Related specifications
 
-The semantic API is:
+The Worker Protocol defines semantics and data contracts.
 
-~~~text
-capabilities() -> WorkerCapability[]
+Callable operations are documented separately in [Worker API](../api/worker-api.md).
 
-start(WorkerRequest) -> WorkerAssignmentState
-
-continue(WorkerContinueRequest) -> WorkerAssignmentState
-
-inspect(assignmentId) -> WorkerAssignmentState
-
-cancel(assignmentId, reason?) -> WorkerAssignmentState
-~~~
-
-The API can be implemented:
-
-- as direct typed calls inside one process;
-- over MCP tools;
-- over another JSON-RPC/HTTP transport;
-- through a provider-specific Website Agent adapter.
+MCP-specific mapping is documented separately in [MCP Worker transport](../mcp/worker-transport.md).
 
 Transport must not change Worker semantics.
 
 ## JSON Schema
 
-Canonical v1 schemas use JSON Schema 2020-12:
+Canonical v1 schemas use JSON Schema 2020-12 and live at repository root:
 
-- [Worker request](schemas/worker-request.schema.json)
-- [Worker result/state](schemas/worker-result.schema.json)
-- [Worker peer message](schemas/worker-message.schema.json)
+- [Worker request](../../schemas/worker-request.schema.json)
+- [Worker result/state](../../schemas/worker-result.schema.json)
+- [Worker peer message](../../schemas/worker-message.schema.json)
+
+The schema registry is [`/schemas`](../../schemas/README.md).
 
 Schema version is explicit in every request/result.
 
@@ -301,27 +288,14 @@ They review independently, exchange evidence directly, revise, then the synthesi
 
 If a future profile wants specialized review lenses, it adds capabilities such as `architecture-analysis` or `test-analysis`; it does not create new architectural Agent identities.
 
-## MCP transport profile
+## Transport profiles
 
-MCP is the preferred standard transport when the Worker boundary crosses a process/provider boundary and the integration supports MCP.
+The Worker Protocol is transport-neutral.
 
-AgentOS Worker Protocol remains transport-neutral.
+See:
 
-An MCP adapter may expose:
-
-~~~text
-agentos.worker.capabilities
-agentos.worker.start
-agentos.worker.continue
-agentos.worker.inspect
-agentos.worker.cancel
-~~~
-
-Each tool uses the same canonical JSON Schemas for input/output.
-
-MCP 2026-07-28 uses stateless self-contained requests, so Worker assignment/conversation state must remain explicit through handles such as `assignmentId` and provider binding references rather than hidden transport session state.
-
-If the MCP Tasks extension is supported, a long-running Worker assignment may be projected as an MCP Task. That projection does not replace Worker assignment identity or AgentOS completion semantics.
+- [Worker API](../api/worker-api.md) for callable operations;
+- [MCP Worker transport](../mcp/worker-transport.md) for MCP tool/task mapping.
 
 ## DSH relationship
 
@@ -369,5 +343,5 @@ Tests should prove:
 - debate continues the same Website assignment;
 - invalid/stale assignment ids or input bindings cannot complete;
 - output must validate against expected schema;
-- MCP and direct API adapters preserve the same Worker semantics;
+- all API/transport adapters preserve the same Worker semantics and canonical schemas;
 - Workflow sees only typed Agent Team phase completion.
