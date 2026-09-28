@@ -2,16 +2,18 @@
 
 AgentOS is a lightweight, plugin-first agent capability layer designed to run inside [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-The project is intentionally small. AgentOS should not become a second harness, runtime, plugin manager, lifecycle engine, or orchestration kernel. DSH owns composition and plugin lifecycle; AgentOS composes existing DSH capabilities and public tools into a focused agent experience, adding AgentOS-specific plugins only where a real missing capability exists.
+The project is intentionally small. AgentOS should not become a second harness, runtime, plugin manager, lifecycle engine, or orchestration kernel. DSH owns composition and plugin lifecycle. AgentOS follows a contract-first rule: **own AgentOS semantics, compose implementations**, and add an AgentOS-specific component only when an existing DSH/public contract cannot preserve the required meaning.
 
 ## Direction
 
 - **AgentOS itself is a DSH plugin/bundle**, not a standalone runtime.
 - **DSH/Cordis is the core** for boot, lifecycle, composition, configuration, loading, and disposal.
 - **Reuse before ownership**: prefer an existing DSH plugin/service or public tool over implementing an AgentOS subsystem.
-- **AgentOS plugins fill real gaps**: create a new plugin only when the capability is AgentOS-specific or cannot be expressed cleanly through existing DSH/public surfaces.
+- **Own semantics, compose implementations**: stable AgentOS contracts sit above DSH/public/external implementations only when AgentOS must own the meaning.
+- **AgentOS plugins fill real semantic gaps**: do not create a component merely because a policy/helper looks reusable.
 - **No wrapper-for-wrapper's-sake**: consume DSH contracts and public tools directly when their semantics already fit.
-- **Capabilities remain replaceable** when they need independent ownership, configuration, lifecycle, or provider choice.
+- **Capabilities remain replaceable** when they need independent ownership, authority, failure isolation, lifecycle, or provider choice, with substitution proven by conformance tests.
+- **Transport is projection, not truth**: DSH job/MCP task/worker handles must not silently become AgentOS semantic identities.
 - **Composition is explicit**: a default AgentOS experience may bundle plugins, but the bundle is not the architecture.
 - **No speculative core**: shared code belongs in a minimal library only when multiple plugins require the same invariant or contract.
 
