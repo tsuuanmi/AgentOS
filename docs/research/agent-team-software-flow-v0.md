@@ -26,8 +26,8 @@ Local is outside the Team and receives typed synthesis/results.
 ### Independent brainstorm
 
 ~~~text
-researcher-a <-> Website Agent A
-researcher-b <-> Website Agent B
+Researcher Primary    <-> Website Agent RP
+Researcher Challenger <-> Website Agent RC
 ~~~
 
 Both work independently against the same bounded semantic input.
@@ -39,10 +39,10 @@ No peer evidence is shared before the barrier.
 After both initial results exist:
 
 ~~~text
-researcher-a <------ send_message ------> researcher-b
+Researcher Primary <------ send_message ------> Researcher Challenger
       |                                      |
       v                                      v
-Website Agent A                         Website Agent B
+Website Agent RP                      Website Agent RC
 challenge/revise                       challenge/revise
 ~~~
 
@@ -67,7 +67,7 @@ ResearchResult
 The same Team continues.
 
 ~~~text
-implementer <-> Website Agent I
+Implementer <-> Website Agent I
 ~~~
 
 Implementation follows TDD:
@@ -91,8 +91,8 @@ Actual workspace/repository state and deterministic validation establish correct
 Prefer independent review members:
 
 ~~~text
-reviewer-a <-> Website Agent RA
-reviewer-b <-> Website Agent RB
+Reviewer Correctness <-> Website Agent R1
+Reviewer Architecture <-> Website Agent R2
 ~~~
 
 Flow:
@@ -121,6 +121,21 @@ review findings
 Reuse the implementer where continuity helps.
 
 Bound remediation cycles prevent unbounded Team growth/work.
+
+## Phase completion rule
+
+Workflow never watches Website Agent UI/activity directly.
+
+For every Team phase:
+
+~~~text
+required Website assignments complete durably
+  -> corresponding DSH TeamTasks complete
+  -> Lead typed phase result commits
+  -> Workflow advances
+~~~
+
+A member becoming inactive or a message being accepted/queued is not phase completion.
 
 ## Workflow relationship
 
