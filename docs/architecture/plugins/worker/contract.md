@@ -16,20 +16,11 @@ It owns capability selection and semantic acceptance. It does not own copies of 
 
 When a boundary is ACP, use ACP SDK/protocol objects directly.
 
-When a boundary is A2A, use A2A SDK/protocol objects directly.
-
 When a boundary is DSH, use DSH service/provider objects directly.
 
 ~~~text
 ACP
   -> ACP session / prompt / update / stop reason
-
-A2A
-  -> AgentCard / AgentSkill
-  -> Task / TaskStatus
-  -> Message
-  -> Artifact / Part
-  -> contextId
 
 DSH
   -> ctx.subagents provider/result
@@ -86,7 +77,6 @@ Worker may inspect native capability information directly:
 
 - DSH provider metadata;
 - ACP negotiated capabilities;
-- A2A AgentCard / AgentSkill;
 - installed tools/environment;
 - explicit configuration;
 - conformance evidence.
@@ -113,7 +103,6 @@ Examples:
 
 ~~~text
 ACP sessionId
-A2A taskId / contextId
 DSH provider/run handle
 ~~~
 
@@ -142,7 +131,7 @@ If a domain needs a typed result, define the **domain result**, not a protocol c
 
 Use native communication:
 
-- A2A Message/Artifact for peer agents;
+- A2A Message/Artifact is used directly by Agent Team/Website peer collaboration;
 - DSH Team mailbox for in-DSH Team collaboration;
 - ACP prompt/update for runtime/client communication;
 - MCP for tools/data/capabilities.
@@ -221,3 +210,8 @@ Add an AgentOS type only for an AgentOS-owned semantic.
 - [Execution binding](execution-binding.md)
 - [Protocol stack](../../protocol-stack.md)
 - [AgentOS semantic delta](../agentos/semantic-delta.md)
+
+
+## A2A ownership note
+
+A2A remains subject to the same no-shadow-model rule, but its Task/Message/Artifact/context lifecycle is owned by the A2A + Agent Team/Website collaboration boundary rather than Worker execution binding.
