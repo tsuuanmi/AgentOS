@@ -15,6 +15,8 @@ For non-trivial work:
 ## Invariants
 
 - Keep AgentOS smaller than the harness it runs on.
+- Preserve the local-first interaction model: User <-> Local Agent, with Direct, Team/Consult, and Workflow delegation paths.
+- A Workflow may compose Internet Team and other capabilities directly; do not force every internal step through the Local Agent.
 - Do not build a second plugin runtime, loader, lifecycle manager, or configuration system beside DSH/Cordis.
 - Prefer DSH-native plugins, services, events, and bundles.
 - Own AgentOS semantics; compose DSH/public/external implementations.
