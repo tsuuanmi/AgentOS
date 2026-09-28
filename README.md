@@ -33,7 +33,7 @@ User
 
 **Local can do almost everything, but AgentOS should not force Local to do everything.**
 
-"Agent Team" is the semantic capability name. DSH Agent Teams is a possible substrate; the current Internet-backed behavior is one possible implementation. A remote Controller may be added later without changing these boundaries.
+"Agent Team" is the semantic capability name. It is independently usable from Local and may also be invoked by Workflow. Workflow does not own Team members or Team lifecycle; it consumes Agent Team through a semantic request/result boundary. DSH Agent Teams is a possible substrate, and the current Internet-backed behavior is one possible implementation. A remote Controller may be added later without changing these boundaries.
 
 See [the interaction model](docs/architecture/interaction-model.md).
 
@@ -49,6 +49,7 @@ See [the interaction model](docs/architecture/interaction-model.md).
 - **Transport is projection, not truth**: DSH job/MCP task/worker handles must not silently become AgentOS semantic identities.
 - **Composition is explicit**: a default AgentOS experience may bundle plugins, but the bundle is not the architecture.
 - **No speculative core**: shared code belongs in a minimal library only when multiple plugins require the same invariant or contract.
+- **Separate architecture from provider decisions**: DSH Storage Domain, single-Host ownership, aggregate run storage, and a derived in-memory scheduler are v1 provider choices unless promoted by cross-provider evidence.
 
 See [docs/README.md](docs/README.md) for the documentation map and the current [plugin-first architecture proposal](docs/proposals/plugin-first-architecture.md).
 
