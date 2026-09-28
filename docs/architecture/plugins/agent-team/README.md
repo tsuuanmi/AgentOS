@@ -30,138 +30,44 @@ AgentOS should reuse those mechanics where their contract satisfies the required
 
 ## AgentOS semantic delta
 
-Agent Team adds a thinner layer above the runtime:
+Agent Team adds only policy above the runtime:
 
-- agnostic Worker capability requirements;
-- Worker/provider binding selection;
-- independent-first phase barriers;
-- provider-neutral Worker Message/Artifact semantics where needed;
-- capability-aware peer routing across local/remote Worker providers;
-- typed AgentOS phase results;
-- exact phase input/result binding;
-- correctness/effect validation;
-- provider conformance rules.
+- semantic capability requirements;
+- right-agent-right-job selection;
+- provider capability/conformance checks;
+- independent-first/domain collaboration barriers;
+- mapping independent remote agents through A2A when needed;
+- typed phase result acceptance;
+- stale ExecutionBinding rejection when replacement races are possible;
+- correctness/effect validation required by the phase.
+
+It does not own a parallel Team mailbox, generic Worker Message/Artifact protocol, or generic Worker Exchange service.
 
 ~~~mermaid
 flowchart TB
     API[AgentOS Agent Team semantic service]
-    Phase[Phase policy + typed result]
-    Select[Worker capability selector]
-    Exchange[Worker Exchange extensions]
+    Phase[Phase policy + typed acceptance]
+    Select[Capability selector]
+    Binding[ExecutionBinding only when needed]
 
     DSHAT[DSH ctx.agentTeams]
     Sub[DSH ctx.subagents]
-    Session[DSH Session persistence/projection]
-    Providers[DSH / Codex / Claude / ACP providers]
-    Web[Website Agent MCP provider]
+    ACP[DSH ACP provider]
+    Website[Website Agent provider]
+    A2A[A2A adapter]
 
     API --> Phase
     Phase --> Select
     Phase --> DSHAT
-    Phase --> Exchange
+    Phase --> Binding
 
-    DSHAT --> Sub
-    DSHAT --> Session
-    Select --> Providers
-    Select --> Web
-
-    Providers <--> Exchange
-    Web <--> Exchange
+    Select --> Sub
+    Sub --> ACP
+    Sub --> Website
+    Select -. remote .-> A2A
 ~~~
 
-The exact need for a separate Worker Exchange persistence service must be driven by gaps between `ctx.agentTeams`/`ctx.subagents` and Worker Protocol guarantees. Do not duplicate durable mailbox/roster/task state that DSH already provides.
+A2A owns remote Task/Message/Artifact transport. ACP/DSH providers own their native execution lifecycle. AgentOS stores only the binding facts needed to know which provider execution is current for a semantic phase.
 
-## Composition layers
+See [Minimal semantic delta](../../minimal-semantic-delta.md).
 
-### Team domain
-
-Prefer DSH `ctx.agentTeams` for:
-
-- member identity/roster;
-- Team task DAG;
-- peer mailbox;
-- member lifecycle;
-- Team waiting/interrupt;
-- Team durability/recovery.
-
-### Worker execution
-
-Prefer DSH `ctx.subagents` as the local provider seam.
-
-Available provider families include:
-
-- spawn/fork DSH agents;
-- Codex;
-- Claude Code;
-- ACP;
-- DSH SDK.
-
-Website Agent is an additional AgentOS Worker provider over MCP.
-
-### Worker semantic layer
-
-AgentOS supplies provider-neutral semantics only where required:
-
-~~~text
-Worker capabilities
-WorkerAssignment
-Message
-Artifact
-WorkerState
-attempt/input fencing
-typed phase output
-~~~
-
-Worker is agnostic and selected by capabilities; it is not a DSH teammate type.
-
-### Phase policy
-
-AgentOS phase policy defines domain-specific collaboration above generic Team mechanics.
-
-The initial software profile uses capabilities such as research, brainstorm, debate, implement, tdd, review and synthesize.
-
-Future domains add capability profiles without changing Team runtime.
-
-## Internal architecture
-
-~~~mermaid
-flowchart LR
-    Caller[Local / Workflow]
-    Service[Agent Team semantic service]
-    Policy[Phase policy]
-    Team[ctx.agentTeams]
-    Selector[Worker selector]
-    Subagents[ctx.subagents]
-    Exchange[Worker semantic/exchange layer]
-    Result[Typed phase result]
-
-    Caller --> Service
-    Service --> Policy
-    Policy --> Team
-    Policy --> Selector
-    Selector --> Subagents
-    Selector --> Exchange
-    Team --> Exchange
-    Exchange --> Result
-    Result --> Service
-~~~
-
-## DSH dependency set
-
-See [composition](composition.md) for the detailed package/capability map.
-
-## Implementation principle
-
-Before adding a new AgentOS module, ask:
-
-1. Does DSH `ctx.agentTeams` already own this?
-2. Does DSH `ctx.subagents` already own this?
-3. Is this just a provider adapter?
-4. Is this truly an AgentOS semantic invariant?
-
-Only the fourth case normally justifies new core AgentOS state/logic.
-
-## Requirements
-
-- [Agent Team requirements](../../../requirements/agent-team/README.md)
-- [Worker requirements](../../../requirements/agent-team/workers.md)
