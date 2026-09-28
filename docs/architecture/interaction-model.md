@@ -106,7 +106,7 @@ flowchart LR
     RVR -->|changes required| I
 ~~~
 
-Future profiles can define different phases/capabilities without changing Worker identity.
+These phases are supplied by the software-development Workflow Definition/Profile, not Workflow Core. Future profiles can define different phases/capabilities without changing Worker identity or Workflow Core.
 
 ## Inside an Agent Team phase
 
