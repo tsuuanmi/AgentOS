@@ -43,16 +43,18 @@ One software collaboration should use a dedicated DSH root Team that may persist
 research -> implementation -> review
 ~~~
 
-Each semantic Team member binds to one isolated Website Agent/conversation.
+Each DSH teammate is a Worker selected by capabilities and binds to one isolated Website Agent/conversation.
 
 ~~~text
-DSH Lead         <-> Website Agent S / synthesis
-DSH researcher A <-> Website Agent A
-DSH researcher B <-> Website Agent B
-DSH implementer  <-> Website Agent I
-DSH reviewer A   <-> Website Agent RA
-DSH reviewer B   <-> Website Agent RB
+Worker A [research, brainstorm, debate] <-> Website Agent A
+Worker B [research, brainstorm, debate] <-> Website Agent B
+Worker I [implement, tdd]               <-> Website Agent I
+Worker R1 [review, debate]              <-> Website Agent R1
+Worker R2 [review, debate]              <-> Website Agent R2
+Lead/Synthesis [synthesize]             <-> Website Agent S
 ~~~
+
+The canonical structured boundary is [Worker Protocol](../contracts/worker-protocol.md): versioned JSON Schema with direct typed API and an MCP transport profile.
 
 Research/review policy:
 
@@ -96,7 +98,7 @@ These choices must satisfy the canonical Workflow contract but are not permanent
 Red:
 
 - create dedicated DSH Team root;
-- bind two research members to distinct Website Agent conversations;
+- provision two Workers satisfying `research + brainstorm + debate`, each with a distinct Website Agent conversation;
 - independent-first research;
 - peer-to-peer debate through DSH Team messages;
 - each member forwards peer evidence to its own Website Agent;
@@ -120,14 +122,14 @@ Reuse the same Team root.
 
 Implementation:
 
-- implementer Website Agent;
+- Worker satisfying `implement + tdd` bound to a Website Agent;
 - TDD Red -> Green -> Refactor;
 - ImplementationReport;
 - real repository/environment validation remains external authority.
 
 Review:
 
-- independent reviewers;
+- two Workers satisfying `review + debate`;
 - direct peer debate;
 - exact-input ReviewResult;
 - remediation cycle if needed.
@@ -151,18 +153,18 @@ Prove restart/reconciliation with the same Team provider.
 
 The completion/communication model is now explicit.
 
-Stable software roles:
+Stable software capability profiles:
 
 ~~~text
-Lead / Synthesizer
-Researcher Primary
-Researcher Challenger
-Implementer
-Reviewer Correctness
-Reviewer Architecture
+research: 2 x [research, brainstorm, debate]
+implementation: 1 x [implement, tdd]
+review: 2 x [review, debate]
+synthesis: [synthesize]
 ~~~
 
-Each role has one isolated Website Agent binding for the Team run.
+Worker instances/providers may vary. Capability requirements and the JSON-schema protocol do not.
+
+Each Worker has one isolated Website Agent binding for the Team run.
 
 Completion is layered:
 
@@ -180,10 +182,10 @@ Provider-v1 should persist AgentOS-only binding/assignment/completion state in a
 Current remaining bridge questions are implementation-level:
 
 1. exact Storage Domain schema/transaction shape for member bindings and assignment completions;
-2. exact Website Agent adapter API for assign/continue/inspect/cancel;
+2. concrete implementation of the canonical Worker API: capabilities/start/continue/inspect/cancel;
 3. provider-specific completion detection and auth/re-auth behavior;
 4. how local tool requests from Website Agent I are represented and authorized;
-5. whether Lead synthesis always uses Website Agent S or can be local for some profiles.
+5. whether synthesis always uses a Website Agent Worker or may be satisfied locally by a Worker with `synthesize`.
 
 See [Website Agent bridge protocol v0](../research/website-agent-bridge-protocol-v0.md).
 
@@ -230,10 +232,10 @@ Not required to ship v1:
 Implementation can begin when:
 
 - architecture/contracts remain internally consistent;
-- stable Team roles and Website Agent completion ownership are reflected in tests;
+- capability-driven Worker profiles and Website Agent completion ownership are reflected in tests;
 - the per-member binding/assignment Storage Domain schema is concrete enough to implement;
 - typed completion has a concrete testable API;
-- the fixed research Team topology is encoded in black-box tests;
+- the research capability profile and Worker Protocol schemas are encoded in black-box tests;
 - Workflow provider choices remain clearly implementation-specific;
 - no DSH Team/runtime state is shadowed by AgentOS.
 
