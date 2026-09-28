@@ -7,35 +7,36 @@ created: 2026-09-28
 
 # Plugin-first AgentOS architecture
 
-This proposal now contains only **remaining v1 implementation decisions and open questions**.
+This proposal contains only remaining implementation decisions and open questions.
 
-Current accepted architecture lives in:
+Current accepted semantics live in:
 
 - [Architecture](../architecture/README.md)
 - [Workflow contract](../contracts/workflow.md)
 - [Agent Team contract](../contracts/agent-team.md)
+- [Worker Protocol](../contracts/worker-protocol.md)
+- [Worker API](../api/worker-api.md)
+- [MCP Worker transport](../mcp/worker-transport.md)
+- [Schema registry](../../schemas/README.md)
 
-Research documents provide evidence only.
+Research documents are evidence, not authority.
 
 ## Goal
 
-Ship the smallest working AgentOS on DSH that proves:
+Ship the smallest working AgentOS on DSH without rebuilding DSH mechanics.
 
 ~~~text
 Local
   -> Agent Team
+       -> Website Workers through MCP where supported
   -> Workflow
-  -> Agent Team
+       -> same Agent Team capability
   -> real environment validation
 ~~~
 
-without rebuilding DSH machinery.
+## Agent Team implementation target
 
-## V1 implementation target
-
-### Agent Team
-
-Use DSH Agent Teams as the core Team runtime.
+Use DSH Agent Teams as the current Team runtime.
 
 One software collaboration should use a dedicated DSH root Team that may persist across:
 
@@ -43,50 +44,137 @@ One software collaboration should use a dedicated DSH root Team that may persist
 research -> implementation -> review
 ~~~
 
-Each DSH teammate is a Worker selected by capabilities and binds to one isolated Website Agent/conversation.
+Workers are selected by capabilities:
 
 ~~~text
-Worker A [research, brainstorm, debate] <-> Website Agent A
-Worker B [research, brainstorm, debate] <-> Website Agent B
-Worker I [implement, tdd]               <-> Website Agent I
-Worker R1 [review, debate]              <-> Website Agent R1
-Worker R2 [review, debate]              <-> Website Agent R2
-Lead/Synthesis [synthesize]             <-> Website Agent S
+research:
+  2 x [research, brainstorm, debate]
+
+implementation:
+  1 x [implement, tdd]
+
+review:
+  2 x [review, debate]
+
+synthesis:
+  [synthesize]
 ~~~
 
-The canonical semantic boundary is [Worker Protocol](../contracts/worker-protocol.md).
+Worker instances/providers may vary.
 
-Machine-readable contracts live under repository-root [`/schemas`](../../schemas/README.md).
+## Worker / Website boundary
 
-Callable operations live in [Worker API](../api/worker-api.md).
-
-MCP-specific mapping lives in [MCP Worker transport](../mcp/worker-transport.md).
-
-Research/review policy:
+The stable application model is:
 
 ~~~text
-independent work
-  -> barrier
-  -> direct peer debate through DSH send_message
-  -> challenge/revise via each member's Website Agent
-  -> synthesis
+WorkerAssignment
+WorkerInput
+WorkerSubmission
+WorkerCapabilities
 ~~~
 
-Lead is not the transport proxy for normal debate.
+Canonical schemas live under repository-root `/schemas`.
 
-The main missing AgentOS-specific implementation is typed phase completion:
+### Local application direction
+
+The Agent Team provider uses [Worker API](../api/worker-api.md):
 
 ~~~text
-ResearchResult
-ImplementationReport
-ReviewResult
+enqueueAssignment
+appendInput
+inspectAssignment
+cancelAssignment
+readSubmissions
 ~~~
 
-### Workflow
+### Website direction
+
+When the Website host supports MCP, MCP is the default interoperability profile.
+
+~~~text
+Website Agent = MCP client
+local Worker bridge = MCP server
+~~~
+
+Website-facing tools are pull/submit oriented:
+
+~~~text
+agentos.worker.claim
+agentos.worker.receive
+agentos.worker.submit
+agentos.worker.inspect
+~~~
+
+Do not map the internal Local API mechanically into Website-facing MCP tools.
+
+Local code must not assume it can arbitrarily wake a Website conversation.
+
+Queued work remains durable until the Website host/client becomes active through a supported mechanism.
+
+See [MCP Worker interoperability research](../research/mcp-worker-interoperability.md).
+
+## Research/debate target
+
+~~~text
+Worker A assignment
+  -> Website Agent A
+  -> independent contribution
+
+Worker B assignment
+  -> Website Agent B
+  -> independent contribution
+
+barrier
+
+DSH send_message A <-> B
+  -> WorkerInput(peer_evidence)
+  -> Website Agents continue existing assignments
+  -> revised terminal submissions
+
+synthesize
+  -> ResearchResult
+~~~
+
+Lead is not a relay for ordinary peer debate.
+
+## Implementation/review target
+
+Implementation:
+
+- Worker satisfying `implement + tdd`;
+- local effects only through authorized bridge/tools;
+- Red -> Green -> Refactor;
+- ImplementationReport;
+- real environment validation remains authoritative.
+
+Review:
+
+- two Workers satisfying `review + debate`;
+- independent contribution first;
+- direct peer evidence;
+- terminal reviewed submissions;
+- exact-input ReviewResult.
+
+## Completion
+
+Completion is layered:
+
+~~~text
+terminal WorkerSubmission
+  -> relevant DSH TeamTask completion
+  -> typed phase result
+  -> Workflow WorkItem completion
+~~~
+
+Workflow never polls Website Agents.
+
+Transport/session state is never completion authority.
+
+## Workflow implementation target
 
 Implement the first Workflow provider as a thin DSH-backed durable layer.
 
-Candidate provider-v1 choices:
+Current provider choices:
 
 - DSH Storage Domain;
 - single Host mutation owner;
@@ -95,154 +183,135 @@ Candidate provider-v1 choices:
 - derived scheduler;
 - DSH/Agent Team execution adapters.
 
-These choices must satisfy the canonical Workflow contract but are not permanent architecture requirements.
+These are implementation choices, not permanent contract requirements.
+
+## Schema implementation questions
+
+The core schema set is now:
+
+~~~text
+worker-common
+worker-capabilities
+worker-assignment
+worker-input
+worker-submission
+~~~
+
+Before implementation, validate:
+
+1. whether the current `$id` namespace is appropriate/stable for plugin consumers;
+2. how runtime schema registries resolve/bundle shared `$ref`;
+3. how MCP tool schemas are generated as self-contained schemas;
+4. whether `extensions` needs namespaced property constraints;
+5. which concrete schemas define core peer evidence, local tool result, phase outputs, and MCP tool envelopes;
+6. which JSON Schema validator settings are canonical, especially `format` handling.
+
+## MCP implementation questions
+
+1. exact schemas for `claim / receive / submit / inspect`;
+2. how a Website principal is authorized for a specific `workerId`;
+3. polling/wait behavior for `receive`;
+4. optional MCP Tasks projection for long waits;
+5. provider-specific resume/activation behavior when Website conversation is inactive;
+6. whether scoped local MCP tools are needed immediately or WorkerInput-mediated local actions are sufficient.
+
+## Storage questions
+
+Define the minimum AgentOS-only provider state for:
+
+~~~text
+Worker binding
+assignment queue/state
+input queue/cursor
+durable submissions
+phase completion
+~~~
+
+Do not mirror DSH roster/mailbox/TeamTask state.
 
 ## TDD implementation order
 
-### 1. Agent Team research vertical slice
+### 1. Schema conformance
 
 Red:
 
-- create dedicated DSH Team root;
-- provision two Workers satisfying `research + brainstorm + debate`, each with a distinct Website Agent conversation;
-- independent-first research;
-- peer-to-peer debate through DSH Team messages;
-- each member forwards peer evidence to its own Website Agent;
-- Lead/synthesizer produces typed durable ResearchResult;
-- Local receives synthesis, not raw Team transcript.
+- valid canonical examples;
+- invalid/stale/missing-handle examples;
+- schema composition/bundling;
+- plugin-defined capability/input kinds;
+- contribution vs terminal completion.
 
 Green:
 
-- minimum DSH Agent Team composition;
-- minimum Website Agent binding;
-- minimum typed completion bridge.
+- schema registry/validator support.
 
-Refactor:
+### 2. Local Worker store/API
 
-- isolate DSH-specific mapping behind the Agent Team provider boundary;
-- avoid generic Team abstractions.
+Red:
 
-### 2. Agent Team implementation + review
+- atomic enqueue/claim;
+- isolated Worker bindings;
+- append/read input;
+- durable submissions;
+- stale/fenced submission rejection;
+- restart recovery.
 
-Reuse the same Team root.
+### 3. MCP Worker profile
 
-Implementation:
+Red:
 
-- Worker satisfying `implement + tdd` bound to a Website Agent;
-- TDD Red -> Green -> Refactor;
-- ImplementationReport;
-- real repository/environment validation remains external authority.
+- Website client claims explicit Worker assignment;
+- no connector/session identity leakage;
+- receive/submit use canonical data contracts;
+- multiple Website Workers remain isolated;
+- inactive Website leaves work queued;
+- MCP and direct API are semantically equivalent.
 
-Review:
+### 4. DSH research Team
 
-- two Workers satisfying `review + debate`;
-- direct peer debate;
-- exact-input ReviewResult;
-- remediation cycle if needed.
+Red:
 
-### 3. Workflow around the Team
+- two research/debate Workers;
+- independent-first contributions;
+- DSH peer messaging;
+- peer WorkerInput;
+- revised terminal submissions;
+- typed ResearchResult.
 
-Add durable outer checkpoints:
+### 5. Implementation + review
 
-~~~text
-research
-implementation
-validation
-review
-remediation
-PendingAction/delivery
-~~~
+Reuse the same Team and Worker bridge.
 
-Prove restart/reconciliation with the same Team provider.
+### 6. Durable Workflow
 
-## Website Agent bridge direction
-
-The completion/communication model is now explicit.
-
-Stable software capability profiles:
-
-~~~text
-research: 2 x [research, brainstorm, debate]
-implementation: 1 x [implement, tdd]
-review: 2 x [review, debate]
-synthesis: [synthesize]
-~~~
-
-Worker instances/providers may vary. Capability requirements and the JSON-schema protocol do not.
-
-Each Worker has one isolated Website Agent binding for the Team run.
-
-Completion is layered:
-
-~~~text
-Website Agent assignment completion
-  -> DSH TeamTask completion
-  -> typed Lead phase completion
-  -> Workflow WorkItem completion
-~~~
-
-Workflow never polls Website Agents directly.
-
-Provider-v1 should persist AgentOS-only binding/assignment/completion state in an AgentOS DSH Storage Domain while leaving DSH roster/mailbox/task state solely in DSH Agent Teams.
-
-Current remaining bridge questions are implementation-level:
-
-1. exact Storage Domain schema/transaction shape for member bindings and assignment completions;
-2. concrete implementation of the canonical [Worker API](../api/worker-api.md): capabilities/start/continue/inspect/cancel;
-3. provider-specific completion detection and auth/re-auth behavior;
-4. how local tool requests from Website Agent I are represented and authorized;
-5. whether synthesis always uses a Website Agent Worker or may be satisfied locally by a Worker with `synthesize`.
-
-See [Website Agent bridge protocol v0](../research/website-agent-bridge-protocol-v0.md).
-
-## Typed completion questions
-
-The completion bridge must:
-
-- validate phase schema;
-- bind exact semantic input;
-- become durable before reporting success;
-- reject/fence stale invocation results;
-- survive Host restart;
-- expose no DSH TeamTask/member/message ids in the semantic result.
-
-A small scoped completion tool/event is the current leading option, but its exact API is not yet accepted.
-
-## Workflow provider questions
-
-Validate before implementation expands:
-
-1. Does one aggregate WorkflowRun record remain simple enough for the first software flow?
-2. Which DSH Storage Domain backend should tests use by default?
-3. What exact provider state references the dedicated Team root and Website Agent binding recovery state?
-4. How is an interrupted Agent Team phase reconciled without replaying already-completed semantic work?
-5. Which phase operations are SAFE_RETRY vs RECONCILE_BEFORE_RETRY?
+Add outer checkpoints/recovery/authority once Team semantics work end-to-end.
 
 ## Deferred
 
-Not required to ship v1:
+Not required for the first working system:
 
 - Controller;
-- MCP Tasks projection;
 - distributed/multi-Host Workflow ownership;
 - second Agent Team runtime;
 - native remote-continuable DSH teammate transport;
-- generic TeamRun object;
-- generic DebateRound/TeamTurn domain objects;
+- generic TeamRun;
+- generic DebateRound/TeamTurn;
 - universal artifact/assessment subsystem;
-- Workstream/continuation across terminal WorkflowRuns;
-- arbitrary DAG framework.
+- Workstream across terminal WorkflowRuns;
+- arbitrary DAG framework;
+- A2A or ACP as additional transports.
 
-## Acceptance for starting implementation
+A2A and ACP remain useful semantic references, not current transport dependencies.
 
-Implementation can begin when:
+## Acceptance for implementation
 
-- architecture/contracts remain internally consistent;
-- capability-driven Worker profiles and Website Agent completion ownership are reflected in tests;
-- the per-member binding/assignment Storage Domain schema is concrete enough to implement;
-- typed completion has a concrete testable API;
-- the research capability profile and root `/schemas` Worker Protocol schemas are encoded in black-box tests;
-- Workflow provider choices remain clearly implementation-specific;
-- no DSH Team/runtime state is shadowed by AgentOS.
+Implementation can start when:
 
-Then implementation follows strict TDD: **Red -> Green -> Refactor**.
+- canonical docs are internally consistent;
+- schemas validate cleanly with representative fixtures;
+- MCP direction/identity/authorization assumptions are encoded as tests;
+- the Worker store shape is concrete enough for restart-safe implementation;
+- typed phase completion has a concrete testable boundary;
+- no DSH Team state is shadowed by AgentOS.
+
+Behavioral implementation then follows strict TDD: **Red -> Green -> Refactor**.
