@@ -37,6 +37,40 @@ describe('DSH Agent Team adapter', () => {
     expect(agentTeams.listMembers).toHaveBeenCalledWith(agent)
   })
 
+  it('forwards native teammate creation and returns the DSH member result unchanged', async () => {
+    const lead = { id: 'lead-1' }
+    const request = {
+      name: 'researcher',
+      description: 'collect evidence',
+      prompt: [{ type: 'text', text: 'research independently' }],
+      context: 'fresh',
+      provider: 'spawn',
+      signal: new AbortController().signal,
+    }
+    const result = {
+      member: {
+        id: 'member-session-1',
+        name: 'researcher',
+        role: 'teammate',
+        status: 'active',
+        diagnostics: [],
+      },
+    }
+    const agentTeams = {
+      membership: vi.fn(),
+      tryMembership: vi.fn(),
+      listMembers: vi.fn(),
+      spawnTeammate: vi.fn(async () => result),
+      sendMessage: vi.fn(),
+    }
+    const adapter = new DshAgentTeamAdapter(agentTeams as unknown as DshAgentTeamService)
+
+    const actual = await adapter.spawnTeammate(lead as never, request as never)
+
+    expect(agentTeams.spawnTeammate).toHaveBeenCalledWith(lead, request)
+    expect(actual).toBe(result)
+  })
+
   it('passes peer mail through and returns the native DSH receipt unchanged', async () => {
     const agent = { id: 'lead-1' }
     const request = {
