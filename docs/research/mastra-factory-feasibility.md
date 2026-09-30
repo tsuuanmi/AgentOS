@@ -1,6 +1,6 @@
 # Mastra / Mastra Factory reference study
 
-- **Status:** active research / architecture reference
+- **Status:** historical/reference research; non-canonical
 - **Reviewed:** 2026-09-28
 - **Constraint:** DeepSeek Harness / Cordis remains the AgentOS Host.
 
@@ -18,6 +18,10 @@ Official sources:
 - <https://mastra.ai/blog/introducing-temporal-workflows>
 - <https://mastra.ai/blog/introducing-dynamic-workflows>
 - <https://github.com/mastra-ai/softwarefactory-template>
+
+## Canonical-status note
+
+This file records external comparison evidence. Current architecture is defined under `docs/architecture/`; where this study mentions ACP/A2A/Website Agent composition, the newer Worker-first MVP architecture takes precedence.
 
 ## Why it matters
 
@@ -134,8 +138,8 @@ The remaining hypothesis is:
 
 1. right-agent-right-job capability selection over DSH providers;
 2. cost/context-aware allocation;
-3. Website Agent reuse through the same provider seam;
-4. native A2A remote collaboration without duplicate wire models;
+3. Website capability reuse across Worker compositions;
+4. DSH Team for MVP collaboration with A2A reserved for future cross-runtime peers;
 5. domain-agnostic Workflow Profiles;
 6. thin acceptance/effect semantics above provider completion;
 7. DSH plugin composition that lets each implementation be replaced independently.
@@ -146,4 +150,4 @@ Use Mastra/Factory as a comparison fixture for software Profile stages, typed ha
 
 Do not require a Mastra feasibility spike before implementation.
 
-The higher-ROI proof is to build the same flow from DSH plugins + ACP/A2A/Website provider and measure the residual AgentOS code.
+The higher-ROI proof is to build the same flow from DSH Team/Subagents + Worker capabilities + Website capability and measure the residual AgentOS code.

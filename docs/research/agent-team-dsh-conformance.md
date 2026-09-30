@@ -1,103 +1,130 @@
 # DSH Agent Team conformance research
 
 - **Status:** active proving research
-- **Canonical semantics:** [Agent Team plugin](../architecture/plugins/agent-team/README.md)
+- **Canonical semantics:** [Agent Team](../architecture/plugins/agent-team/README.md)
 - **DSH dependency:** [DSH Agent Team](../architecture/plugins/dsh/agent-team.md)
-- **Execution dependency:** [Worker plugin](../architecture/plugins/worker/README.md)
-- **Scope:** prove the smallest Agent Team collaboration policy above DSH Team + Worker.
+- **Worker model:** [Worker execution model](../architecture/execution-model.md)
+- **Scope:** prove the smallest AgentOS collaboration/debate policy above native DSH Team mechanics
 
-DSH owns Team runtime mechanics.
+DSH already owns Team identity, roster, tasks, durable mailbox, direct member-to-member message delivery, waiting, wakeup, and recovery.
 
-Worker owns participant execution/provider selection.
-
-Agent Team should own only collaboration semantics.
+AgentOS must prove only the residual collaboration semantics.
 
 ## Confirmed reuse
 
 ### DSH Agent Team
 
-Reuse for:
+Reuse:
 
-- Team identity/roster;
-- mailbox;
-- dependency-aware tasks;
-- task revisions/ownership;
-- teammate lifecycle;
-- waiting/interruption;
+- Team/member identity;
+- roster;
+- continuable teammate lifecycle;
+- durable mailbox;
+- direct `sendMessage`;
+- task ownership/dependencies;
+- waiting/wakeup;
 - Team recovery/projection.
 
-### Worker
+### Worker routing
 
-Reuse for:
+Reuse current `ctx.worker` / DSH `ctx.subagents` for:
 
-- capability -> provider selection;
-- provider conformance;
-- delegated execution;
-- minimal ExecutionBinding;
-- result acceptance.
-
-Agent Team must not duplicate either layer.
+- semantic capability -> conforming execution composition;
+- provider/runtime dispatch;
+- cancellation;
+- caller/domain result acceptance.
 
 ## Conformance questions
 
-### 1. Semantic phase wrapper
+### 1. Model A member admission
 
-Prove the smallest Agent Team service exposing:
+Prove one persistent DSH Team Member Session is the logical Worker identity for that Team lifecycle, with the initial provider selected at formation and process-local Activations allowed to be recreated by DSH. Prove ordinary unrelated subagents are not treated as that member, and non-continuable providers fail Team-member admission.
+
+### 2. Direct member messaging
+
+Prove:
 
 ~~~text
-execute phase
-inspect/reconcile phase
-cancel phase
-read typed phase result
+Member / Worker A
+  -> native DSH Team sendMessage
+      -> Member / Worker B
 ~~~
 
-without leaking DSH Team/provider ids upward.
+without an AgentOS message mirror or Lead relay.
 
-### 2. Worker integration
+Check:
 
-Prove a Team phase can request semantic capabilities from Worker without knowing whether execution comes from:
+- sender identity;
+- target identity;
+- durable queued/delivered semantics;
+- running/idle/inactive target behavior;
+- cancellation/failure behavior;
+- recovery/de-duplication facts that AgentOS can rely on.
 
-- DSH-native provider;
-- ACP provider;
-- Website Agent plugin;
-- Website Agent collaborating through A2A with the Team Member.
+### 3. Lead role
 
-### 3. Independent-first barrier
+Prove the Lead can:
 
-Prove independent work can complete before peer evidence is revealed, using DSH Team coordination plus Worker results.
+- observe durable Team state;
+- enforce phase/debate policy;
+- assign/control where DSH allows;
+- synthesize final result;
 
-No universal AgentOS Artifact envelope is required.
+without rewriting/forwarding each peer message.
 
-### 4. Peer revision
+### 4. Independent-first barrier
 
-Prove accepted Worker results/evidence can be exchanged through DSH Team collaboration and revised without Agent Team owning provider sessions.
+Prove no participant sees peer evidence before the declared barrier.
 
-### 5. Typed phase completion
+After release, peer evidence can flow through native DSH direct messages.
+
+### 5. Generic collaboration procedure
+
+Prove the first collaboration procedure is participant/Worker-agnostic:
 
 ~~~text
-required Worker results accepted
-  -> collaboration policy satisfied
-  -> collaboration-specific evidence/effects valid
+round-robin: A -> B -> C -> A
+cross-review: A -> B,C
+adversarial: proposer -> critic -> defender -> judge
+~~~
+
+Website capability must not appear in the Team collaboration procedure domain model.
+
+### 6. Worker admission requirements
+
+Current Team Members may all use DSH cores, but their capabilities can differ.
+
+Prove Team policy requests semantic capability slots without provider/core branches.
+
+### 7. Typed phase completion
+
+~~~text
+required participant evidence accepted
+  -> debate/revision policy satisfied
+  -> synthesis/acceptance valid
   -> typed phase result
 ~~~
 
-Provider terminal state is never phase completion authority by itself.
+Native message/provider completion is never phase completion authority.
 
-### 6. Restart
+### 8. Future heterogeneous Workers
 
-Prove Team recovery uses DSH state plus only demonstrated Agent Team semantic records.
+Do **not** implement heterogeneous Team runtime now.
 
-Worker-specific recovery/binding remains Worker-owned.
+Research only the exact upstream/runtime gap when a real need arises for DSH/Codex/Claude Code participants in one Team.
+
+A2A is not part of this proving scope unless direct cross-runtime peer communication becomes necessary.
 
 ## TDD proving order
 
-1. create/recover one DSH Team without copying Team state;
-2. phase identity remains distinct from DSH Team/session ids;
-3. Agent Team invokes Worker by semantic capability;
-4. independent-first barrier works across multiple Worker invocations;
-5. peer evidence/revision works without provider-specific branches;
-6. typed phase result cannot commit before collaboration contract is satisfied;
-7. adding Website Agent execution requires Worker/ACP configuration, while Website Agent <-> Team Member collaboration requires only the A2A peer adapter/policy;
-8. host restart recovers phase semantics without provider registry duplication.
+1. prove Model A member admission and continuable lifecycle conformance;
+2. characterize native DSH direct sendMessage;
+3. prove Lead visibility without relay;
+4. prove independent-first barrier;
+5. prove generic collaboration procedure over DSH Team messages;
+6. prove admission-driven participant work;
+7. prove typed phase acceptance;
+8. prove Workflow-style chaining;
+9. defer restart/heterogeneous/A2A until failing real scenarios exist.
 
-When executable tests answer these questions, prune this research and promote only residual implementation facts.
+When these are executable tests, prune this research and keep only residual canonical facts.

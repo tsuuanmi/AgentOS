@@ -1,203 +1,295 @@
-# Website Agent plugin
+# Website capability
 
-- **Status:** canonical architecture
+- **Status:** canonical target architecture
 - **Owner:** AgentOS
-- **Kind:** protocol-neutral Website execution core + protocol ports
-- **Initial core source:** `@tsuuanmi/internet`
+- **PR #2 source namespace:** `src/website-agent/` (transitional; not assumed merged yet)
+- **Canonical role:** composable Worker capability
+- **Canonical provider seam:** `WebsiteProviderRuntime`
 
-Website Agent is a reusable agent implementation with one operational Core and two orthogonal external protocol ports.
+Website is a capability of a Worker, not a permanent standalone Agent type.
 
-## Architecture
+PR #2 was built around a standalone Website Agent. The useful Website Core/provider behavior should be migrated behind a capability boundary without preserving the old peer identity merely for compatibility.
 
-~~~mermaid
-flowchart TB
-    Runtime[DSH / another ACP-compatible runtime]
-    Member[Agent Team Member]
+## MVP principle
 
-    ACP[ACP runtime/control port]
-    A2A[A2A peer-collaboration port]
+> **Compose Website capability directly into the DSH Worker first. Add MCP only when reuse/interoperability proves it useful.**
 
-    ACPAdapter[Website ACP Agent adapter]
-    A2AAdapter[Website A2A Agent adapter]
-
-    Core[Website Agent Core]
-
-    Accounts[Accounts / auth]
-    Providers[Provider drivers]
-    Browser[Browser runtime]
-    Conversations[Conversation binding]
-    Receipts[Turn reconciliation]
-    Results[Result retention]
-
-    Runtime --> ACP --> ACPAdapter --> Core
-    Member <--> A2A <--> A2AAdapter <--> Core
-
-    Core --> Accounts
-    Core --> Providers
-    Core --> Browser
-    Core --> Conversations
-    Core --> Receipts
-    Core --> Results
-~~~
-
-The three responsibilities are intentionally separate:
+Canonical MVP:
 
 ~~~text
-Website Agent Core
-  = how Website work actually executes
-
-ACP
-  = how a runtime/client creates, controls, resumes, cancels, and prompts the Website Agent
-
-A2A
-  = how the Website Agent collaborates with peer Agent Team Members
+DSH Worker
+  -> Website capability
+      -> Website Core
+          -> WebsiteProviderRuntime
+              -> concrete provider mechanism
 ~~~
 
-## Core reuse from @tsuuanmi/internet
+Possible provider mechanisms include:
 
-Reuse/extract the existing logic for:
+~~~text
+local browser
+remote/cloud browser
+provider API
+future service/automation implementation
+~~~
 
-- authenticated Website accounts;
-- ChatGPT Web / Gemini Web providers;
-- persistent browser state;
+The capability contract must not assume every implementation is a browser.
+
+## Website Core
+
+Website Core owns protocol-neutral semantics that should survive provider/runtime replacement, for example:
+
+- logical request identity;
+- semantic conversation continuity where required;
+- retained-result idempotency;
+- fail-closed conflicting reuse;
+- full-result retention/projection;
+- cancellation propagation;
+- capability-level acceptance/reconciliation policy where provider-independent.
+
+These semantics do not require a standalone Website Agent identity.
+
+PR #2 currently contains a transitional Core implementation under:
+
+~~~text
+src/website-agent/core/
+~~~
+
+PR #3 defines the target semantics; PR #2 should preserve useful behavior while realigning the boundary.
+
+## Canonical provider boundary
+
+~~~text
+Website capability
+  -> Website Core
+      -> WebsiteProviderRuntime
+          -> provider/browser implementation
+~~~
+
+`WebsiteProviderRuntime` is the canonical replacement seam.
+
+It may internally use:
+
+- Browser Port;
+- Patchright/Playwright-compatible implementation;
+- cloud browser;
+- remote service;
+- provider API;
+- future mechanism.
+
+Therefore:
+
+> **Browser is one implementation family below WebsiteProviderRuntime, not the semantic definition of Website capability.**
+
+## Provider/runtime ownership
+
+Below Website Core, `WebsiteProviderRuntime` and its implementation own provider-specific mechanics such as:
+
+- account/auth state;
 - native Website conversation binding;
-- provider-native Deep Research;
-- completion detection;
-- account scheduling/concurrency;
+- submission/completion observation;
 - reconcile-before-resubmit;
-- cancellation;
-- durable full-result retention.
+- provider-specific navigation/DOM/API behavior;
+- browser/process/session state;
+- provider-specific failure classification.
 
-Do not import Internet's Team/Workflow/Writer orchestration as Core semantics.
+Keep those details out of Worker, Agent Team, Workflow, and Profiles.
 
-## Runtime flow through ACP
+## Capability/admission semantics
 
-~~~mermaid
-sequenceDiagram
-    participant R as DSH / ACP Runtime
-    participant A as Website ACP Agent
-    participant C as Website Core
-    participant P as Website Provider
+Do not use `website: true` when routing needs a more precise guarantee.
 
-    R->>A: initialize
-    A-->>R: native ACP capabilities
-    R->>A: session/new
-    A->>C: create/use conversation keyed by ACP sessionId
-    A-->>R: sessionId + native ACP session state
-    opt select chat/research mode
-        R->>A: session/set_mode
-        A->>C: set core execution mode
-    end
-    R->>A: session/prompt
-    A->>C: execute turn
-    C->>P: browser/provider work
-    P-->>C: provider result/evidence
-    C-->>A: retained core result
-    A-->>R: session/update notifications
-    A-->>R: prompt response / stopReason
-~~~
-
-ACP objects remain ACP objects. The adapter does not create AgentOS Session/Update/Prompt mirrors.
-
-## Peer flow through A2A
-
-~~~mermaid
-sequenceDiagram
-    participant M as Agent Team Member
-    participant A as Website A2A Agent
-    participant C as Website Core
-    participant P as Website Provider
-
-    M->>A: native A2A Message
-    A->>A: preserve/generate contextId per A2A rules
-    A->>A: create server-side Task when task semantics are needed
-    A->>C: execute using native context/message identity
-    C->>P: Website work
-    P-->>C: provider result
-    C-->>A: retained core result
-    A-->>M: Task/status updates
-    A-->>M: Artifact/Part deliverable
-~~~
-
-A2A Messages carry communication; Task outputs should be delivered as native A2A Artifacts when a Task exists.
-
-## Identity ownership
-
-| Identity | Owner | Website use |
-|---|---|---|
-| ACP `sessionId` | ACP Agent | use directly as Core logical conversation key when semantics match |
-| A2A `contextId` | A2A interaction | use directly as peer conversation key |
-| A2A `messageId` | A2A message creator | use directly as per-turn/logical-request identity when appropriate |
-| A2A `taskId` | A2A server | stateful peer Task identity; never client-generated for a new Task |
-| native Website conversation id/url | Website Core/provider | private provider binding |
-| account id/auth state | Website Core | private execution authority |
-
-Do not invent AgentOS ids between these layers unless an irreducible recovery/security invariant requires one.
-
-## Modes and capabilities
-
-Website Core currently has at least:
+Potential requirements include:
 
 ~~~text
-chat
-research
+web-read
+web-interact
+web-research
+authenticated-web
+persistent-website-conversation
 ~~~
 
-For ACP, prefer native ACP Session Modes:
+The MVP should keep only the distinctions proven necessary by real Profile/routing cases.
+
+`web-research` is the current semantic starting point.
+
+A dynamic requirement such as `authenticated-web` is an admission fact of the current Worker composition, not a permanent provider label.
+
+## Native/direct MVP composition
+
+For the first implementation:
 
 ~~~text
-availableModes:
-  - chat
-  - research
-
-session/set_mode
-  -> Core mode
+DSH Team Member / Worker
+  -> native/direct Website capability
+      -> Website Core
+          -> WebsiteProviderRuntime
 ~~~
 
-If the runtime/client cannot yet select ACP modes, initial deployment may pin a default mode in configuration. Do not add a custom wire field.
+This is intentionally simpler than forcing an MCP boundary before another Worker core needs the same capability.
 
-For A2A, advertise capabilities through AgentCard/AgentSkill. A2A does not currently require an AgentOS-specific skill-selection extension.
-
-## Failure/recovery boundaries
+Multiple Team Members can independently carry Website capability while collaborating through native DSH Team messaging.
 
 ~~~text
-browser/provider failure
-  -> Core responsibility
-
-unknown Website submission outcome
-  -> Core reconcile-before-resubmit
-
-ACP connection/session failure
-  -> ACP adapter/runtime responsibility
-
-A2A Task/transport failure
-  -> A2A adapter/protocol responsibility
-
-Workflow semantic retry/recovery
-  -> Workflow responsibility
+Member / Worker A + Website capability
+  -> DSH Team message
+Member / Worker B + Website capability
 ~~~
 
-A protocol retry must never bypass Core reconciliation for an uncertain Website turn.
+There is no second Website peer identity in the canonical MVP.
+
+## MCP is optional reusable exposure
+
+MCP is a candidate interoperability surface when Website capability should be consumed by another Worker core without depending on the direct DSH composition.
+
+Only introduce it after a concrete reuse case such as:
+
+~~~text
+DSH Worker
+  -> Website capability
+
+Codex Worker
+  -> same Website capability
+~~~
+
+or another external MCP-capable consumer.
+
+Then:
+
+~~~text
+Worker Core
+  -> MCP
+      -> Website capability adapter
+          -> Website Core
+              -> WebsiteProviderRuntime
+~~~
+
+MCP owns its native Tool/Resource semantics.
+
+It does not own AgentOS semantic guarantees such as `web-research`.
+
+Do not create an MCP surface merely for architectural symmetry.
+
+## ACP role
+
+ACP remains useful only when Website execution is intentionally deployed as part of an external Worker/runtime boundary:
+
+~~~text
+Host
+  -> ACP
+      -> external Worker/runtime
+          -> Website capability
+~~~
+
+ACP is not the semantic definition of Website capability.
+
+The Website-specific ACP Agent path in PR #2 is transitional unless the real deployment still requires an external ACP-controlled Worker.
+
+## A2A role
+
+A2A is not required for Website capability.
+
+The MVP Team path is:
+
+~~~text
+DSH Team Member / Worker
+  <-> native DSH Team messaging
+DSH Team Member / Worker
+~~~
+
+PR #2 Website A2A peer bindings are superseded by the Model A Team Member/Worker architecture.
+
+Keep generic A2A work only if a future independent cross-runtime Worker collaboration requirement proves it necessary.
+
+## Debate evolution
+
+Current useful optimization:
+
+~~~text
+DSH Member / Worker A + Website capability
+DSH Member / Worker B + Website capability
+DSH Member / Worker C + Website capability
+~~~
+
+Future:
+
+~~~text
+Team Member / Worker with DSH core
+Team Member / Worker with another Team-compatible core
+~~~
+
+provided each Worker satisfies Team-member lifecycle conformance.
+
+Debate/review procedure stays Agent Team/Profile policy.
+
+## Replaceability axes
+
+~~~text
+Worker core/runtime
+  -> DSH now
+  -> other Team-compatible Workers later
+
+Website capability delivery
+  -> native/direct MVP
+  -> MCP when reuse/interoperability proves the need
+
+Website provider runtime
+  -> Browser-backed runtime
+  -> cloud/remote runtime
+  -> provider API/runtime
+  -> future implementation
+
+provider/site
+  -> ChatGPT
+  -> Gemini
+  -> future provider
+~~~
+
+The first implementation must not become the semantic definition.
 
 ## Security boundary
 
-Website credentials/session cookies remain in Core/provider state.
+Website credentials, cookies, auth state, and provider-native conversation ids remain below Website capability/provider runtime boundaries.
 
-Never expose them through ACP/A2A Message, Artifact, metadata, or AgentOS logs.
+Never expose them through:
 
-ACP/A2A authentication identifies callers/authority; it does not replace Website account authentication.
+- Team messages;
+- Worker capability metadata;
+- MCP results/resources unless explicitly safe;
+- ACP/A2A metadata;
+- generic logs.
+
+## PR #2 migration
+
+After PR #3 merges, PR #2 should:
+
+1. retain useful Website Core idempotency/artifact/cancellation behavior;
+2. make `WebsiteProviderRuntime` the canonical provider seam;
+3. keep Browser as one replaceable implementation below that seam;
+4. compose Website capability directly into DSH Worker first;
+5. update Team debate to use Model A members + native DSH direct messaging;
+6. remove standalone Website Agent/A2A peer-binding semantics after replacement tests are green;
+7. keep ACP only where a real external Worker boundary needs it;
+8. add MCP only after a concrete reusable second-consumer case is proven.
 
 ## Implementation gates
 
-Implementation must prove:
+Tests should prove:
 
-1. the same Core works through ACP and A2A;
-2. ACP sessionId can drive Core conversation continuity without a duplicate Session model;
-3. A2A contextId/messageId/taskId semantics are preserved directly;
-4. chat/research can use native ACP modes;
-5. full Website results are retained before compact protocol projection;
-6. retry/cancellation reaches Core correctly from both ports;
-7. native Website ids/auth do not leak across protocol boundaries;
-8. no Internet Team/Workflow orchestration is pulled into Core.
+1. a DSH Worker can acquire Website capability without MCP;
+2. Website Core does not depend on DSH Team/ACP/A2A wire semantics;
+3. `WebsiteProviderRuntime` can be replaced without Worker/Team/Profile changes;
+4. Browser-specific types stay below provider runtime;
+5. dynamic auth/session state affects admission correctly;
+6. provider retry cannot bypass reconcile-before-resubmit;
+7. a second capability-delivery adapter can be added without changing Core semantics;
+8. no standalone Website Agent identity is required by the MVP.
 
-See [Core](core.md) and [Protocol adapters](adapters.md).
+## Related
+
+- [Worker model](../../execution-model.md)
+- [Agent Team](../agent-team/README.md)
+- [Protocol stack](../../protocol-stack.md)
+- [Website Core](core.md)
+- [Browser composition](browser-composition.md)
+- [Adapters](adapters.md)

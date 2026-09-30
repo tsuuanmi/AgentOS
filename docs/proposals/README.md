@@ -1,7 +1,13 @@
 # Proposals
 
-Proposals contain unresolved changes being prepared for implementation. They are not current architecture.
+Proposals describe unresolved or not-yet-implemented changes derived from canonical architecture.
 
-- [Initial implementation](initial-implementation.md) — reuse-first TDD work: DSH conformance, ACP provider conformance, Website ACP Agent adapter -> shared Website core, Agent Team policy, zero-extension A2A adapter, domain Profiles, and minimal Workflow semantics.
+Canonical architecture always wins when a proposal becomes stale.
 
-Accepted conclusions are promoted into canonical architecture, reference, schemas, source/tests, or decisions when durable rationale is needed. Implemented or obsolete proposal text should not remain a second copy of current truth.
+## Active
+
+- [Initial implementation / PR #2 realignment](initial-implementation.md) — after PR #3 merges, rebase PR #2 onto `main` and migrate the implementation with strict TDD to the Worker-first MVP architecture: DSH Team runtime, native direct debate messaging, composable Website capability, replaceable Browser, MCP capability surface where appropriate, ACP only for external runtime boundaries, and A2A deferred.
+
+## Rule
+
+A proposal must not redefine canonical architecture. It should reference the architecture and describe only the remaining implementation delta.

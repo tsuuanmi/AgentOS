@@ -1,200 +1,360 @@
 # Architecture
 
-Architecture owns current AgentOS plugin composition, semantic ownership, dependency direction, and cross-cutting invariants.
+Architecture owns AgentOS semantic ownership, dependency direction, MVP runtime decisions, and replacement seams.
 
-Exact ACP/A2A/MCP behavior belongs to upstream specifications. DSH-owned mechanics are documented under the DSH plugin folder instead of being mixed with AgentOS-owned plugin contracts.
+Exact DSH/ACP/MCP/future-A2A wire behavior belongs to the owning runtime/protocol.
 
 ## North star
 
-> **DSH/Cordis is the Host. AgentOS is a small plugin composition that adds only product semantics not already provided by DSH, standard protocols, or reusable implementation plugins.**
+> **DSH/Cordis is the MVP Host and Team runtime. AgentOS adds only semantic policy not already owned by DSH, standard protocols, or replaceable capability implementations.**
 
 Product principle:
 
-> **Right agent, right job. Spend intelligence where intelligence matters.**
+> **Right Worker, right job. Spend intelligence where intelligence matters.**
 
-See [Product principles](product-principles.md).
+See [Product principles](product-principles.md), [Worker execution model](execution-model.md), and [Replaceability and reuse](replaceability.md).
 
-## Plugin architecture
-
-The canonical plugin tree is [plugins/](plugins/README.md).
-
-~~~text
-AgentOS-owned
-  agentos/
-  worker/
-  agent-team/
-  workflow/
-  website-agent/
-  a2a/
-
-DSH-owned reused capabilities
-  dsh/
-~~~
-
-Each executable plugin boundary has one canonical folder.
-
-## Dependency direction
+## MVP architecture
 
 ~~~mermaid
 flowchart TB
     User[User] <--> Local[Local Agent]
 
-    subgraph Host["DSH / Cordis Host"]
-        AO[AgentOS plugin]
-        WF[Workflow plugin]
-        Team[Agent Team plugin]
-        Worker[Worker plugin]
-        Website[Website Agent plugin]
-        A2A[A2A plugin]
+    AO[AgentOS]
+    WF[Workflow]
+    Team[Agent Team policy]
+    Router[Worker Router]
+    Sub[DSH ctx.subagents]
+    DSHAT[DSH ctx.agentTeams]
 
-        DSHAT[DSH ctx.agentTeams]
-        Sub[DSH ctx.subagents]
-        ACP[DSH ACP]
-        Runtime[DSH workflow/runtime capabilities]
-    end
+    A[Member / logical Worker A]
+    B[Member / logical Worker B]
 
-    Local --> AO
+    Web[Website capability]
+    Core[Website Core]
+    WPR[WebsiteProviderRuntime]
+    Provider[Browser / API / remote provider]
 
+    User --> Local --> AO
     AO --> WF
-    AO --> Team
-    AO --> Worker
-    AO -.-> Website
-    AO -.-> A2A
 
+    WF --> Router
     WF --> Team
-    WF --> Worker
-    Team --> Worker
 
-    Team --> DSHAT
-    Worker --> Sub
-    Sub --> ACP
-    ACP --> Website
-    Team <--> A2A
-    A2A <--> Website
+    Router --> Sub
 
-    WF --> Runtime
+    Team -->|member admission requirements| Router
+    Router -->|selected Team-member-capable provider| DSHAT
+
+    DSHAT --> A
+    DSHAT --> B
+    A <-->|native DSH Team message| B
+
+    A -. optional capability .-> Web
+    B -. optional capability .-> Web
+    Web --> Core --> WPR --> Provider
 ~~~
 
-The stable execution path is:
+The MVP deliberately does **not** require A2A or MCP for Website capability.
+
+## Worker
+
+A Worker is an **opaque assignable executable unit with proven capabilities**.
+
+Conceptually its capabilities may emerge from:
 
 ~~~text
-Workflow / Agent Team
-  -> Worker plugin
-      -> DSH ctx.subagents
-          -> provider
+Core + Runtime + Environment + Tools + Access/state
 ~~~
 
-Provider-specific concerns do not leak upward.
+but AgentOS must not normalize those internals into one public Worker DTO.
 
-## AgentOS plugin responsibilities
-
-### AgentOS
-
-Composition/configuration root.
-
-See [AgentOS plugin](plugins/agentos/README.md).
-
-### Worker
-
-Capability-driven provider selection, execution binding when needed, provider conformance, and result acceptance.
-
-See [Worker plugin](plugins/worker/README.md).
-
-### Agent Team
-
-Collaboration phase policy above DSH Team mechanics.
-
-See [Agent Team plugin](plugins/agent-team/README.md).
-
-### Workflow
-
-Domain-agnostic sequencing/recovery/acceptance semantics plus declarative Profiles.
-
-See [Workflow plugin](plugins/workflow/README.md).
-
-### Website Agent
-
-Website Agent Core derived from @tsuuanmi/internet, with ACP as the runtime/control port and A2A as the peer-collaboration port.
-
-See [Website Agent plugin](plugins/website-agent/README.md).
-
-### A2A
-
-Standard peer-collaboration protocol between Website Agent and Agent Team Members/other agents, using native A2A Task/Message/Artifact/context semantics.
-
-See [A2A plugin](plugins/a2a/README.md).
-
-## DSH-owned plugins/capabilities
-
-All reused DSH mechanics are grouped under [DSH plugins and capabilities](plugins/dsh/README.md):
-
-- Agent Team;
-- Subagents;
-- ACP;
-- storage/jobs/workflow/schedule/interaction/tools.
-
-AgentOS should not shadow their runtime state.
-
-## Protocol stack
+Externally, AgentOS asks:
 
 ~~~text
-ACP = Client <-> Agent execution/control
-A2A = Agent <-> Agent Task / Message / Artifact
-MCP = Agent <-> Tool / Capability / Data
+can it accept this work now?
+how is it executed/cancelled through its owning runtime?
+what result/evidence did it produce?
 ~~~
 
-See [Protocol stack](protocol-stack.md).
+DSH `ctx.subagents` is the MVP multi-provider seam.
+
+It already supports multiple provider implementations under one registry, so Workflow/Profiles should not branch on DSH/Codex/Claude Code/ACP/provider identities.
+
+## Worker routing
+
+Worker routing is separate from Worker identity.
+
+PR #2 currently implements `ctx.worker` / `WorkerRuntime` as a registry/router/dispatcher over DSH `ctx.subagents`.
+
+Canonical role:
+
+~~~text
+semantic requirements
+  -> current conformance/admission
+      -> deterministic configured selection
+          -> native runtime execution
+              -> semantic acceptance
+~~~
+
+Do not build an opaque AI router for the MVP.
+
+## Capability/admission semantics
+
+Capability matching is an **admission predicate over the current complete Worker composition**.
+
+Conceptually it may include:
+
+~~~text
+semantic ability
+  research / develop / review
+
+access/resources
+  filesystem / shell / Website access
+
+runtime/state constraints
+  authenticated-web / writable-workspace / persistent conversation
+~~~
+
+The MVP may keep a flat requirement list until real cases justify richer schema.
+
+Provider/model name is never sufficient proof.
+
+## Agent Team — Model A
+
+Canonical Team Member model:
+
+> **One persistent collaboration identity that is also the logical Worker identity for the Team lifecycle.**
+
+For the DSH MVP:
+
+~~~text
+member requirements
+  -> Worker Router admits Team-member-capable provider
+      -> DSH ctx.agentTeams creates continuable teammate
+          -> persistent Member / logical Worker
+~~~
+
+The Team Member receives peer messages, reasons, and responds in the same lifecycle.
+
+Do **not** create a generic Team Member proxy that repeatedly delegates its actual reasoning to unrelated temporary Workers.
+
+### Not every Worker is Team-compatible
+
+A one-shot Worker may satisfy `research` or `review` but still fail Team-member admission.
+
+Team membership requires actual lifecycle conformance such as:
+
+- persistent identity;
+- continuation/follow-up;
+- direct Team messaging;
+- required recovery behavior.
+
+Provider presence in `ctx.subagents` does not prove Team compatibility. Current DSH uses `SubagentProvider.prepareContinuable` as the exact gate; in-process spawn/fork support it, while ACP/Codex/Claude Code/DSH SDK providers are one-shot.
+
+### Auxiliary delegation inside a Team Member
+
+A Team Member may use one-shot Workers as subordinate executors:
+
+~~~text
+Member / logical Worker
+  -> one-shot Codex / Claude Code / other Worker
+      -> evidence/result
+  -> Member integrates result
+  -> Member collaborates with peers
+~~~
+
+This does not make the auxiliary Worker a Team Member. Native heterogeneous Team membership remains future work until those runtimes satisfy the persistent Team lifecycle.
+
+## Direct collaboration
+
+For the MVP:
+
+~~~text
+Member / logical Worker A
+  -> native DSH Team sendMessage
+      -> Member / logical Worker B
+~~~
+
+The Lead may coordinate, observe durable Team state, enforce barriers, and synthesize without relaying every peer message.
+
+Mandatory distinction:
+
+~~~text
+message accepted/delivered
+  != target processed it
+  != response accepted
+  != phase accepted
+~~~
+
+## Collaboration procedures
+
+Agent Team core should not hard-code `debate` as its only collaboration mode.
+
+Core owns:
+
+- member lifecycle relationship;
+- direct peer boundary;
+- barriers;
+- semantic collaboration hooks;
+- phase acceptance.
+
+Profiles/procedures may define:
+
+- round-robin debate;
+- cross review;
+- proposer/critic/judge;
+- brainstorming;
+- consensus;
+- staged handoff.
+
+Website-backed debate is the current useful procedure/composition, not the Team domain model.
+
+## Website capability
+
+Website is a composable Worker capability.
+
+MVP direct/native composition:
+
+~~~text
+DSH Member / logical Worker
+  -> Website capability
+      -> Website Core
+          -> WebsiteProviderRuntime
+              -> Browser / API / remote provider implementation
+~~~
+
+`WebsiteProviderRuntime` is the canonical provider replacement seam.
+
+Browser is one implementation family below it.
+
+### MCP
+
+MCP is **optional**.
+
+Do not add it merely because Website is a capability.
+
+Add an MCP surface when a real second Worker core or interoperability requirement proves that the same Website capability should be reusable across consumers.
+
+## Workflow
+
+Workflow owns semantic DAG/node meaning and routing.
+
+Generic orchestration mechanics remain reused from DSH where appropriate.
+
+Workflow never owns Team/provider/browser/protocol lifecycle.
+
+## Protocol/runtime placement
+
+~~~text
+DSH ctx.subagents
+  = MVP multi-provider execution seam
+
+DSH ctx.agentTeams
+  = MVP persistent Team-member lifecycle + direct peer messaging
+
+ACP
+  = optional external Worker/runtime control
+
+MCP
+  = optional reusable tools/resources/capability interoperability
+
+A2A
+  = future cross-runtime direct peer interoperability
+~~~
+
+A2A is deferred until independently addressable Workers outside one shared Team runtime actually require direct communication.
+
+## Replaceability rule
+
+Every AgentOS module is agnostic at the semantic boundary it owns, while the MVP is intentionally concrete.
+
+~~~text
+semantic requirement
+  -> narrow replacement seam
+      -> concrete MVP implementation
+~~~
+
+Prefer:
+
+~~~text
+native DSH capability when sufficient
+  -> standard protocol/official SDK for a real external boundary
+      -> reusable implementation
+          -> thin behavioral adapter
+              -> AgentOS-owned residual semantic only
+~~~
+
+Do not introduce a protocol or abstraction because the diagram looks symmetrical.
+
+## Cost/context policy
+
+Cost/token optimization is a **routing policy concern**, not a Worker type or Website semantic.
+
+A Worker may expose cost/latency/context characteristics to routing policy later, but:
+
+~~~text
+Website capability
+  != cheap-worker identity
+
+research capability
+  != provider preference
+~~~
+
+The first implementation may use static explicit priority.
 
 ## Minimal semantic delta
 
-After reuse, AgentOS owns only product semantics such as:
+AgentOS owns:
 
-- right-agent-right-job capability policy;
-- cost/context-aware selection;
-- collaboration barriers;
+- Worker admission requirements;
+- deterministic routing policy;
+- semantic acceptance;
+- Team collaboration/barrier/procedure policy;
 - Workflow/Profile semantics;
-- exact semantic input ownership when required;
-- minimal ExecutionBinding/fencing when recovery/replacement needs it;
-- typed result acceptance;
 - effect/evidence validation;
 - plugin composition.
 
-See [AgentOS semantic delta](plugins/agentos/semantic-delta.md).
+AgentOS does not own:
 
-## Domain profiles
-
-New domains normally add:
-
-- Workflow Profile;
-- capability requirements;
-- Skills/procedure;
-- tools/providers;
-- domain result schemas.
-
-They do not require new Worker/Agent Team/Workflow engines.
+- a second Team runtime;
+- a normalized Worker anatomy;
+- duplicate DSH mailbox/task/member state;
+- a mandatory Website Agent identity;
+- a custom MCP registry/transport;
+- A2A in the MVP.
 
 ## Cross-cutting invariants
 
-1. DSH/Cordis remains the Host.
-2. AgentOS executable behavior is organized as plugins with one canonical folder per boundary.
-3. DSH-owned mechanics stay under the DSH ownership folder.
-4. Workflow and Agent Team use Worker rather than branching on concrete providers.
-5. Worker uses DSH `ctx.subagents` as the default provider registry.
-6. ACP is the standard runtime/client <-> Website Agent connection, with DSH as the first runtime integration.
-7. A2A is the standard Website Agent <-> Agent Team Member peer-collaboration protocol.
-8. MCP is used for tools/capabilities/data, not as a universal Worker protocol.
-9. Provider/protocol ids remain implementation handles.
-10. Provider completion is evidence; AgentOS plugins own semantic acceptance.
-11. Effects require observed state or trustworthy receipts.
-12. External runtimes can replace mechanics behind a plugin boundary but do not replace the Host.
-13. Use ACP/A2A/DSH native models directly; do not introduce structurally equivalent AgentOS mirror types.
-14. New abstractions require a concrete semantic, lifecycle, authority, or replacement boundary.
+1. DSH/Cordis remains the MVP Host.
+2. Worker is opaque externally; conceptual internals are not a required schema.
+3. DSH `ctx.subagents` is the MVP multi-provider execution seam.
+4. Worker routing is separate from Worker identity/execution.
+5. Capability matching is a current admission predicate over the complete Worker composition.
+6. Team Member uses Model A: the persistent Session-backed member is the logical Worker identity; process-local Activations may be recreated by the runtime.
+7. Worker/provider selection for Team participation happens at member formation.
+8. Not every Worker is Team-member-compatible.
+9. DSH `ctx.agentTeams` owns MVP Team/member/message mechanics.
+10. Native direct DSH messaging is the MVP peer transport.
+11. Message delivery is not semantic collaboration completion.
+12. Debate is a procedure/Profile over Agent Team, not the only Team primitive.
+13. Website is a composable capability.
+14. `WebsiteProviderRuntime` is the canonical provider seam.
+15. Browser is an implementation below that seam.
+16. MCP is optional and introduced by proven reuse/interoperability need.
+17. ACP is optional external Worker/runtime control.
+18. A2A is deferred to proven cross-runtime direct-peer need.
+19. Provider/core brands do not leak into Workflow/Profile policy.
+20. Cost/token optimization belongs to routing policy.
+21. Behavioral implementation changes follow Red -> Green -> Refactor.
 
 ## Canonical neighbors
 
 - [Plugin architecture](plugins/README.md)
 - [Product principles](product-principles.md)
+- [Worker execution model](execution-model.md)
+- [Agent Team](plugins/agent-team/README.md)
+- [Website capability](plugins/website-agent/README.md)
+- [Replaceability and reuse](replaceability.md)
 - [Protocol stack](protocol-stack.md)
-- [Worker communication](plugins/worker/communication.md)
 - [Interaction model](interaction-model.md)
-- [AgentOS semantic delta](plugins/agentos/semantic-delta.md)

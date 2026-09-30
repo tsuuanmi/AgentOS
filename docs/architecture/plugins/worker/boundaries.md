@@ -1,26 +1,26 @@
 # Worker plugin boundaries
 
 - **Status:** canonical architecture
-- **Owner:** Worker plugin
+- **Owner:** Worker semantics
 
 ## Ownership map
 
 | Concern | Owner |
 |---|---|
-| semantic capability requirement | Worker |
-| right-agent-right-job policy | Worker |
-| cost/context/provider preference | Worker/Profile |
-| provider registry/lifecycle | DSH ctx.subagents |
-| runtime/client <-> Agent protocol | ACP |
-| Website peer collaboration | A2A + Agent Team/Website adapters |
-| Team roster/tasks/mailbox | DSH ctx.agentTeams |
-| Workflow sequencing/recovery | Workflow |
-| tools/data | MCP or native DSH tools |
-| Website account/provider/browser | Website Core |
-| ACP session/update/stopReason | ACP |
-| DSH provider result | DSH |
-| A2A Task/Message/Artifact/context | A2A, not Worker |
-| semantic execution association | Worker ExecutionBinding only when needed |
+| opaque assignable Worker semantic | AgentOS Worker model |
+| current admission requirements | Worker routing / caller |
+| provider registry/execution lifecycle | DSH `ctx.subagents` |
+| deterministic selection policy | AgentOS Worker routing |
+| Team/member lifecycle | DSH `ctx.agentTeams` |
+| Team member admission requirements | Agent Team + Worker routing |
+| direct Team peer messaging | DSH `ctx.agentTeams` |
+| collaboration procedure/barrier/synthesis/acceptance | Agent Team / Profile |
+| external runtime/client control | ACP when used |
+| reusable tools/resources | MCP/native tools when used |
+| Website Core semantics | Website capability/Core |
+| Website provider execution | `WebsiteProviderRuntime` |
+| Browser mechanics | browser-backed provider implementation |
+| future cross-runtime peer protocol | A2A only when introduced |
 | domain result contract | domain/caller |
 | real effect evidence | effect/environment boundary |
 
@@ -28,68 +28,100 @@
 
 ~~~mermaid
 flowchart TB
-    Workflow[Workflow]
-    Team[Agent Team]
-    Worker[Worker]
+    Caller[Workflow / Local]
+    Router[Worker Router]
+    Sub[DSH ctx.subagents]
+    Worker[Opaque Worker/provider]
 
-    DSH[ctx.subagents]
-    ACP[ACP]
-    Website[Website Agent]
+    Team[Agent Team policy]
+    DSHAT[DSH ctx.agentTeams]
+    Member[Persistent Member / logical Worker]
 
-    A2A[A2A]
-    Peer[Team Member]
-    MCP[MCP / tools]
+    Website[Website capability]
+    Core[Website Core]
+    WPR[WebsiteProviderRuntime]
 
-    Workflow --> Worker
-    Team --> Worker
-    Worker --> DSH --> ACP --> Website
-
-    Peer <--> A2A <--> Website
-
-    Worker --> MCP
-    Website --> MCP
+    Caller --> Router --> Sub --> Worker
+    Team --> Router
+    Router -->|Team-member-capable provider| DSHAT --> Member
+    Member -. optional capability .-> Website --> Core --> WPR
 ~~~
+
+## Model A boundary
+
+~~~text
+Team Member
+  = persistent collaboration identity
+    is the stable logical Worker identity for the Team lifecycle
+~~~
+
+Do not insert:
+
+~~~text
+Team Member proxy
+  -> unrelated temporary Worker
+~~~
+
+between Team identity and the actor doing the collaborative reasoning.
 
 ## No-shadow-model rule
 
-Do not create AgentOS equivalents of ACP Session/Update/StopReason, A2A Task/TaskStatus/Message/Artifact/Part, DSH provider result/Team state, or MCP tool/resource.
+Do not create AgentOS equivalents of:
 
-Use the native object at the owning boundary.
+- DSH Team/member/message/task state;
+- DSH provider/run state;
+- ACP Session/Update/StopReason;
+- MCP tool/resource objects;
+- future A2A Task/Message/Artifact objects.
+
+Use native objects at their owning boundary.
 
 ## Website boundary
 
-Runtime control:
-
 ~~~text
-Worker -> ctx.subagents -> DSH ACP Client -> Website ACP Agent -> Website Core
+Worker
+  -> Website capability
+      -> Website Core
+          -> WebsiteProviderRuntime
 ~~~
 
-Peer collaboration:
+Browser/API/remote implementations remain below `WebsiteProviderRuntime`.
+
+MCP may expose Website capability later when a real second-consumer/interoperability requirement exists.
+
+## Collaboration boundary
+
+MVP:
 
 ~~~text
-Agent Team Member <-> A2A <-> Website Agent
+Member / logical Worker A
+  <-> native DSH Team messaging
+Member / logical Worker B
 ~~~
 
-These paths are orthogonal.
+Future only when proven necessary:
 
-## Schema boundary
+~~~text
+independent Worker A
+  <-> A2A
+independent Worker B
+~~~
 
-Create an AgentOS schema only if AgentOS owns the serialized semantic.
+## Completion boundary
 
-Valid candidates include domain result contracts or Workflow Definition records.
+~~~text
+provider finished
+  != Worker accepted
 
-Invalid reason:
+message delivered
+  != peer response accepted
 
-> We need the same shape as A2A Artifact but with AgentOS names.
-
-## ExecutionBinding boundary
-
-Worker may persist a minimal local association between semantic work and a native provider handle only when recovery/replacement tests require it.
-
-A2A Task/context recovery remains owned by Agent Team/A2A, not Worker ExecutionBinding.
+peer response accepted
+  != Agent Team phase accepted
+~~~
 
 ## Replacement invariant
 
-Changing among DSH-native and ACP-backed Worker providers must not change the Workflow/Agent Team caller contract.
+Changing DSH/Codex/Claude Code/future provider must not change Workflow/Profile semantics, provided the replacement satisfies the relevant admission/lifecycle requirements.
 
-Provider limitations are capability/conformance facts, not branches in callers.
+Changing Website provider/browser/API must not change Website Core/Worker/Team semantics.

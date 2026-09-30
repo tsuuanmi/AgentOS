@@ -2,82 +2,171 @@
 
 - **Owner:** DeepSeek Harness
 - **Service:** `ctx.agentTeams`
-- **AgentOS consumer:** Agent Team plugin
-- **Role:** Team runtime mechanics
+- **AgentOS consumer:** Agent Team semantic policy
+- **Role:** MVP Team runtime mechanics
 
-AgentOS Agent Team adds collaboration semantics above DSH rather than copying DSH Team state.
+For the MVP, DSH Agent Team is the **Team core**.
+
+AgentOS adds only member admission, collaboration procedure/barrier/synthesis/acceptance semantics above it.
+
+## DSH ownership
+
+DSH owns:
+
+- Team identity;
+- Lead/root identity;
+- member roster/identity;
+- continuable teammate lifecycle;
+- task board/dependencies/revisions;
+- durable peer mailbox;
+- direct member-to-member message delivery;
+- waiting/wakeup;
+- interruption;
+- recovery/session projection.
+
+AgentOS must not copy these into a second Team domain.
+
+## Direct messaging
+
+The key MVP collaboration primitive is native DSH `sendMessage`:
+
+~~~text
+Member A
+  -> ctx.agentTeams.sendMessage(target B)
+      -> durable Lead-log mailbox
+          -> direct delivery to Member B
+~~~
+
+The Lead Session stores durable queued/delivered state for correctness and recovery, but the message is addressed to the target member with sender attribution.
+
+Therefore:
+
+> **Lead is control/durable-observation authority, not a mandatory content relay.**
+
+Running targets receive steer delivery at a step boundary; idle/inactive continuable members may be woken/resumed according to DSH behavior.
+
+AgentOS relies on DSH semantics here rather than wrapping them in `TeamMessage`.
 
 ## Architecture
 
 ~~~mermaid
 flowchart TB
-    AgentTeam[AgentOS Agent Team]
+    Policy[AgentOS Agent Team policy]
     Adapter[Thin DSH Team adapter]
     DSH[ctx.agentTeams]
 
-    Roster[roster / member identity]
-    Tasks[task board / dependencies]
-    Mailbox[peer mailbox]
-    Lifecycle[spawn / resume / interrupt]
-    Recovery[waiting / change / recovery]
-    Session[Session projection]
+    Lead[Lead / durable Team log]
+    A[Member A]
+    B[Member B]
+    Tasks[task board]
+    Recovery[wait / wake / recovery]
 
-    AgentTeam --> Adapter --> DSH
-    DSH --> Roster
+    Policy --> Adapter --> DSH
+    DSH --> Lead
+    DSH --> A
+    DSH --> B
     DSH --> Tasks
-    DSH --> Mailbox
-    DSH --> Lifecycle
     DSH --> Recovery
-    DSH --> Session
+
+    A <-->|native sendMessage| B
 ~~~
 
-## Ownership rule
+## AgentOS semantic layer
 
-Do not create AgentOS copies of:
+AgentOS may own:
 
-- Team id;
-- roster/member lifecycle;
-- Team task board;
-- peer mailbox;
-- DSH Team persistence/session projection.
+- phase identity/objective;
+- participant role/capability requirements;
+- independent-first barrier;
+- collaboration procedure/routing: who talks to whom and when;
+- revision/synthesis policy;
+- typed/domain phase acceptance.
 
-AgentOS may keep only phase/collaboration semantics DSH does not own.
+These semantics must not duplicate DSH mailbox/task/member state.
 
 ## Runtime flow
 
 ~~~mermaid
 sequenceDiagram
-    participant A as AgentOS Agent Team
+    participant T as AgentOS Team policy
     participant D as ctx.agentTeams
-    participant W as Worker
+    participant A as Member A
+    participant B as Member B
 
-    A->>D: create/recover Team
-    A->>D: establish Team tasks/participants as needed
-    A->>W: execute participant semantic work
-    W-->>A: accepted participant evidence
-    A->>D: publish/observe peer collaboration state
-    D-->>A: Team changes/messages/task state
-    A->>A: evaluate AgentOS barriers/acceptance
+    T->>D: form/use Team
+    T->>A: independent work
+    T->>B: independent work
+    A-->>T: accepted evidence
+    B-->>T: accepted evidence
+    T->>T: barrier release
+    A->>D: sendMessage(target B)
+    D->>B: durable direct message
+    B->>D: sendMessage(target A)
+    D->>A: durable direct message
+    T->>T: revision / synthesis / acceptance
 ~~~
+
+## Current conformance evidence
+
+PR #2 currently contains DSH conformance tests that characterize important mechanics such as:
+
+- Lead/roster identity;
+- task readiness/revision behavior;
+- mailbox cold-resume;
+- interruption without deleting durable member identity;
+- wait/change observation;
+- TeamService reload;
+- Session projection/restart;
+- isolation between Team roots.
+
+PR #2 realignment should add explicit tests proving Model A member admission, direct member-to-member delivery, and the distinction between message delivery and semantic response completion.
 
 ## Experimental boundary
 
-Because `ctx.agentTeams` is experimental, isolate concrete DSH API calls behind one thin adapter/conformance boundary.
+Because `ctx.agentTeams` is currently experimental, isolate concrete API churn behind one thin adapter/conformance boundary.
 
-The adapter may shield API churn. It must not become a second Team domain model.
+The adapter may shield API changes.
+
+It must not become:
+
+- a second Team state model;
+- a message transport abstraction for the MVP;
+- an excuse to normalize future A2A objects.
+
+## A2A
+
+A2A is not part of this MVP boundary.
+
+Only introduce another collaboration transport when a concrete independently-addressable cross-runtime Worker case cannot be satisfied by DSH Team.
 
 ## Conformance gates
 
-Tests should prove the exact DSH behaviors AgentOS relies on:
+Before relying on DSH Team in AgentOS tests, prove the exact behavior needed:
 
-1. Team creation/recovery;
-2. roster/member identity;
-3. task dependency/readiness;
-4. peer mailbox durability;
-5. teammate continuation/interruption;
-6. waiting/change notification;
-7. restart/reload behavior;
-8. Session projection;
-9. isolation between Teams.
+1. Team/member creation and identity;
+2. direct member-to-member `sendMessage`;
+3. sender/target attribution;
+4. mailbox durability/delivery;
+5. Lead observation without relay;
+6. running/idle/inactive target behavior;
+7. task dependency/readiness;
+8. waiting/change notification;
+9. interruption;
+10. restart/reload/session projection;
+11. isolation between Teams.
 
-See [Agent Team plugin](../agent-team/README.md).
+See [Agent Team](../agent-team/README.md) and [active conformance research](../../../research/agent-team-dsh-conformance.md).
+
+
+## Model A mapping
+
+DSH Team semantics align with the canonical AgentOS member model:
+
+~~~text
+Worker/member requirements
+  -> select a provider that supports the required continuable Team lifecycle
+      -> ctx.agentTeams.spawnTeammate(...)
+          -> persistent Session-backed Team Member / Worker
+~~~
+
+Ordinary provider-owned subagents outside the Team roster remain ordinary subagents; they are not the member's hidden execution actor.
