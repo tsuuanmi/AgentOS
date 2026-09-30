@@ -247,6 +247,55 @@ describe('DSH Agent Team conformance', () => {
     }
   })
 
+  it('allows one live teammate to send a native direct message to another teammate without Lead relay', async () => {
+    const { ctx, lead, dispose } = await setup({
+      leadId: 'agentos-team-peer-message-lead',
+      hangModel: true,
+    })
+    try {
+      const first = await ctx.agentTeams.spawnTeammate(lead, {
+        name: 'reviewer-a',
+        description: 'first peer reviewer',
+        prompt: [{ type: 'text', text: 'wait for peer evidence' }],
+        context: 'fresh',
+        provider: 'spawn',
+        signal: new AbortController().signal,
+      })
+      const second = await ctx.agentTeams.spawnTeammate(lead, {
+        name: 'reviewer-b',
+        description: 'second peer reviewer',
+        prompt: [{ type: 'text', text: 'wait for peer evidence' }],
+        context: 'fresh',
+        provider: 'spawn',
+        signal: new AbortController().signal,
+      })
+
+      await waitUntil(() => ctx.agents.get(first.member.id)?.status === 'running')
+      await waitUntil(() => ctx.agents.get(second.member.id)?.status === 'running')
+
+      const sender = ctx.agents.get(first.member.id)
+      expect(sender).toBeDefined()
+      expect(ctx.agentTeams.membership(sender!).name).toBe('reviewer-a')
+      expect(ctx.agentTeams.membership(sender!).role).toBe('teammate')
+
+      const receipt = await ctx.agentTeams.sendMessage(sender!, {
+        target: 'reviewer-b',
+        content: [{ type: 'text', text: 'peer evidence from reviewer-a' }],
+        signal: new AbortController().signal,
+      })
+
+      expect(receipt.status).toBe('accepted')
+      expect(receipt.messageId).toBeTruthy()
+      expect(ctx.agentTeams.listMembers(sender!).map(member => member.name)).toEqual([
+        'lead',
+        'reviewer-a',
+        'reviewer-b',
+      ])
+    } finally {
+      await dispose()
+    }
+  })
+
   it('interrupts a live continuable teammate without deleting its durable roster identity', async () => {
     const { ctx, lead, dispose } = await setup({
       leadId: 'agentos-team-interrupt-lead',
