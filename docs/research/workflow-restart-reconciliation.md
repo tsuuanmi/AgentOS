@@ -10,7 +10,7 @@
 
 For every non-terminal WorkflowRun, load durable semantic state, inspect/reconcile any currently bound execution or effect, preserve already accepted work, and only then derive new work.
 
-A missing Job, Team, subagent, ACP session, A2A Task, timer, process, or transport handle never proves that execution did not happen.
+A missing Job, Team, subagent, ACP session, timer, process, transport handle, or future A2A Task never proves that execution did not happen.
 
 ## Admission and binding boundary
 

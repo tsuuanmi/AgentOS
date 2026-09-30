@@ -2,38 +2,61 @@
 
 Research is temporary, exploratory, and non-normative.
 
-Use this directory only for unresolved proving questions. Accepted conclusions are promoted into canonical plugin architecture, schemas, source/tests, or another canonical home; redundant research is then deleted.
+Canonical truth lives in [architecture](../architecture/README.md), canonical plugin folders, [schemas](../../schemas/README.md), source, and tests.
 
-Canonical truth lives in [architecture](../architecture/README.md), canonical plugin folders, [schemas](../../schemas/README.md), source, and tests. Behavioral invariants for AgentOS capabilities live with their canonical plugin architecture.
+When a question is resolved, promote the conclusion into canonical architecture and prune the redundant research.
 
 ## Active research
 
-- [DSH Agent Team conformance](agent-team-dsh-conformance.md) — prove the smallest AgentOS policy delta over current experimental ctx.agentTeams + ctx.subagents.
-- [Workflow restart/reconciliation](workflow-restart-reconciliation.md) — crash/recovery evidence for the first durable Workflow TDD suite.
-- [Protocol and runtime reuse](protocol-runtime-reuse.md) — remaining ACP/A2A/Workflow conformance after protocol/schema pruning.
-- [Website Agent protocol adapters](website-agent-protocol-adapters.md) — prove one Internet-derived Website core through ACP and A2A adapters, including direct protocol identity reuse and continuation.
-- [Ecosystem reuse evaluation](ecosystem-reuse-evaluation.md) — identify protocols/libraries/runtimes that can sit behind Cordis plugins without replacing DSH.
-- [Mastra / Factory reference study](mastra-factory-feasibility.md) — external comparison for typed handoffs, software-factory stages, ACP/A2A separation, and durable runtime layering.
+- [DSH Agent Team conformance](agent-team-dsh-conformance.md) — prove the native DSH Team direct-message/debate path and the smallest AgentOS policy delta.
+- [Workflow restart/reconciliation](workflow-restart-reconciliation.md) — crash/recovery evidence for later durable Workflow TDD.
+- [Ecosystem reuse evaluation](ecosystem-reuse-evaluation.md) — historical/reference comparison plus remaining runtime reuse questions.
+- [Mastra / Factory reference study](mastra-factory-feasibility.md) — historical/reference evidence for typed handoffs and runtime separation.
 
 ## Current open questions
 
-1. Which ctx.agentTeams behaviors need an AgentOS conformance adapter or semantic policy above DSH?
-2. What is the smallest supported protocol-neutral core API to expose from `@tsuuanmi/internet`?
-3. How much Website/scientific work is covered by one-shot ACP before continuation becomes necessary?
-4. Can the first A2A integration remain completely extension-free?
-5. What is the minimal durable WorkflowRun/WorkItem state AgentOS itself must own over ctx.storageDomain?
-6. Does any concrete Workflow durability requirement justify an Inngest/Temporal adapter?
-7. Does the existing Agno AgentOS product name create enough ambiguity to justify renaming this project?
+1. What is the smallest Agent Team debate policy above native DSH direct member messaging?
+2. Which Worker capability metadata/evidence is actually needed beyond the current provider profile?
+3. What is the smallest reusable Website capability surface for DSH first?
+4. Does Website capability need MCP immediately, or is direct DSH composition the simplest first Green step?
+5. Which real Worker/runtime first requires ACP rather than native DSH execution?
+6. What concrete heterogeneous direct-peer case, if any, eventually justifies A2A?
+7. What minimal durable Workflow state is proven necessary by restart tests?
+8. Does any durability requirement justify an external runtime such as Temporal/Inngest?
 
 ## Promoted conclusions
 
-The following are no longer open research questions:
+These are no longer open research questions:
 
-- DSH/Cordis remains the Host.
-- ACP/A2A/MCP have distinct boundaries.
-- Worker is an AgentOS semantic plugin whose invocations are capability-driven execution roles.
-- Website Agent reuses the protocol-neutral Website participant/browser core from `@tsuuanmi/internet`; ACP and A2A terminate at the same core but keep their native protocol models; adapters must not introduce AgentOS mirror types.
-- custom Worker Message/Artifact/State/Assignment and MCP Worker envelopes are not needed and have been pruned.
-- A2A should start with zero AgentOS extensions.
-- external runtimes are optional implementations behind Cordis plugins, not alternate Hosts.
-- behavioral invariants live with canonical plugin architecture rather than a duplicate requirements tree.
+- DSH/Cordis is the MVP Host.
+- DSH `ctx.agentTeams` is the MVP Team runtime.
+- DSH native direct member messaging is the MVP debate transport.
+- Worker is an opaque assignable executable unit; its current guarantees emerge from its complete runtime/environment/tool/state composition.
+- current `ctx.worker` / `WorkerRuntime` is routing/registry/dispatch semantics, not Worker identity.
+- Website is a composable Worker capability.
+- Website Core/provider semantics remain reusable below that capability.
+- `WebsiteProviderRuntime` is the canonical provider replacement seam; Browser is one implementation family.
+- MCP is optional and should be added only after a real reusable second-consumer/interoperability need, not as Worker transport.
+- ACP is optional external Worker/runtime control, not the owner of Website semantics.
+- A2A is deferred until a concrete cross-runtime direct-peer requirement exists.
+- custom Worker Message/Artifact/State/Assignment protocols are unnecessary.
+- native DSH/protocol models should not be mirrored into universal AgentOS models.
+
+## Pruned research
+
+The earlier protocol-runtime reuse and Website-Agent protocol-adapter studies were removed after their useful conclusions were promoted or superseded by the canonical Worker-first architecture.
+
+Use git history if historical details are needed.
+
+
+### Promoted Model A decision
+
+Team Member identity now follows the actual collaborating Worker:
+
+~~~text
+Team Member
+  = persistent collaboration identity
+    the logical Worker identity for that Team lifecycle; live Activations are runtime-owned and may be recreated
+~~~
+
+Worker/provider selection happens at member formation. One-shot provider availability alone does not prove Team-member compatibility.

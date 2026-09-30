@@ -1,339 +1,495 @@
----
-id: PROP-0001
-type: proposal
-status: draft
-created: 2026-09-28
----
+# Initial implementation realignment
 
-# Initial implementation
+- **Status:** active implementation proposal
+- **Prerequisite:** merge PR #3 architecture into `main`
+- **Target:** rebase/refactor PR #2 to conform to canonical Worker-first MVP architecture
+- **Method:** strict Red -> Green -> Refactor TDD
 
-This proposal contains only unresolved work needed to move from canonical architecture into behavioral implementation.
-
-Accepted direction lives in:
+This proposal does not redefine architecture. Canonical truth is:
 
 - [Architecture](../architecture/README.md)
-- [Plugin architecture](../architecture/plugins/README.md)
-- [AgentOS semantic delta](../architecture/plugins/agentos/semantic-delta.md)
+- [Worker model](../architecture/execution-model.md)
+- [Agent Team](../architecture/plugins/agent-team/README.md)
+- [Worker](../architecture/plugins/worker/README.md)
+- [Website capability](../architecture/plugins/website-agent/README.md)
 - [Protocol stack](../architecture/protocol-stack.md)
-- [Worker plugin](../architecture/plugins/worker/README.md)
-- [Agent Team plugin](../architecture/plugins/agent-team/README.md)
-- [Workflow plugin](../architecture/plugins/workflow/README.md)
-- [Website Agent plugin](../architecture/plugins/website-agent/README.md)
-- [Website Agent core](../architecture/plugins/website-agent/core.md)
-- [Website Agent adapters](../architecture/plugins/website-agent/adapters.md)
-- [A2A plugin](../architecture/plugins/a2a/README.md)
-- [DSH reused plugins](../architecture/plugins/dsh/README.md)
 
-## Implementation principle
+## Goal
 
-> **Prove reuse first. Implement only the residual semantic gap.**
+PR #2 already proves many useful mechanics, but it was implemented against an older model centered on a standalone Website Agent + A2A peer binding.
 
-Behavioral work follows strict **Red -> Green -> Refactor**.
+After PR #3 merges, PR #2 should be rebased onto `main` and refactored so that:
 
-The obsolete Worker/MCP wire schemas have already been pruned. Do not recreate them unless a failing behavioral/conformance test demonstrates a serialized AgentOS-owned contract.
+~~~text
+DSH/Cordis
+  = MVP Host
 
-## 1. DSH conformance
+DSH ctx.agentTeams
+  = MVP Team/member runtime + durable direct peer messaging
 
-Characterize the DSH seams AgentOS depends on before adding semantic behavior.
+DSH ctx.subagents
+  = MVP Worker/provider execution mechanics
 
-### Agent Team
+Worker
+  = opaque assignable executable unit with proven current capabilities
 
-Prove the `ctx.agentTeams` behaviors required by the Agent Team plugin:
+ctx.worker / WorkerRuntime
+  = routing/registry/dispatcher semantics, not Worker identity
 
-- roster/member identity;
-- task/readiness semantics;
-- peer mailbox;
-- teammate continuation/recovery;
-- restart/reload behavior;
-- programmatic API access.
+Website
+  = composable capability
 
-### Subagents
+WebsiteProviderRuntime
+  = canonical Website provider replacement seam
 
-Prove the `ctx.subagents` behaviors required by Worker:
+Browser
+  = one implementation family below WebsiteProviderRuntime
 
-- provider registration/removal;
-- one-shot/continuable provider contracts;
-- result semantics;
+MCP
+  = optional reusable capability surface after a real second-consumer/interoperability need
+
+ACP
+  = optional external Worker/runtime control boundary
+
+A2A
+  = deferred until a real cross-runtime direct-peer requirement appears
+~~~
+
+## Preserve proven behavior
+
+Do not throw away working semantics merely because names/boundaries changed.
+
+Preserve and migrate these proven slices where still useful:
+
+### Worker routing
+
+- provider-neutral capability requirements;
+- live-provider conformance;
+- deterministic selection policy;
+- native DSH request/result usage;
 - cancellation;
-- provider capability rejection.
+- explicit caller/domain acceptance.
 
-### Workflow/runtime primitives
+### Website Core
 
-Characterize the DSH capabilities Workflow may reuse:
+- stable logical request/conversation identity;
+- idempotent retained replay;
+- fail-closed conflicting reuse;
+- full-result retention;
+- owner-scoped artifact access;
+- cancellation propagation.
 
-- `ctx.storageDomain`;
-- `ctx.jobs`;
-- `ctx.workflowEngine`;
-- Schedule;
-- approval/questions;
-- Session/workspace/effect capabilities.
+### Browser/provider
 
-The result is an explicit list of mechanics AgentOS does **not** implement.
+- account/auth state;
+- semantic conversation -> native Website conversation binding;
+- submission/completion receipts;
+- reconcile-before-resubmit;
+- provider-specific driver isolation;
+- replaceable Website provider/runtime seam;
+- DSH storage/credential reuse.
 
-## 2. ACP provider conformance
+### Workflow/Profile
 
-Use the existing DSH ACP provider with at least two ACP-compatible agents where practical.
+- semantic DAG;
+- node routing;
+- software-development Profile;
+- scientific-research Profile;
+- strict TDD procedure;
+- capability-driven domain policy.
 
-Target the ACP surface supported by current DSH rather than draft-only features.
+## Remove or demote obsolete architecture
+
+The following are no longer canonical MVP requirements:
+
+- standalone Website Agent as a permanent top-level primitive;
+- 1:1 `WebsitePeerBinding`;
+- Website-specific A2A debate path;
+- A2A as an Agent Team dependency;
+- ACP as the definition/delivery mechanism of Website capability;
+- `WorkerRuntime` interpreted as the Worker itself;
+- debate tied to Website-Agent participants.
+
+Existing code/tests for these paths may temporarily remain while replacement behavior is introduced, but obsolete code should be deleted completely once the new path is proven.
+
+No compatibility wrappers or duplicate permanent paths.
+
+## Target implementation shape
+
+Conceptually:
+
+~~~text
+src/
+  worker/
+    routing / registry / acceptance
+    # exact filenames should be driven by refactor clarity
+
+  agent-team/
+    phase policy
+    barrier
+    collaboration procedure/routing
+    DSH Team adapter
+
+  website-capability/        # eventual naming; source move is TDD/refactor work
+    core/
+    direct-or-mcp-adapter/
+    provider-runtime/
+      browser/               # one provider implementation family
+      other-providers/
+
+  workflow/
+  profiles/
+~~~
+
+Do not rename/move files before behavior is characterized.
+
+## Canonical Team Member decision — Model A
+
+Before implementation, PR #2 must adopt this invariant:
+
+~~~text
+Team Member
+  = persistent collaboration identity
+  = logical Worker identity for that Team lifecycle
+~~~
+
+For the DSH MVP:
+
+~~~text
+member requirements
+  -> Worker Router selects a Team-member-capable provider
+      -> ctx.agentTeams.spawnTeammate(...)
+          -> persistent DSH Team Member / logical Worker
+~~~
+
+Do not:
+
+~~~text
+spawn generic Team Member
+  -> delegate every collaboration turn to unrelated temporary Worker
+~~~
+
+Ordinary provider-owned subagents outside the Team roster are not Team Members.
+
+A provider that supports one-shot Worker execution is not automatically Team-member-capable. Team member admission must prove continuation/persistent lifecycle/direct-message compatibility.
+
+## Worker opacity
+
+`Core + Runtime + Environment + Tools + State` is conceptual anatomy only.
+
+PR #2 should not introduce a normalized Worker DTO/interface that forces Codex, Claude Code, DSH, ACP, or future providers to expose identical internals.
+
+The stable AgentOS boundary is:
+
+~~~text
+admission/conformance
+native execution/cancellation
+result/evidence
+~~~
+
+## Capability/admission model
+
+Do not over-design a taxonomy in PR #2.
+
+The existing flat capability requirement can remain initially, but tests/docs should acknowledge that admission facts may represent:
+
+~~~text
+semantic ability
+access/resources
+dynamic runtime/state
+Team lifecycle conformance
+~~~
+
+For example, `authenticated-web` is dynamic state, not a permanent provider label.
+
+## Website first-Green rule
+
+The first Website-capable Worker should use direct/native composition:
+
+~~~text
+DSH Worker
+  -> Website capability
+      -> Website Core
+          -> WebsiteProviderRuntime
+              -> current browser-backed implementation
+~~~
+
+Do not make MCP part of the first Green implementation unless a failing test demonstrates a real need.
+
+Add MCP only after a concrete second Worker core/consumer needs reusable Website capability exposure.
+
+## TDD migration order
+
+### 1. Team Member admission / Model A
+
+**Red**
+
+Add tests proving:
+
+- member requirements are resolved before teammate creation;
+- the selected provider creates one persistent DSH Team Member Session, which becomes the logical Worker identity;
+- ordinary unrelated subagents are not treated as Team Members;
+- a provider without the required continuable Team lifecycle fails admission;
+- current DSH admission checks `prepareContinuable`; in-process spawn/fork pass, while ACP/Codex/Claude Code/DSH SDK are treated as one-shot-only for the MVP;
+- provider/model branding does not leak into Profile policy.
+
+**Green**
+
+Select/admit the Worker/provider at Team member formation.
+
+**Refactor**
+
+Remove any proxy-member pattern that delegates the member's substantive reasoning to unrelated temporary Workers.
+
+### 1.1 Auxiliary one-shot Worker characterization
+
+Add tests proving a persistent DSH Team Member may delegate bounded work to a one-shot Worker without transferring Team identity. The member remains responsible for semantic acceptance and peer messaging.
+
+Do not present this as heterogeneous Team membership.
+
+### 2. DSH Team direct messaging
+
+**Red**
+
+Add/strengthen conformance/integration tests proving:
+
+- Member/Worker A can send directly to Member/Worker B through `ctx.agentTeams.sendMessage`;
+- sender/target attribution is preserved;
+- durable mailbox state belongs to DSH;
+- Lead can observe/coordinate without relaying peer content;
+- message delivery does not count as semantic response completion;
+- inactive/continuable target delivery behaves according to current DSH guarantees.
+
+**Green**
+
+Use native DSH Team messaging in the collaboration path.
+
+**Refactor**
+
+Remove AgentOS message mirrors/relay logic if any.
+
+### 3. Generic collaboration procedure / debate
+
+**Red**
+
+Tests define the first collaboration procedure independently of Website:
+
+~~~text
+A -> B -> C -> A
+~~~
+
+or another declared route.
 
 Prove:
 
-- the same semantic work can move between ACP providers without changing the Worker caller contract;
-- cwd/tool isolation;
-- cancellation;
-- direct handling of native ACP stop reasons;
-- permission behavior;
-- cost/usage visibility when available;
-- provider limitations are surfaced rather than silently degraded.
+- barrier opens before peer evidence is released;
+- the procedure/Profile decides who speaks next over Agent Team primitives;
+- message transport is DSH-native;
+- synthesis/acceptance remains Agent Team-owned.
 
-Characterize the current one-shot limitation of `dsh-subagent-acp`.
+**Green**
 
-## 3. Worker plugin
+Implement the smallest generic DSH Team collaboration procedure needed by the current product.
 
-Implement the smallest Worker semantic plugin over `ctx.subagents`.
+**Refactor**
 
-### Red
+Keep debate/procedure semantics out of the Team transport/domain core where practical, and delete Website-specific peer-collaboration semantics no longer needed.
 
-Tests first for:
+### 4. Worker routing and opaque Worker semantics
 
-- capability requirement -> valid provider selection;
-- unsupported capability rejection;
-- provider-neutral dispatch;
-- provider-native result -> caller result acceptance;
-- invalid result rejection;
-- provider ids not leaking into semantic result;
-- ExecutionBinding only when recovery/replacement requires it;
-- stale result rejection only when a reproducible replacement race exists.
+**Red**
 
-### Green
+Characterize current `ctx.worker` behavior and add tests showing:
 
-Implement only:
+- semantic admission requirements select a conforming Worker/provider;
+- Worker internals remain opaque to AgentOS callers;
+- admission evidence may come from tools/environment/state/composition, not provider brand;
+- dynamic state can change current eligibility;
+- routing service identity is not exposed as Worker identity;
+- selection is deterministic under explicit priority;
+- Workflow/Profile callers remain provider-neutral.
 
-~~~text
-Worker
-  = capability selection
-  + provider dispatch
-  + minimal binding when required
-  + result acceptance
-~~~
+**Green**
 
-### Refactor
+Keep or minimally refactor the current service so it acts as Registry/Router/Dispatcher over DSH `ctx.subagents`.
 
-Keep ACP/Website/local provider branching below Worker. A2A remains the Agent Team/Website peer boundary.
+**Refactor**
 
-Do not add Worker Assignment/Message/Artifact/State protocols.
+Rename/split `WorkerRuntime` only if it materially improves ownership clarity. Do not create a second runtime.
 
-## 4. Website Agent core reuse
+### 5. Website capability surface
 
-Do not begin with ACP or A2A protocol code.
+**Red**
 
-First characterize and expose the smallest supported protocol-neutral core API from `@tsuuanmi/internet`.
+Define the smallest reusable Website capability required by real Profiles, starting with `web-research`.
 
-Reuse the existing behavior around:
+Tests should prove:
 
-- `WebsiteParticipantService`;
-- authenticated account/provider routing;
-- `ConversationStore`;
-- `ProviderTurnReceiptStore`;
-- participant result artifacts;
-- provider-native ChatGPT/Gemini research;
-- cancellation and completion semantics.
+- a DSH Worker can acquire Website capability through direct/native composition;
+- Website Core executes behind the capability surface;
+- Website Core depends on `WebsiteProviderRuntime` rather than Browser directly;
+- Website-specific auth/conversation/reconciliation stays below the provider seam;
+- Profile asks for semantic capability, not Website Agent/provider id.
 
-### Red
+**Green**
 
-Characterization tests first for:
+Compose current Website Core/browser implementation into the DSH Worker path.
 
-- stable conversation binding;
-- same logical request cannot silently change prompt/conversation;
-- uncertain Website submission reconciles before resubmit;
-- ambiguous outcome fails closed;
-- full result is retained before compact projection;
-- chat and research modes remain distinct;
-- cancellation reaches provider execution.
+Use direct/native DSH composition for the first Green step. Do not add MCP until a concrete second consumer/interoperability test requires it.
 
-### Green
+**Refactor**
 
-Expose/refine only the core façade needed by external adapters.
+Extract/rename `website-agent` source toward capability-oriented naming after all tests are green.
 
-Do not copy Internet source into AgentOS and do not import Internet Team/Workflow orchestration.
+### 6. WebsiteProviderRuntime and Browser replacement seam
 
-### Refactor
+**Red**
 
-Keep Website provider drivers/browser internals below the core API.
+Tests prove Website Core depends on a structural `WebsiteProviderRuntime` test double; browser-backed runtimes may additionally use an internal Browser Port.
 
-## 5. Website ACP runtime port + A2A peer port
+**Green**
 
-Build both adapters over the **same core**, but test them as different architectural boundaries.
+Keep the current Patchright-compatible implementation behind a browser-backed `WebsiteProviderRuntime`.
 
-### ACP Agent adapter
+**Refactor**
 
-~~~text
-Worker
-  -> ctx.subagents
-      -> DSH ACP provider/client
-          -> Website ACP Agent adapter
-              -> Website Agent core
-~~~
+Ensure browser/API/remote provider runtimes can replace one another without Worker/Team/Profile changes, and Browser implementations can vary within browser-backed runtimes.
 
-Tests cover:
+### 7. Optional MCP capability exposure
 
-- implement native ACP initialize/new/prompt/cancel SDK interfaces directly;
-- pass ACP sessionId directly as the core conversation key when semantics match;
-- core logical-request reconciliation independent of ephemeral JSON-RPC ids;
-- Website/core ids hidden above Worker;
-- one-shot research through current DSH ACP provider;
-- native ACP Session Modes expose chat/research without a custom wire field;
-- continuation capability is advertised only when the actual ACP client/agent path supports it;
-- exact gap preventing current DSH Worker-side ACP client/provider from reusing a Website session across runs.
+Only after a real second-consumer/interoperability requirement proves reusable cross-Worker Website access is needed.
 
-Start with bounded one-shot execution.
+**Red**
 
-### A2A peer adapter
+Use official/native DSH MCP integration to prove the intended tool/resource surface.
+
+**Green**
+
+Expose the smallest Website capability API.
+
+**Refactor**
+
+No AgentOS MCP transport/registry/wrapper.
+
+### 8. ACP cleanup
+
+Preserve generic ACP conformance tests.
+
+Keep Website-specific ACP adapter only if Website execution still needs to run as an external Worker/runtime.
+
+Otherwise remove it after Website capability replacement coverage is green.
+
+ACP remains:
 
 ~~~text
-Agent Team Member
-  -> A2A peer/client adapter
-      -> A2A
-          -> Website A2A Agent adapter/server
-              -> same Website Agent Core
+Host
+  -> ACP
+      -> external Worker/runtime
 ~~~
 
-Use the official A2A SDK.
-
-Tests cover:
-
-- implement the native A2A AgentExecutor/server interface directly;
-- AgentCard/AgentSkill capability discovery;
-- pass `contextId` directly as the core conversation key when present;
-- preserve/generate `contextId` according to A2A v1 semantics;
-- use native `messageId` as the per-turn Core logical request identity;
-- keep server-generated `taskId` as A2A Task identity rather than a client request id;
-- native Artifact/Part Task deliverables; Messages remain communication rather than the only Task output;
-- initial JSON-RPC client/server integration through the official SDK;
-- cancellation -> core AbortSignal;
-- zero AgentOS protocol extensions;
-- chat/research routing without inventing a custom A2A skill-selection extension.
-
-A2A is not part of Worker provider selection in the primary architecture. It is the peer collaboration boundary between Team Members and Website Agent.
-
-## 6. Agent Team plugin
-
-Implement collaboration policy above DSH Team + Worker:
-
-- phase contract;
-- participant capability requirements;
-- independent-first barriers;
-- peer evidence/revision policy;
-- typed phase acceptance;
-- collaboration-specific effect/evidence requirements.
-
-Agent Team does **not** select concrete providers itself; it asks Worker to execute semantic capability requirements.
-
-Prove research -> debate/revision -> typed phase result without provider-specific branches.
-
-## 7. Software-development Profile
-
-Express software development as Profile/configuration + software-development Skill.
-
-Initial proof:
+not:
 
 ~~~text
-research
-  -> implement with TDD
-  -> validate actual state
-  -> independent review
-  -> remediation or complete
+Website capability == ACP Agent
 ~~~
 
-Provider choice happens through Worker.
+### 9. A2A removal/deferment
 
-## 8. Workflow plugin
+**Red**
 
-Implement the smallest domain-agnostic Workflow semantic layer over DSH primitives plus Agent Team/Worker.
+First prove the complete MVP debate flow works through DSH Team without A2A.
 
-Own only:
+**Green**
 
-- Definition/Profile validation;
-- exact Definition/input binding when reproducibility requires it;
-- semantic WorkItem/dependency/transition state;
-- result acceptance;
-- product recovery policy;
-- durable external-decision state when required;
-- effect evidence;
-- terminal convergence/reattachment.
+Remove A2A from MVP Agent Team composition.
 
-Do not build generic queue/checkpoint/timer/retry infrastructure already supplied by DSH or another selected runtime plugin.
+**Refactor**
 
-## 9. Scientific-research Profile
+Delete:
 
-Add a scientific-research Profile without changing Worker, Agent Team, or Workflow plugin contracts.
+- Website-specific A2A peer binding;
+- unused A2A Team adapters;
+- tests that only enforce the superseded architecture.
 
-Example capabilities:
+Keep generic A2A conformance/reference code only if there is independent value and clear deferred ownership; otherwise remove it too.
 
-~~~text
-literature-search
-evidence-extraction
-analysis
-scientific-review
-synthesize
-~~~
+Do not retain dead compatibility layers "for later".
 
-Intentionally execute at least one phase through Website Agent -> Worker.
+### 10. Profiles
 
-The proof passes only if new work is limited to Profile/Skill/schema/tool/provider configuration.
+Update Profile tests so:
 
-## 10. Deferred mechanics only after failing real workflows
+- scientific `literature-search` requires `web-research`;
+- DSH Worker + Website capability can satisfy it;
+- software/research Agent Team phases use DSH Team runtime;
+- debate semantics are provider/core-agnostic;
+- no Profile names Website Agent, ACP provider, A2A peer, or Browser implementation.
 
-### Continuable ACP
+### 11. Full cleanup
 
-Add only when a real Profile requires later turns in the same provider context.
+Once replacement tests are green:
 
-Prefer upstreaming generic continuation to DSH; otherwise add a narrow provider plugin.
+- remove obsolete files;
+- update imports/exports;
+- remove unused A2A dependencies if nothing still requires them;
+- remove Website peer-binding schemas/types;
+- prune stale tests;
+- update package metadata;
+- update PR #2 description to architecture terminology;
+- run the full test suite.
 
-### External durable runtime
+## Architecture acceptance gates for PR #2
 
-Evaluate Inngest/Temporal only if a Workflow test demonstrates a generic durability gap in the default DSH composition.
+PR #2 should not be considered aligned until all are true:
 
-DSH/Cordis remains the Host.
-
-## TDD order
-
-1. DSH conformance.
-2. ACP provider conformance.
-3. Worker plugin.
-4. characterize/refine the protocol-neutral Website core in `@tsuuanmi/internet`.
-5. Website ACP Agent adapter.
-6. Agent Team Member A2A peer/client adapter + Website A2A Agent adapter.
-7. Agent Team plugin.
-8. software-development Profile.
-9. Workflow plugin.
-10. scientific-research Profile.
-11. deferred continuation/runtime adapters only after failing real requirements.
+1. DSH `ctx.agentTeams` is the only MVP Team runtime.
+2. Direct debate messages use native DSH Team messaging.
+3. The Lead is coordination/observation authority, not mandatory content relay.
+4. Worker is an opaque assignable unit; internal anatomy is not normalized.
+5. `ctx.worker` is routing/registry/dispatch semantics.
+6. Team Member uses Model A: the persistent Session is the logical Worker identity; process-local Activations may be recreated by DSH.
+7. one-shot-only providers cannot silently become Team Members.
+8. message delivery cannot falsely satisfy semantic collaboration completion.
+9. Website is a composable capability.
+10. Website Core depends on `WebsiteProviderRuntime`; Browser is only one provider implementation family.
+11. Scientific Profile requests `web-research` without Website/provider identity.
+12. MCP is absent from the first Green Website path unless a concrete second-consumer test justifies it.
+13. ACP is only an external Worker/runtime boundary when justified.
+14. A2A is not an MVP dependency.
+15. obsolete WebsitePeerBinding/A2A paths are removed once replacements are proven.
+16. no duplicate old/new implementation remains.
+17. native DSH/protocol types stay native.
+18. full tests are green.
 
 ## Deferred
 
-Not required initially:
+Not required for the MVP:
 
-- Controller;
-- DecisionProvider;
-- Ollaya integration;
+- heterogeneous peer Team membership with ACP/Codex/Claude Code/DSH SDK providers unless upstream adds/proves continuable Team lifecycle;
+- heterogeneous Team runtime;
+- Codex/Claude Code as fully continuable DSH Team Members unless upstream/runtime support is proven;
+- A2A cross-runtime Worker collaboration;
 - alternate Host;
 - alternate Team engine;
-- generic Worker Exchange;
-- custom horizontal Agent protocol;
-- generic Worker Message/Artifact/State lifecycle;
-- AgentOS A2A extension without a proven interop need;
-- distributed multi-Host Workflow ownership;
-- external durable runtime without a failing DSH-based requirement.
+- generic Worker wire protocol;
+- universal capability schema;
+- external durable runtime without a failing requirement.
 
-## Ready-to-implement condition
+## End state
 
-Implementation can begin when:
+After this proposal is implemented, the concrete MVP should be:
 
-1. DSH ownership is explicit under `plugins/dsh/`;
-2. each AgentOS-owned plugin has one canonical architecture folder;
-3. Worker is the only semantic provider-selection boundary consumed by Agent Team/Workflow;
-4. ACP/A2A/MCP roles and lifecycle ownership are unambiguous;
-5. legacy Worker/MCP wire schemas are absent;
-6. ACP/A2A/DSH SDK/runtime types and native identities are consumed directly rather than mirrored in AgentOS types;
-7. each first Red test distinguishes upstream mechanics from a real AgentOS semantic invariant.
+~~~text
+Workflow / Profiles
+  -> Agent Team policy
+      -> DSH ctx.agentTeams
+          -> direct member messaging / debate
+  -> Worker routing
+      -> DSH ctx.subagents
+          -> admitted DSH Worker/provider
+              -> Website capability when required
+                  -> Website Core
+                      -> replaceable Browser
+~~~
+
+Future Codex/Claude Code/other Workers can enter at the Worker replacement seam without changing the MVP semantic model.

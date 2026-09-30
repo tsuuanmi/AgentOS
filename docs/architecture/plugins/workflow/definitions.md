@@ -1,178 +1,116 @@
-# Workflow definitions and Profiles
+# Workflow Definitions
 
-- **Status:** canonical architecture
-- **Rule:** domain behavior is declarative; Workflow semantics remain domain-agnostic.
+Workflow Definitions describe **semantic DAGs** independent from runtime scripts.
 
-## Model
-
-~~~mermaid
-flowchart LR
-    Profile[Workflow Profile]
-    Definition[Workflow Definition]
-    Admit[Admission validation]
-    Run[WorkflowRun]
-    Items[WorkItems]
-    Plugins[Worker / Agent Team / effect adapters]
-
-    Profile --> Definition --> Admit --> Run --> Items
-    Items --> Plugins
-~~~
+## Initial shape
 
 ~~~text
-Workflow semantic plugin
-  = validation + WorkItem/transition/recovery/acceptance semantics
+WorkflowDefinition {
+  workflowId
+  nodes: WorkflowNodeDefinition[]
+}
 
-Workflow Definition
-  = declarative graph/policy
-
-Workflow Profile
-  = Definition + Skills + schemas + plugin/provider requirements + defaults
-
-WorkflowRun
-  = one durable semantic instance bound to exact Definition/input
+WorkflowNodeDefinition {
+  nodeId
+  objective
+  executor
+  dependsOn[]
+}
 ~~~
 
-## Definition responsibilities
+Fields:
 
-A Definition may declare input contract, WorkItem graph, dependencies/transitions, semantic executor kind, required capabilities, Agent Team collaboration policy, expected domain result contract, recovery policy, human/external gates, and terminal result contract.
+- `workflowId`: semantic workflow identity/name for this Definition;
+- `nodeId`: stable semantic node identity inside the graph;
+- `objective`: domain meaning of the node;
+- `executor`: semantic execution route such as `agent-team`, `worker`, `effect`, or a Profile-owned route;
+- `dependsOn`: semantic predecessor node ids.
 
-A Definition should not name ACP methods, A2A Task fields, DSH internal ids, Website browser selectors, or provider-specific lifecycle states.
+The `executor` string is routing policy, not a provider/runtime id.
 
-## Profile responsibilities
+## Graph semantics
 
-A Profile packages:
+Example:
 
 ~~~text
-Definition
-Skills / capability packs
-domain schemas
-required plugins
-provider preferences
-presentation metadata
+research
+   |
+   +----------+
+   v          v
+design    risk-review
+   |          |
+   +-----+----+
+         v
+     implement
+         |
+         v
+      validate
 ~~~
 
-A Profile may prefer Website research or local code execution, but the Definition still refers to semantic capabilities rather than protocol wire types.
+Definition array order does not imply execution order.
 
-## Admission flow
+Readiness/scheduling is runtime orchestration and is not implemented by `defineWorkflow(...)`.
 
-~~~mermaid
-flowchart TD
-    P[Profile + Definition + input]
-    Graph[Validate graph/transitions]
-    Plugins[Resolve required plugins]
-    Caps[Check capability satisfiability]
-    Contracts[Resolve domain contracts]
-    Bind[Bind exact Definition/input]
-    Run[Create WorkflowRun]
-    Fail[Reject before effects]
+## Admission invariants
 
-    P --> Graph --> Plugins --> Caps --> Contracts --> Bind --> Run
-    Graph -. invalid .-> Fail
-    Plugins -. unavailable .-> Fail
-    Caps -. unsatisfied .-> Fail
-    Contracts -. unresolved .-> Fail
+Before runtime work:
+
+- workflow id is non-empty;
+- at least one node exists;
+- node ids are non-empty and unique;
+- objectives are non-empty;
+- executor keys are non-empty;
+- every dependency exists;
+- no node depends on itself;
+- dependency edges are unique per node;
+- the graph is acyclic.
+
+Invalid graph configuration fails before any node handler is invoked.
+
+## Snapshot semantics
+
+Admission copies the current node fields and dependency arrays.
+
+Later mutation of Profile/config input cannot silently rewrite the admitted in-memory graph.
+
+Durable snapshots/digests are deferred until restart/persistence is required.
+
+## What Definition must not contain
+
+Do not put these into the semantic Definition:
+
+- ACP session id;
+- future A2A task/context/message ids if that boundary is introduced;
+- MCP connection/server ids;
+- DSH job/workflow run ids;
+- browser/process handles;
+- concrete provider lifecycle state;
+- native Team task objects.
+
+Those belong to their owning runtime/protocol.
+
+## Profiles
+
+Profiles provide domain-specific graphs and executor composition.
+
+Examples:
+
+~~~text
+software-development Profile
+  -> semantic DAG nodes
+  -> agent-team / worker / effect executor handlers
+
+scientific-research Profile
+  -> different semantic DAG nodes
+  -> same Workflow Definition contract
 ~~~
 
-## Software-development example
+Profiles may validate richer executor-specific configuration outside the minimal Workflow core. Do not widen the core schema until more than one real Profile needs the same semantic field.
 
-~~~yaml
-name: software-development
-capabilityPacks:
-  - software-development
+## Runtime binding
 
-workItems:
-  research:
-    executor: agent-team
-    requires: [research, brainstorm]
-    team:
-      workers: 2
-      independentFirst: true
-    output: research-result
+AgentOS Definition is not itself a DSH Workflow/PTC script.
 
-  implement:
-    dependsOn: [research]
-    executor: worker
-    requires: [implement, tdd]
-    output: implementation-report
+A runtime binding may later translate/interpret the semantic DAG using DSH Workflow/PTC. That adapter should be thin and should not create a second scheduler.
 
-  validate:
-    dependsOn: [implement]
-    executor: local-effect
-    output: validation-report
-
-  review:
-    dependsOn: [validate]
-    executor: agent-team
-    requires: [review]
-    team:
-      workers: 2
-      independentFirst: true
-    output: review-result
-
-transitions:
-  review.accepted: complete
-  review.changes_required: implement
-~~~
-
-This is illustrative configuration; the serialized schema is not frozen yet.
-
-## Scientific-research example
-
-~~~yaml
-name: scientific-research
-capabilityPacks:
-  - scientific-research
-
-workItems:
-  literature:
-    executor: worker
-    requires: [literature-search, evidence-extraction]
-    prefer:
-      - website-agent
-
-  synthesis:
-    dependsOn: [literature]
-    executor: agent-team
-    requires: [research, synthesize]
-
-  analysis:
-    dependsOn: [synthesis]
-    executor: worker
-    requires: [data-analysis]
-
-  peer-review:
-    dependsOn: [analysis]
-    executor: agent-team
-    requires: [scientific-review]
-~~~
-
-The Website Agent may be controlled through ACP for the literature Worker execution and may collaborate with Team Members through A2A. Those protocol details stay below the Profile.
-
-## Capability binding
-
-~~~mermaid
-flowchart LR
-    Item[WorkItem requires capabilities]
-    Kind{executor kind}
-    Worker[Worker selection]
-    Team[Agent Team policy]
-    Result[Domain/native accepted result]
-
-    Item --> Kind
-    Kind -- worker --> Worker --> Result
-    Kind -- agent-team --> Team --> Result
-~~~
-
-No SoftwareWorker or ScientificWorker runtime type is needed.
-
-## Exact binding
-
-Before effects begin, Workflow binds the exact Definition and input using a snapshot, digest, or immutable reference plus digest.
-
-Mutable deployment/Profile configuration affects new runs only unless an explicit migration mechanism is later designed.
-
-## Config-only extension rule
-
-A new domain should normally require only a Profile, Skills, capability requirements, domain result contracts, and plugin/provider configuration.
-
-Change Workflow core only when a new cross-domain semantic invariant is proven.
+Team-internal dependency state continues to use the native DSH Agent Team task DAG.

@@ -3,208 +3,244 @@
 - **Status:** canonical architecture
 - **Owner:** AgentOS
 - **Host:** DSH / Cordis
-- **Role:** durable domain-agnostic sequencing, recovery, decisions, and semantic completion
+- **Role:** semantic DAG definition, node routing, acceptance policy, and later durability semantics
 
-Workflow answers **what happens next and what durable semantic state must survive restart**.
+Workflow answers **what work exists, what depends on what, and which semantic executor owns each node**.
 
-It is not a second generic workflow engine.
+It is **not** a generic DAG execution engine.
 
-## Architecture
+## Replaceability
+
+Workflow is orchestration-runtime-agnostic.
+
+Its stable contract is the semantic DAG + executor routing/acceptance semantics. DSH Workflow/PTC is the first generic orchestration mechanics provider, not part of the Definition schema.
+
+A future runtime may replace DSH orchestration if it can execute the same semantic graph without leaking runtime job/process ids into Workflow core.
+
+## PR #2 implementation reference
+
+PR #2 currently contains a proposed implementation under:
+
+~~~text
+src/workflow/
+  definition.ts
+  executor.ts
+~~~
+
+PR #3 defines the architecture and does not assume those source files are merged yet.
+
+## Ownership boundary
+
+AgentOS Workflow owns:
+
+- workflow/node semantic identity;
+- node objective;
+- semantic executor kind;
+- dependency graph meaning;
+- DAG admission validation;
+- semantic node routing boundary;
+- result/acceptance policy owned by Profiles/composition;
+- later, only the durability semantics proven necessary by real workflows.
+
+AgentOS Workflow does **not** own:
+
+- topological scheduling;
+- parallel/pipeline mechanics;
+- process lifecycle;
+- subagent lifecycle;
+- Team task readiness;
+- timers;
+- retries;
+- queues;
+- generic checkpoints;
+- DSH/ACP/MCP/future A2A transport.
+
+## Existing orchestration engines
+
+Two DSH primitives already cover important execution mechanics.
+
+### Generic orchestration: DSH Workflow/PTC
+
+`@deepseek-ai/dsh-workflow-ptc` provides:
+
+- arbitrary JavaScript control flow;
+- `agent()`;
+- `parallel()`;
+- `pipeline()`;
+- phase/log lifecycle events;
+- concurrency/agent caps;
+- caller-owned cancellation;
+- process/subagent cleanup through DSH runtime contracts.
+
+AgentOS must reuse this layer when generic orchestration mechanics are required rather than implement another scheduler.
+
+### Team-local DAG: DSH Agent Team
+
+`@deepseek-ai/dsh-experimental-agent-team` owns the Team task board and its dependency/readiness mechanics.
+
+That DAG is Team-local collaboration state. AgentOS must not copy it into Workflow.
+
+~~~text
+AgentOS semantic Workflow DAG
+    |
+    +-- generic orchestration mechanics -> DSH Workflow/PTC
+    |
+    +-- Agent Team node
+            -> Agent Team semantic phase
+                -> native DSH Team task DAG when needed
+~~~
+
+## Semantic DAG Definition
+
+The current Definition is intentionally small:
+
+~~~text
+WorkflowDefinition {
+  workflowId
+  nodes: [
+    {
+      nodeId
+      objective
+      executor
+      dependsOn[]
+    }
+  ]
+}
+~~~
+
+Example:
+
+~~~text
+research ───────────────┐
+                       v
+security-review ────> synthesize
+                       ^
+architecture-review ───┘
+~~~
+
+A Definition may express fan-out/fan-in. Array order is serialization order only; it is not execution order.
+
+Admission validates:
+
+- non-empty workflow id;
+- at least one node;
+- non-empty node id/objective/executor;
+- unique node ids;
+- dependencies refer to existing nodes;
+- no self dependency;
+- no duplicate dependency edge;
+- graph is acyclic.
+
+The admitted graph copies node/dependency metadata away from later caller mutation.
+
+It contains no provider id, DSH job id, ACP session id, MCP server id, future A2A task id, or runtime process identity.
+
+## Node execution boundary
+
+`WorkflowNodeRouter` routes **one already-selected semantic node** to a configured executor.
+
+~~~text
+Workflow node
+  -> semantic executor key
+      -> composition-owned handler
+          -> Agent Team / Worker / effect / decision
+~~~
+
+The router:
+
+- does not inspect readiness;
+- does not schedule dependencies;
+- does not retry;
+- does not replace failed execution;
+- does not persist execution;
+- returns the handler result unchanged.
+
+This keeps routing semantics separate from orchestration mechanics.
+
+## Agent Team integration
+
+PR #2 currently includes `tests/integration/workflow-agent-team.spec.ts` as implementation evidence for routing an `agent-team` node into Agent Team semantics.
+
+Workflow core itself does not import Agent Team runtime mechanics, Worker providers, ACP, MCP, Website Core, future A2A, provider SDKs, or DSH runtime implementation packages.
+
+The integration belongs to composition/Profile code.
+
+## Execution architecture
 
 ~~~mermaid
 flowchart TB
-    Profile[Workflow Profile]
-    Definition[Exact Workflow Definition]
-    Run[WorkflowRun semantic state]
-    Store[DSH ctx.storageDomain]
+    Profile[Profile / Definition]
+    Def[AgentOS semantic DAG]
+    Runtime[DSH Workflow/PTC]
+    Router[WorkflowNodeRouter]
+    Team[Agent Team]
+    Worker[Worker]
+    Effect[Effect adapter]
+    Decision[Decision boundary]
+    TeamDAG[DSH Team task DAG]
 
-    Team[Agent Team plugin]
-    Worker[Worker plugin]
-    Runtime[DSH jobs / workflowEngine / Schedule]
-    Human[approval / userQuestions]
-    Effects[workspace / tools / external effects]
+    Profile --> Def
+    Def -. semantic graph .-> Runtime
+    Runtime -. invokes ready semantic work through composition .-> Router
 
-    Profile --> Definition --> Run
-    Run <--> Store
+    Router --> Team
+    Router --> Worker
+    Router --> Effect
+    Router --> Decision
 
-    Run --> Team
-    Run --> Worker
-    Run -. optional mechanics .-> Runtime
-    Run -. presentation .-> Human
-    Run --> Effects
+    Team -. collaboration mechanics .-> TeamDAG
 ~~~
 
-## Ownership split
+The exact runtime binding between a semantic DAG and DSH Workflow/PTC should be implemented only once a concrete Profile requires it. That binding must adapt to DSH rather than implement a scheduler inside AgentOS.
 
-Workflow owns:
-
-- Definition/Profile validation;
-- exact admitted Definition/input association;
-- WorkItem semantic identity;
-- dependencies/transitions;
-- product recovery policy;
-- durable external decisions when required;
-- semantic result/effect acceptance;
-- terminal convergence and reattachment.
-
-DSH/runtime plugins own:
-
-- storage implementation;
-- jobs;
-- timers/wakes;
-- bounded orchestration;
-- UI/presentation mechanisms;
-- process/session mechanics.
-
-Worker/Agent Team own delegated execution/collaboration.
-
-## WorkItem lifecycle
-
-Conceptual states are semantic, not a frozen enum:
-
-~~~mermaid
-stateDiagram-v2
-    [*] --> blocked
-    blocked --> ready: dependencies satisfied
-    ready --> running: admitted execution
-    running --> waiting: external input / recoverable wait
-    waiting --> running: input / wake
-    running --> reconciling: restart / unknown outcome
-    reconciling --> running: resume / replacement
-    reconciling --> completed: effect/result already converged
-    reconciling --> blocked: ambiguous unsafe outcome
-    running --> completed: result + effects accepted
-    running --> failed: terminal semantic failure
-    completed --> [*]
-    failed --> [*]
-~~~
-
-Implementation may use different names. Tests should assert semantics, not naming.
-
-## Execution routing
-
-~~~mermaid
-flowchart TD
-    Ready[Ready WorkItem]
-    Kind{Execution kind}
-    Team[Agent Team phase]
-    Worker[Worker execution]
-    Effect[Local/external effect adapter]
-    Decision[Durable external decision]
-    Accept[Semantic acceptance]
-    Transition[Derive next transition]
-
-    Ready --> Kind
-    Kind -- collaborative --> Team
-    Kind -- delegated --> Worker
-    Kind -- effect --> Effect
-    Kind -- human/external authority --> Decision
-    Team --> Accept
-    Worker --> Accept
-    Effect --> Accept
-    Decision --> Accept
-    Accept --> Transition
-~~~
-
-Workflow never selects ACP/A2A/Website implementations directly.
-
-## Admission
-
-Before correctness-bearing effects:
-
-~~~mermaid
-flowchart TD
-    D[Definition + input]
-    Validate[Validate graph / transitions / terminal targets]
-    Plugins[Validate required plugins/adapters]
-    Caps[Validate satisfiable required capabilities]
-    Schemas[Resolve correctness-bearing schemas]
-    Bind[Bind exact Definition/input]
-    Start[Admit WorkflowRun]
-    Fail[Fail admission]
-
-    D --> Validate --> Plugins --> Caps --> Schemas
-    Schemas --> Bind --> Start
-    Validate -. invalid .-> Fail
-    Plugins -. missing .-> Fail
-    Caps -. unsatisfied .-> Fail
-    Schemas -. unresolved .-> Fail
-~~~
-
-Mutable deployment config may affect new runs. It must not silently alter the semantics of an admitted run.
-
-## Restart = reconciliation
-
-~~~mermaid
-sequenceDiagram
-    participant H as Host restart
-    participant W as Workflow
-    participant S as Durable store
-    participant E as Worker/Team/effect boundary
-
-    H->>W: initialize
-    W->>S: load non-terminal WorkflowRuns
-    loop each non-terminal WorkItem
-        W->>E: inspect/reconcile native execution/effect
-        E-->>W: current native evidence/state
-        W->>W: preserve accepted completion
-        W->>W: resolve unknown outcome policy
-    end
-    W->>W: derive readiness after reconciliation
-    W->>S: persist semantic state
-~~~
-
-A missing process/job/session handle never proves work did not happen.
-
-## Effect and authority
+## Completion boundaries
 
 ~~~text
-authority granted
-  != effect completed
+provider terminal
+  != Worker accepted
 
-provider claims success
-  != effect completed
+Worker accepted
+  != Agent Team phase accepted
 
-effect completed
-  = observed external state or trustworthy receipt
+Agent Team phase accepted
+  != Workflow node accepted
+
+Workflow node accepted
+  != Workflow complete
 ~~~
 
-A durable user/external decision is Workflow state when it must survive reconnect/restart. DSH approval/questions is presentation for collecting that decision.
+Profiles/composition define domain acceptance. Runtime completion alone never silently becomes semantic completion.
 
-## Runtime substitution
+## Recovery priority
 
-Default:
+Recovery/restart remains deferred behind a functional real Workflow/Profile.
 
-~~~text
-DSH/Cordis Host
-  -> Workflow semantic plugin
-      -> DSH storage/jobs/workflow/schedule mechanics
-~~~
+When required later:
 
-Only after a failing requirement proves a generic durability gap:
+- reuse DSH Workflow runtime state where applicable;
+- reuse native DSH Team task state;
+- reuse future A2A Task/context state only if that cross-runtime boundary is actually introduced;
+- persist only AgentOS-owned semantic decisions/associations proven necessary.
 
-~~~text
-DSH/Cordis Host
-  -> Workflow semantic plugin
-      -> Cordis adapter
-          -> Inngest / Temporal / other runtime
-~~~
+Do not add a generic recovery engine speculatively.
 
-External runtime ids never become Workflow semantic identity.
+## TDD gates
 
-## Implementation gates
+The PR #2 test suite currently aims to prove:
 
-Tests must prove:
+1. semantic DAG admission accepts fan-out/fan-in;
+2. invalid graph identities and edges fail before execution;
+3. cycles fail admission;
+4. admitted graph metadata is detached from later caller mutation;
+5. one node routes only to its configured semantic executor;
+6. unsupported executor kinds fail closed;
+7. failed node execution is not retried or replaced;
+8. Agent Team execution composes through the node router without Workflow importing Team runtime mechanics.
 
-1. invalid Definition fails before effects;
-2. exact admitted Definition/input survives restart;
-3. WorkItem identity is not DSH Job/ACP session/A2A Task identity;
-4. completed WorkItems are not replayed because live handles disappeared;
-5. unknown effect outcome reconciles before retry;
-6. unsafe ambiguous effect blocks rather than overwrites;
-7. durable external authority survives restart but does not imply effect completion;
-8. collaborative WorkItems use Agent Team and delegated WorkItems use Worker;
-9. provider/runtime replacement does not change Workflow semantics;
-10. software and scientific Profiles share the same Workflow implementation.
+Future orchestration integration tests should prove reuse of DSH Workflow/PTC rather than a new AgentOS scheduler.
 
-See [Composition](composition.md), [Definitions and Profiles](definitions.md), and [DSH runtime capabilities](../dsh/workflow-runtime.md).
+See [Composition](composition.md), [Definitions](definitions.md), and [DSH runtime capabilities](../dsh/workflow-runtime.md).
+
+## MVP runtime note
+
+For the MVP, collaborative nodes ultimately use DSH `ctx.agentTeams`, delegated Worker execution uses DSH `ctx.subagents`, and direct peer debate uses native DSH Team messaging. Workflow remains unaware of those concrete mechanics beyond composition handlers.

@@ -2,13 +2,13 @@
 
 - **Status:** canonical architecture
 - **Owner:** AgentOS
-- **Runtime host:** DSH / Cordis
+- **MVP Host:** DSH / Cordis
 - **Kind:** composition root
-- **Implementation goal:** wire reusable plugins and Profiles without becoming another agent runtime
+- **Implementation goal:** compose reusable Worker, Team, Workflow, and capability plugins without becoming another runtime
 
-AgentOS is the top-level composition plugin. It owns product composition and defaults, not execution mechanics already owned by DSH or standard protocols.
+AgentOS owns product composition and semantic defaults. It does not replace mechanics already provided by DSH or standard capability/runtime protocols.
 
-## Architecture
+## MVP composition
 
 ~~~mermaid
 flowchart TB
@@ -16,58 +16,59 @@ flowchart TB
     Host[DSH / Cordis Host]
     AO[AgentOS composition]
 
-    WF[Workflow plugin]
-    Team[Agent Team plugin]
-    Worker[Worker plugin]
-    Website[Website Agent plugin]
-    A2A[A2A plugin]
+    WF[Workflow]
+    Team[Agent Team policy]
+    Router[Worker routing / ctx.worker]
     Profiles[Profiles / Skills]
 
     DSHAT[DSH ctx.agentTeams]
     Sub[DSH ctx.subagents]
-    ACPClient[DSH ACP client/provider]
-    Runtime[DSH storage/jobs/workflow/schedule/tools]
+    Web[Website capability]
+    Core[Website Core]
+    Runtime[WebsiteProviderRuntime]
 
     User --> Host --> AO
-
     AO --> WF
     AO --> Team
-    AO --> Worker
-    AO -. optional .-> Website
-    AO -. optional .-> A2A
+    AO --> Router
     AO --> Profiles
 
     WF --> Team
-    WF --> Worker
-    Team --> Worker
+    WF --> Router
     Team --> DSHAT
-    Worker --> Sub
-    Sub --> ACPClient
-    ACPClient --> Website
-    Team <--> A2A
-    A2A <--> Website
-    WF --> Runtime
+    Router --> Sub
+
+    DSHAT --> M1[Member / Worker A]
+    DSHAT --> M2[Member / Worker B]
+    M1 <-->|native DSH Team message| M2
+
+    M1 -. capability .-> Web
+    M2 -. capability .-> Web
+    Web --> Core --> Runtime
 ~~~
+
+The MVP does not require A2A.
 
 ## Ownership
 
 AgentOS owns:
 
 - plugin dependency wiring;
-- default plugin configuration;
-- Profile selection and installation;
-- enabling optional Website/A2A integrations;
-- product-level policy defaults;
-- startup validation that required plugins are available.
+- Profile selection/installation;
+- semantic Worker capability registration/routing policy;
+- Agent Team member admission, collaboration procedure/barrier/acceptance policy;
+- product-level defaults;
+- startup validation that required DSH services/capabilities are available.
 
 AgentOS does not own:
 
-- provider registry or provider process lifecycle;
-- Team roster/task/mailbox mechanics;
-- browser automation;
-- ACP/A2A/MCP protocol data models;
-- generic workflow scheduler/job/timer infrastructure;
-- domain procedure encoded in Skills/Profiles.
+- DSH provider process/session lifecycle;
+- DSH Team roster/task/mailbox/direct-message mechanics;
+- browser engine implementation;
+- MCP/ACP wire models;
+- a second Team runtime;
+- a universal Worker/Agent protocol;
+- A2A in the MVP.
 
 ## Startup flow
 
@@ -75,80 +76,86 @@ AgentOS does not own:
 sequenceDiagram
     participant H as DSH/Cordis
     participant A as AgentOS
-    participant D as DSH capabilities
-    participant P as AgentOS plugins
+    participant D as DSH services
+    participant P as AgentOS semantic plugins
+    participant C as Capability plugins
     participant R as Profiles
 
     H->>A: initialize composition
-    A->>D: require configured DSH services
-    A->>P: install Worker / Team / Workflow
-    opt Website execution enabled
-        A->>P: install Website Agent integration
-    end
-    opt A2A collaboration enabled
-        A->>P: install A2A integration
+    A->>D: require ctx.agentTeams / ctx.subagents / configured tools
+    A->>P: install Worker routing / Agent Team / Workflow
+    opt Website capability enabled
+        A->>C: install Website capability + Browser implementation
     end
     A->>R: load selected Profiles / Skills
-    A->>A: validate dependency graph
+    A->>A: validate required capabilities
     A-->>H: ready
 ~~~
 
-Startup must fail explicitly if a selected Profile requires a plugin/capability that is not installed. Do not silently degrade a Profile.
+Admission must fail explicitly when no Worker currently satisfies the semantic/access/state/lifecycle requirements, including Team-member continuation when applicable.
 
 ## Dependency rules
 
 ~~~text
 Workflow
-  -> Agent Team
-  -> Worker
+  -> Agent Team semantic policy
+  -> Worker routing
 
 Agent Team
-  -> Worker
   -> DSH ctx.agentTeams
-  -> A2A only for peer collaboration
+  -> Worker capability requirements
+  -> native DSH Team direct messaging
 
-Worker
+Worker routing
   -> DSH ctx.subagents
-  -> ACP-compatible providers
+  -> opaque registered/proven Worker providers
 
-Website Agent
-  -> Website Core from @tsuuanmi/internet
-  -> ACP runtime port
-  -> A2A peer port
+Agent Team member formation
+  -> Worker admission
+  -> DSH ctx.agentTeams persistent teammate
+
+Website capability
+  -> Website Core
+  -> WebsiteProviderRuntime
+  -> Browser/API/remote implementation
+  -> replaceable Browser/provider
 ~~~
 
-Dependencies flow downward. Provider/runtime-specific logic must not leak back into Workflow or Agent Team.
+ACP may be added at a real external Worker/runtime boundary.
 
-## Direct protocol rule
+A2A is deferred until direct collaboration must cross independent runtimes that cannot share DSH Team.
 
-AgentOS never installs a normalization layer merely to make protocols look alike.
+## Direct-model rule
+
+AgentOS never installs a normalization layer merely to make runtimes/protocols look alike.
 
 ~~~text
-ACP types -> ACP boundary
-A2A types -> A2A boundary
 DSH types -> DSH boundary
+ACP types -> ACP boundary when used
 MCP types -> MCP boundary
+future A2A types -> A2A boundary only if introduced
 ~~~
 
-AgentOS-owned types exist only for AgentOS-owned semantics such as Workflow Definition/WorkItem policy, capability requirements, or a minimal local execution association.
+AgentOS-owned types exist only for AgentOS-owned semantics such as Workflow definitions, member admission requirements, collaboration procedure/barrier policy, domain results, or a minimal recovery binding.
 
 ## Failure isolation
-
-A failure in one optional integration should be scoped to the capability/Profile that requires it.
 
 Examples:
 
 ~~~text
-Website ACP unavailable
-  -> Website-backed capability unavailable
-  -> local Worker providers may remain usable
+Website capability unavailable
+  -> Workers requiring web-research/authenticated-web are unavailable
+  -> other Workers remain usable
 
-A2A endpoint unavailable
-  -> peer Website collaboration unavailable
-  -> DSH Team/local execution may remain usable
+Browser implementation unavailable
+  -> Website capability admission fails
+  -> Team/Workflow core remains usable
 
-Workflow runtime capability unavailable
-  -> Profiles requiring that durability mechanic fail admission
+ACP integration unavailable
+  -> only external Workers requiring ACP are unavailable
+
+A2A unavailable
+  -> no MVP impact because A2A is deferred
 ~~~
 
 ## Implementation shape
@@ -166,21 +173,27 @@ plugins/
   worker
   agent-team
   workflow
-  website-agent
-  a2a
+  website-capability
+  browser implementations
 ~~~
 
-Do not create packages solely to mirror documentation nouns.
+Current PR #2 source still uses `website-agent/` and A2A-specific modules. Those names are transitional until the follow-up TDD refactor.
 
 ## Implementation gates
 
-Before AgentOS composition is considered implemented:
+Before AgentOS composition is considered aligned with this architecture:
 
-1. plugin dependencies are explicit and testable;
-2. missing required dependencies fail startup/admission clearly;
-3. optional Website/A2A plugins can be disabled without changing Worker/Workflow contracts;
-4. software-development and scientific-research Profiles can select the same semantic plugins;
-5. no AgentOS protocol mirror types are introduced;
-6. composition tests prove replacement of a provider does not require Workflow/Agent Team changes.
+1. DSH `ctx.agentTeams` is the only MVP Team runtime;
+2. native DSH direct member messaging carries debate traffic;
+3. `ctx.worker` admits/routes opaque Workers over native DSH providers;
+4. Team Member uses Model A and binds to one admitted Worker at formation;
+5. one-shot-only providers cannot silently become Team Members;
+6. Website is composed as a capability rather than a standalone peer Agent;
+7. `WebsiteProviderRuntime` is the provider replacement seam and Browser is only one implementation;
+8. MCP is absent from the first Website path unless a concrete reuse need proves it;
+7. ACP is only used for a proven external Worker/runtime boundary;
+8. no A2A dependency is required by the MVP;
+9. no AgentOS protocol mirror models are introduced;
+10. software-development and scientific-research Profiles use the same Worker/Team/Workflow semantics.
 
-See [Plugin architecture](../README.md).
+See [Plugin architecture](../README.md), [Worker model](../../execution-model.md), and [Protocol stack](../../protocol-stack.md).

@@ -1,6 +1,6 @@
 # Ecosystem reuse evaluation
 
-- **Status:** active research / component reuse evaluation
+- **Status:** reference research; canonical decisions have moved to architecture
 - **Reviewed:** 2026-09-28
 - **Architectural constraint:** DeepSeek Harness / Cordis remains the AgentOS Host.
 
@@ -30,15 +30,13 @@ Reuse Host lifecycle, DI/composition, ctx.agentTeams, ctx.subagents, ACP provide
 
 ### A2A
 
-Reuse Task/TaskStatus, Message, Artifact/Part, AgentCard/AgentSkill, auth, update delivery, and extension mechanisms.
-
-Initial AgentOS A2A integration should use **zero custom protocol extensions** unless a conformance test proves remote data is missing.
+Keep as a future interoperability option only. Do not use it in the MVP while DSH Team direct messaging satisfies collaboration.
 
 ### ACP
 
 Reuse compatible Agent execution/control through DSH's existing ACP provider.
 
-Website Agent should first be exposed through a local ACP bridge for bounded work.
+Use ACP only for a real external Worker/runtime boundary. Website capability does not require ACP.
 
 ### MCP
 
@@ -106,11 +104,12 @@ protocol SDK > narrow library > durable runtime adapter > full second framework
 
 ## Examples
 
-### Remote Agent
+### Future cross-runtime peer
 
 ~~~text
-AgentOS A2A adapter
-  -> official A2A JS SDK
+independent Worker A
+  -> A2A only when native/shared Team runtime is insufficient
+  -> independent Worker B
 ~~~
 
 ### Compatible delegated Agent
@@ -120,14 +119,16 @@ DSH ctx.subagents
   -> existing DSH ACP provider
 ~~~
 
-### Website Agent
+### Website capability
 
 ~~~text
-DSH ACP provider
-  -> Website ACP Agent adapter over the shared Website core
+Worker
+  -> Website capability
+      -> Website Core
+          -> replaceable Browser
 ~~~
 
-for one-shot work, then add/upstream continuation only if needed.
+Prefer MCP when the capability needs reusable cross-Worker exposure.
 
 ### Durable Workflow
 
@@ -146,19 +147,19 @@ Existing systems already show that Agent, Team, Workflow, MCP, A2A, durable task
 
 The AgentOS hypothesis worth proving is:
 
-1. **right agent, right job** over heterogeneous DSH providers;
+1. **right Worker, right job** over capability-bearing compositions;
 2. **cost/context-aware allocation**;
-3. Website and local agents behind one provider-selection model;
-4. A2A for open remote collaboration;
+3. Website capability composed into Workers;
+4. DSH Team direct collaboration for MVP, with A2A deferred;
 5. capability/Skill-driven domain Profiles;
 6. result/effect acceptance stronger than model prose;
 7. plugin-level implementation substitution without changing the DSH Host.
 
 ## Open research
 
-1. Can the existing DSH ACP provider + Website ACP Agent adapter over the shared Website core cover enough research/scientific work without continuation?
-2. What real workflow first requires continuable ACP, if any?
-3. Can the first A2A path remain extension-free?
+1. What real Worker/runtime first requires ACP rather than native DSH execution?
+2. When does Website capability need MCP rather than direct composition?
+3. What real cross-runtime direct-peer case eventually requires A2A?
 4. Which Workflow durability requirement, if any, exceeds DSH primitives enough to justify Temporal/Inngest?
 5. Does the existing Agno AgentOS name create enough product ambiguity to justify renaming this project?
 

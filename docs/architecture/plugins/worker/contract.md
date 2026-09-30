@@ -1,217 +1,146 @@
 # Worker contract
 
 - **Status:** canonical architecture
-- **Owner:** Worker plugin
-- **Purpose:** define the minimum semantic guarantees of a Worker invocation without duplicating ACP, A2A, DSH, or MCP models.
+- **Owner:** AgentOS Worker semantics
+- **Purpose:** define the minimum semantic boundary of an opaque assignable Worker without duplicating DSH, ACP, MCP, or future A2A models
 
 ## Core rule
 
-> **Use the owning protocol/runtime model directly. Do not normalize it into an AgentOS shadow model.**
+> **Worker is an opaque assignable executable unit with proven current admission guarantees.**
 
-Worker is a semantic plugin, not a wire protocol.
+AgentOS does not require a universal Worker object exposing `core`, `runtime`, `environment`, `tools`, or internal state.
 
-It owns capability selection and semantic acceptance. It does not own copies of protocol lifecycle, messages, tasks, artifacts, or status types.
+Those internals explain where capabilities come from; they are not the public contract.
 
-## Native boundary objects
+## Admission contract
 
-When a boundary is ACP, use ACP SDK/protocol objects directly.
+Before dispatch, routing must determine whether the Worker currently satisfies the work requirements.
 
-When a boundary is DSH, use DSH service/provider objects directly.
+Admission evidence may represent:
 
-~~~text
-ACP
-  -> ACP session / prompt / update / stop reason
-
-DSH
-  -> ctx.subagents provider/result
-  -> ctx.agentTeams Team/task/mailbox state
-
-MCP
-  -> MCP tool/resource structures
-~~~
-
-Do not introduce equivalent AgentOS types such as:
-
-~~~text
-WorkerMessage
-WorkerArtifact
-WorkerTask
-WorkerStatus
-NormalizedAgentResult
-WebsiteTask
-WebsiteMessage
-~~~
-
-unless a failing implementation test proves an AgentOS-owned semantic that cannot be represented by the upstream type.
-
-## Worker invocation
-
-A Worker invocation means:
-
-~~~text
-semantic work
-  -> required capabilities
-  -> selected execution provider/runtime
-  -> native provider/protocol execution
-  -> semantic acceptance
-~~~
-
-It does not require a globally stable AgentOS Worker identity.
-
-## Capability guarantee
-
-Capabilities are semantic requirements, not copied protocol schemas.
+- semantic ability;
+- environment/resource access;
+- dynamic runtime/state constraints;
+- lifecycle conformance.
 
 Examples:
 
 ~~~text
 research
-implement
-review
-literature-search
-data-analysis
-scientific-review
+filesystem
+authenticated-web
+Team-member continuation support
 ~~~
 
-Worker may inspect native capability information directly:
+The MVP may encode these using a simple flat requirement set when sufficient.
 
-- DSH provider metadata;
-- ACP negotiated capabilities;
-- installed tools/environment;
-- explicit configuration;
-- conformance evidence.
+Provider/model identity alone is not proof.
 
-AgentOS may keep its own capability requirement/configuration because **right-agent-right-job selection is AgentOS-owned policy**.
+## One-shot routing contract
 
-It should not duplicate the full upstream capability object merely to rename fields.
-
-## Input guarantee
-
-The semantic caller owns the exact input.
-
-For durable work, Workflow/Agent Team may retain an immutable input snapshot or digest when correctness requires it.
-
-At the protocol boundary, pass native protocol input structures directly.
-
-Do not add a universal AgentOS `inputBinding` field to ACP prompts, A2A Messages, or provider results.
-
-## Execution guarantee
-
-Use native lifecycle and identity.
-
-Examples:
+The PR #2 `ctx.worker` concept accepts:
 
 ~~~text
-ACP sessionId
-DSH provider/run handle
+semantic work
+admission requirements
+native DSH execution request
+optional caller/domain acceptance
 ~~~
 
-AgentOS adds an [Execution binding](execution-binding.md) only when semantic recovery/replacement requires a local association that upstream protocols do not own.
+and selects a conforming live provider through DSH `ctx.subagents`.
 
-## Output guarantee
+Selection should remain deterministic under explicit priority/configuration.
 
-Do not map a native result into a generic Worker result merely for normalization.
+## Opaque Worker result
+
+Use native provider/runtime result objects until a caller/domain owns a different semantic result.
+
+Do not introduce:
+
+- WorkerTask;
+- WorkerMessage;
+- WorkerArtifact;
+- normalized WorkerState;
+- universal Worker session identity.
+
+## Agent Team contract — Model A
+
+For Team participation:
 
 ~~~text
-ACP result/update
-  -> inspect directly
-
-A2A Task / Artifact / Part
-  -> inspect directly
-
-DSH provider result
-  -> inspect directly
+member requirements
+  -> Worker/provider admission
+      -> persistent DSH Team Member / logical Worker
 ~~~
 
-The caller may validate the native result against an AgentOS/domain-owned output contract.
+One Team Member Session is the stable logical Worker identity for the Team lifecycle. The initial provider participates in admission/creation, while later runtime Activations may be recreated independently by the DSH continuation manager.
 
-If a domain needs a typed result, define the **domain result**, not a protocol copy.
+A one-shot Worker is not automatically valid for Team membership.
 
-## Communication guarantee
+Team-member admission must prove the continuation/lifecycle behavior required by the Team runtime.
 
-Use native communication:
+## Message completion rule
 
-- A2A Message/Artifact is used directly by Agent Team/Website peer collaboration;
-- DSH Team mailbox for in-DSH Team collaboration;
-- ACP prompt/update for runtime/client communication;
-- MCP for tools/data/capabilities.
+Worker contract does not own Team messaging, but all callers must preserve:
 
-AgentOS does not define a universal Worker Message.
+~~~text
+message accepted/delivered
+  != target semantic response completed
+~~~
 
-## Lifecycle guarantee
+DSH owns transport/delivery; Agent Team owns semantic collaboration acceptance.
 
-Use native lifecycle directly.
+## Website capability
 
-AgentOS does not persist a second normalized WorkerState.
+MVP:
 
-A small derived UI projection is allowed only as a non-authoritative view.
+~~~text
+DSH Worker
+  -> direct/native Website capability
+      -> Website Core
+          -> WebsiteProviderRuntime
+~~~
+
+Browser is one provider implementation below `WebsiteProviderRuntime`.
+
+MCP is optional and should be added only after a real reuse/interoperability case requires a standard capability surface.
+
+Website capability does not require an independent Website Agent identity.
+
+## Native boundary objects
+
+~~~text
+DSH provider/run -> DSH types
+DSH Team member/message/task -> DSH types
+ACP session/prompt/update -> ACP types
+MCP tool/resource -> MCP types
+future A2A Task/Message/Artifact -> A2A types
+~~~
+
+No AgentOS mirror models.
+
+## Lifecycle
+
+Use native runtime lifecycle directly.
+
+Add a minimal AgentOS recovery binding only when a real restart/replacement invariant cannot be reconstructed from the owning runtime.
 
 ## Effect guarantee
 
-Protocol success is not proof that an external effect happened.
+Runtime completion is not proof of consequential external effect.
 
-When correctness depends on repository/environment/external state, validate the real effect or a trustworthy receipt.
-
-This is an AgentOS semantic invariant and is intentionally separate from ACP/A2A lifecycle.
-
-## Adapter rule
-
-Adapters are **behavioral glue**, not data-model translation layers.
-
-A good adapter:
-
-~~~text
-implements upstream SDK interface directly
-  -> calls Website Core / DSH service directly
-  -> returns upstream SDK object directly
-~~~
-
-A bad adapter:
-
-~~~text
-ACP Message
-  -> AgentOSMessage
-      -> WebsiteMessage
-          -> CoreRequest
-~~~
-
-or:
-
-~~~text
-A2A Artifact
-  -> WorkerArtifact
-      -> DomainArtifact
-~~~
-
-Prefer the shortest ownership-preserving path.
+When correctness depends on repository/environment/external state, validate observed state or a trustworthy receipt.
 
 ## Non-requirements
 
 Worker does not require:
 
-- workerId;
-- assignmentId;
-- attemptId;
-- WorkerAssignment;
-- WorkerMessage;
-- WorkerArtifact;
-- WorkerState;
-- Worker Exchange;
-- normalized ACP/A2A mirrors;
-- a Worker-specific MCP protocol.
+- a global workerId;
+- normalized internal anatomy;
+- one universal runtime protocol;
+- MCP for Website MVP;
+- A2A for MVP execution;
+- a standalone Website Agent;
+- provider-specific Workflow/Profile branches.
 
-Add an AgentOS type only for an AgentOS-owned semantic.
-
-## Related
-
-- [Worker plugin](README.md)
-- [Worker boundaries](boundaries.md)
-- [Worker communication](communication.md)
-- [Execution binding](execution-binding.md)
-- [Protocol stack](../../protocol-stack.md)
-- [AgentOS semantic delta](../agentos/semantic-delta.md)
-
-
-## A2A ownership note
-
-A2A remains subject to the same no-shadow-model rule, but its Task/Message/Artifact/context lifecycle is owned by the A2A + Agent Team/Website collaboration boundary rather than Worker execution binding.
+See [Worker plugin](README.md), [Worker model](../../execution-model.md), [Worker boundaries](boundaries.md), and [Protocol stack](../../protocol-stack.md).

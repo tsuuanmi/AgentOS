@@ -12,7 +12,7 @@ This folder documents DSH-owned seams so implementation agents know what not to 
 flowchart TB
     AgentOS[AgentOS composition]
     Team[Agent Team plugin]
-    Worker[Worker plugin]
+    Router[Worker routing]
     Workflow[Workflow plugin]
 
     DSHAT[ctx.agentTeams]
@@ -24,17 +24,17 @@ flowchart TB
     Tools[workspace / fs / shell / web / MCP]
 
     AgentOS --> Team
-    AgentOS --> Worker
+    AgentOS --> Router
     AgentOS --> Workflow
 
     Team --> DSHAT
-    Worker --> Sub
+    Router --> Sub
     Sub --> ACP
 
     Workflow --> Store
     Workflow -.-> Runtime
     Workflow -.-> Interaction
-    Worker --> Tools
+    Router --> Tools
     Workflow --> Tools
 ~~~
 
@@ -43,9 +43,9 @@ flowchart TB
 | DSH seam | Consumer | DSH-owned mechanic |
 |---|---|---|
 | Cordis lifecycle/DI | AgentOS | plugin host/composition |
-| ctx.agentTeams | Agent Team | Team roster/tasks/mailbox/member lifecycle |
-| ctx.subagents | Worker | provider registry/dispatch/lifecycle |
-| dsh-subagent-acp | Worker | ACP Client delegated-provider execution |
+| ctx.agentTeams | Agent Team | MVP Team roster/tasks/mailbox/direct member messaging/member lifecycle |
+| ctx.subagents | Worker routing | MVP multi-provider registry/dispatch/lifecycle; provider internals remain opaque |
+| dsh-subagent-acp | Worker routing | optional ACP Client delegated-provider execution |
 | dsh-acp | external controllers | ACP Agent/server for persistent DSH agents |
 | ctx.storageDomain | Workflow | storage mechanics |
 | ctx.jobs | Workflow | background job mechanics |
@@ -53,13 +53,15 @@ flowchart TB
 | Schedule | Workflow | wake/timer mechanics |
 | approval/questions | Workflow | interaction presentation |
 | Session | DSH plugins | DSH session persistence/projection |
-| workspace/fs/shell/web/MCP | Worker/effects | execution/tool mechanics |
+| workspace/fs/shell/web | Worker admission/effects | execution mechanics and admission evidence |
+| `@deepseek-ai/dsh-mcp-client` / `ctx.tools` | Agents/effects | native MCP connection, discovery, tool registration, execution |
 
 ## Read order
 
 - [Agent Team](agent-team.md)
 - [Subagents](subagents.md)
 - [ACP](acp.md)
+- [MCP](mcp.md)
 - [Workflow/runtime capabilities](workflow-runtime.md)
 
 ## Reuse decision flow
@@ -87,3 +89,20 @@ flowchart TD
 ## Invariant
 
 > **DSH mechanics remain DSH state. AgentOS semantics remain AgentOS state. Never mirror one into the other merely to create a uniform model.**
+
+## MVP decision
+
+DSH is intentionally concrete in the MVP:
+
+~~~text
+ctx.agentTeams -> Team/member lifecycle + durable direct peer messaging
+ctx.subagents  -> multi-provider Worker execution mechanics
+                  (in-process / ACP / Codex / Claude Code / DSH SDK)
+ctx.tools/MCP  -> reusable/native capability composition
+~~~
+
+Do not add A2A or another Team runtime while these DSH seams satisfy the current requirements.
+
+## Provider seam rule
+
+`ctx.subagents` already lets multiple provider implementations coexist by name. AgentOS should consume that seam rather than define a normalized Worker runtime interface over provider internals. For Team membership, provider presence in `ctx.subagents` is only the first step; the selected provider must separately satisfy the continuable DSH Team lifecycle required by `ctx.agentTeams`.

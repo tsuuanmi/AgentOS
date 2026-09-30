@@ -1,73 +1,53 @@
 # ACP integration and DSH ACP plugins
 
 - **Protocol owner:** Agent Client Protocol upstream
-- **Initial Runtime/Client:** DeepSeek Harness
-- **AgentOS consumers:** Worker + Website Agent
-- **DSH SDK version:** `@agentclientprotocol/sdk@1.4.0` in current DSH packages
+- **MVP Host integration:** DeepSeek Harness
+- **Canonical role:** optional external Worker/Agent runtime control
+- **Current PR #2 Website ACP code:** transitional implementation
+- **DSH SDK version:** `@agentclientprotocol/sdk@1.4.0` in the current implementation branch
 
-ACP is the standard **Runtime/Client <-> Agent** protocol in AgentOS.
+ACP is a standard runtime/client-to-agent protocol. AgentOS uses it **only when a real external Worker/runtime boundary benefits from ACP**.
 
-Website Agent implements the ACP Agent side. DSH is the first ACP Client/runtime integration.
+ACP does not define AgentOS semantic Worker capabilities such as `research`, `develop`, or `website`.
 
-## Protocol role
+## Canonical role
 
 ~~~text
-DSH / another runtime
+DSH / another Host
   -> ACP Client
-      -> ACP
-          -> Website ACP Agent
-              -> Website Agent Core
+      -> external Worker / Agent runtime
 ~~~
 
-ACP is deliberately separate from A2A:
+Possible future Worker cores may use ACP, but ACP is not mandatory for DSH-native Workers.
+
+## Website relationship
+
+PR #2 implemented:
 
 ~~~text
-ACP = runtime control
-A2A = peer agent collaboration
+Worker routing
+  -> DSH ctx.subagents
+      -> dsh-subagent-acp
+          -> Website ACP Agent
+              -> Website Core
 ~~~
 
-## ACP v1 lifecycle used by Website Agent
+That path remains useful implementation evidence, but the canonical architecture no longer requires Website to be a standalone ACP Agent.
 
-~~~mermaid
-sequenceDiagram
-    participant C as ACP Client
-    participant A as Website ACP Agent
-    participant Core as Website Core
+The target architecture is:
 
-    C->>A: initialize
-    A-->>C: protocolVersion + capabilities
-
-    C->>A: session/new(cwd, mcpServers)
-    A-->>C: sessionId + modes/config
-
-    opt mode selection
-        C->>A: session/set_mode
-        A->>Core: chat / research
-    end
-
-    C->>A: session/prompt
-    A->>Core: execute
-    A-->>C: session/update*
-    A-->>C: PromptResponse(stopReason)
-
-    opt cancel
-        C->>A: session/cancel
-        A->>Core: abort
-    end
-
-    opt continuation supported
-        C->>A: session/load / resume supported by that client-agent pair
-        A->>Core: recover same conversation
-    end
+~~~text
+external Worker/runtime
+  -> Website capability
+      -> Website Core
+          -> WebsiteProviderRuntime
 ~~~
 
-ACP baseline session methods include new/prompt/cancel/update; optional capabilities such as load/modes are advertised and must only be used when supported.
+When reusable across Worker cores, Website capability should prefer MCP/native capability composition. ACP remains available if Website execution is intentionally deployed as an external Worker/runtime.
 
 ## Direct ACP model
 
-Implementation uses the official SDK types directly.
-
-Do not define AgentOS equivalents of:
+When ACP is used, consume official ACP objects directly:
 
 - SessionId;
 - PromptRequest/Response;
@@ -77,86 +57,84 @@ Do not define AgentOS equivalents of:
 - MCP server declarations;
 - ACP errors.
 
-## Website ACP Agent
+Do not create AgentOS mirror types.
 
-Website Agent should:
+## DSH `subagent-acp`
 
-1. negotiate the native ACP version/capabilities;
-2. create a native ACP session;
-3. use `sessionId` directly as Website Core conversation key where semantics match;
-4. advertise native Session Modes for `chat` and `research` when supported;
-5. send native `session/update` notifications;
-6. return native prompt `stopReason`;
-7. implement cancellation through the shared Core abort path;
-8. implement continuation only when session persistence is real.
+Current `@deepseek-ai/dsh-subagent-acp` is an ACP Client/provider behind DSH `ctx.subagents`.
 
-## DSH `subagent-acp`: Worker-side ACP Client
+For each currently characterized one-shot run it:
 
-Current `@deepseek-ai/dsh-subagent-acp` is the ACP Client used behind `ctx.subagents`.
+1. creates a fresh child process;
+2. negotiates ACP `initialize`;
+3. creates a fresh ACP session;
+4. propagates workspace/cwd;
+5. drives prompt/update;
+6. maps native stop reasons into DSH provider semantics;
+7. propagates cancellation;
+8. currently sends `session/new.mcpServers: []`.
+
+This is a provider implementation fact, not a Worker semantic contract.
+
+Do not tunnel MCP through Worker/ACP to compensate for a provider limitation. Reusable MCP capabilities belong to the native DSH MCP/tool composition.
+
+## DSH ACP server
+
+DSH also exposes an ACP Agent/server surface for external controllers of persistent DSH agents.
 
 Conceptually:
 
-~~~mermaid
-flowchart LR
-    Worker[Worker]
-    Sub[ctx.subagents]
-    Client[dsh-subagent-acp]
-    ACP[ACP]
-    Website[Website ACP Agent]
-
-    Worker --> Sub --> Client --> ACP --> Website
-~~~
-
-Its current execution shape remains oriented around a delegated child run. Conformance tests must determine exactly which optional ACP surfaces it drives for Website Agent; do not assume DSH server-side ACP features automatically exist in `subagent-acp`.
-
-## DSH `dsh-acp`: server/control surface
-
-DSH also implements an ACP Agent/server surface for controlling persistent DSH agents.
-
-Current DSH docs/source show a broader standard automation subset including session creation/list/resume/close, prompt/cancel, config options, updates, permissions, and standard SDK types.
-
-This is a **different direction** from Website Agent:
-
 ~~~text
-external ACP Client -> dsh-acp -> persistent DSH Agent
-
-DSH subagent ACP Client -> Website ACP Agent -> Website Core
+external ACP Client
+  -> dsh-acp
+      -> persistent DSH Agent/Worker core
 ~~~
 
-Do not conflate the two.
+This is distinct from the one-shot `subagent-acp` provider direction.
 
-## DSH capability caveat
+## Capability rule
 
-Current DSH ACP surfaces are not identical:
+ACP protocol capabilities remain ACP capabilities.
 
-- `dsh-acp` server has persistent-session automation features;
-- `subagent-acp` is the delegated-provider client used by Worker.
+AgentOS Worker admission guarantees are current facts about an opaque Worker/provider and may be proven from:
 
-Website continuation must be proven specifically against the client path used by Worker.
+- runtime behavior;
+- tools/MCP;
+- environment;
+- state/auth;
+- conformance tests.
 
-## ACP modes for Website Agent
+Do not copy ACP capabilities into a universal Worker capability schema.
 
-Use standard ACP Session Modes for Core behavior:
+## MVP decision
 
-~~~text
-chat
-research
-~~~
+The MVP does not require ACP for:
 
-This removes the need for custom Website mode fields.
+- DSH Team collaboration;
+- DSH direct peer messaging;
+- Website capability when it can be composed locally/native/MCP.
 
-If current `subagent-acp` cannot call `session/set_mode`, first implementation may use a configured default mode per provider instance while an upstream/generic client enhancement is evaluated.
+Use ACP only when an external runtime boundary actually needs it.
 
-## TDD/conformance gates
+## PR #2 implementation transition
 
-1. exact DSH ACP package/version is recorded;
-2. initialize/capability negotiation uses official SDK types;
-3. `sessionId` is passed through directly;
-4. one-shot prompt/update/stopReason works end to end;
-5. cancellation reaches Website Core;
-6. unsupported optional methods are not advertised/assumed;
-7. mode selection uses standard ACP mode when supported;
-8. continuation is tested against the actual Worker-side ACP client, not inferred from DSH server behavior;
-9. no custom ACP method/`_meta` semantics are added unless a real gap is proven.
+Existing PR #2 Website ACP tests/source remain valuable characterization:
 
-See [Website adapters](../website-agent/adapters.md).
+- official SDK integration;
+- cancellation propagation;
+- native session/update semantics;
+- one-shot DSH ACP provider behavior.
+
+Follow-up PR #2 refactoring should preserve those tests where they still prove generic ACP/provider behavior, and remove Website-specific ACP coupling only after the replacement capability path is tested.
+
+## Conformance gates
+
+1. official ACP SDK/runtime types cross the boundary unchanged;
+2. cancellation propagates;
+3. unsupported continuation/features are not advertised;
+4. provider limitations are explicit;
+5. Worker semantic capability selection does not depend on ACP-specific field mirrors;
+6. no MCP tunneling/wrapper is introduced;
+7. Website capability does not require ACP unless deployed as an external Worker/runtime.
+
+See [Protocol stack](../../protocol-stack.md), [Worker model](../../execution-model.md), and [MCP](mcp.md).

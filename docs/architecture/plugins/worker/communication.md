@@ -1,107 +1,106 @@
 # Worker communication
 
 - **Status:** canonical architecture
-- **Owner:** Worker plugin
-- **Scope:** semantic dispatch without protocol normalization
+- **Scope:** execution dispatch and Team collaboration without protocol normalization
 
-## Boundary model
-
-~~~text
-Worker
-  -> DSH ctx.subagents
-      -> native DSH provider
-      -> ACP Client/provider
-          -> ACP Agent
-
-A2A
-  -> separate Agent Team <-> Website Agent peer path
-~~~
-
-## Dispatch sequence
-
-~~~mermaid
-sequenceDiagram
-    participant C as Workflow / Agent Team
-    participant W as Worker
-    participant S as ctx.subagents
-    participant P as Provider / ACP Agent
-
-    C->>W: work + required capabilities
-    W->>W: select provider
-    W->>S: DSH-native provider request
-    S->>P: provider/protocol-native execution
-    P-->>S: native result
-    S-->>W: native DSH provider result
-    W->>W: semantic/domain/effect acceptance
-    W-->>C: native result or domain-owned result
-~~~
-
-## ACP Website path
-
-~~~mermaid
-flowchart LR
-    Worker[Worker]
-    Sub[ctx.subagents]
-    Client[DSH subagent-acp]
-    ACP[ACP]
-    Agent[Website ACP Agent]
-    Core[Website Core]
-
-    Worker --> Sub --> Client --> ACP --> Agent --> Core
-~~~
-
-ACP session/update/stop-reason objects remain ACP objects.
-
-## A2A peer path
-
-~~~mermaid
-flowchart LR
-    Team[Agent Team Member]
-    A2A[A2A]
-    Website[Website Agent]
-
-    Team <--> A2A <--> Website
-~~~
-
-This path does not pass through Worker dispatch.
-
-## DSH Team communication
+## One-shot execution
 
 ~~~text
-Agent Team policy
-  -> ctx.agentTeams
-      -> native DSH mailbox/task/team mechanics
+semantic caller
+  -> Worker Router
+      -> DSH ctx.subagents
+          -> selected opaque Worker/provider
 ~~~
 
-Do not wrap DSH mailbox messages in WorkerMessage.
+The Router selects/dispatches; it is not the Worker identity.
 
-## MCP
+## Team member formation
 
-MCP equips an Agent/provider with tools/resources/data.
+~~~text
+member requirements
+  -> Worker Router
+      -> Team-member lifecycle conformance
+          -> DSH ctx.agentTeams.spawnTeammate
+              -> persistent Member / Worker
+~~~
 
-MCP is neither Worker runtime transport nor Agent-to-Agent peer communication.
+Selection happens at member formation.
+
+## Team collaboration
+
+~~~text
+Member / Worker A
+  -> native DSH Team sendMessage
+      -> Member / Worker B
+~~~
+
+The Team Lead/runtime may durably record and coordinate the message without acting as a content relay.
+
+Transport acceptance/delivery is not semantic peer completion.
+
+## Website capability path
+
+First MVP:
+
+~~~text
+Member / Worker
+  -> direct/native Website capability
+      -> Website Core
+          -> WebsiteProviderRuntime
+~~~
+
+Optional later reusable exposure:
+
+~~~text
+another Worker core
+  -> MCP
+      -> Website capability
+~~~
+
+Do not require MCP for the first DSH Website-capable Worker.
+
+## ACP
+
+ACP may control an external Worker/runtime:
+
+~~~text
+Host
+  -> ACP
+      -> external Worker
+~~~
+
+ACP is not the Worker semantic capability model.
+
+## A2A
+
+A2A is deferred until independently addressable Workers outside one shared DSH Team runtime need direct peer collaboration.
+
+Do not use A2A for the MVP DSH Team path.
 
 ## Completion propagation
 
-~~~mermaid
-flowchart LR
-    Native[Native provider result]
-    Worker[Worker semantic acceptance]
-    Team[Optional Agent Team phase acceptance]
-    Workflow[Workflow WorkItem acceptance]
-    Effect[Verified external effect when required]
+~~~text
+native execution result
+  -> Worker semantic acceptance
 
-    Native --> Worker --> Team --> Workflow --> Effect
+native Team message delivered
+  -> target response/evidence
+      -> Agent Team procedure acceptance
+
+Agent Team phase accepted
+  -> Workflow acceptance
 ~~~
 
-Layers may be skipped when they do not apply, but no lower layer may claim completion for a higher semantic layer.
+No lower layer claims completion for a higher semantic layer.
 
 ## Rules
 
-1. Worker owns semantic selection/acceptance.
-2. DSH owns provider registry/lifecycle.
-3. ACP owns runtime/client <-> Agent execution protocol.
-4. A2A owns Website Agent <-> Team Member peer collaboration.
-5. MCP owns Agent <-> tool/data access.
-6. Use native SDK/runtime objects directly.
-7. Add local binding only for a proven semantic recovery need.
+1. Worker is opaque externally.
+2. Worker Router/Registry selects and dispatches; it is not Worker identity.
+3. DSH `ctx.subagents` owns MVP multi-provider execution mechanics.
+4. Team Member uses Model A and binds to one admitted Worker/provider.
+5. DSH `ctx.agentTeams` owns MVP persistent member/direct message delivery.
+6. MCP is optional reusable capability exposure.
+7. ACP is optional external runtime control.
+8. A2A is future cross-runtime collaboration only when proven necessary.
+9. Use native runtime/protocol objects directly.

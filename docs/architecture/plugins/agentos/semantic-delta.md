@@ -2,148 +2,205 @@
 
 - **Status:** canonical architecture
 - **Owner:** AgentOS composition
-- **Scope:** product semantics AgentOS owns after reusing DSH, ACP, A2A, MCP, and reusable plugin implementations
+- **Scope:** product semantics AgentOS owns after reusing DSH Team/Subagents, MCP, ACP when needed, and replaceable capability implementations
 
-AgentOS owns a concept only when removing it would make product correctness, routing, or recovery impossible after upstream reuse.
+AgentOS owns a concept only when removing it would make product routing, collaboration, acceptance, or correctness impossible after upstream reuse.
 
-The test is:
+## Decision test
 
-> **Can DSH, a standard protocol, or a selected plugin/runtime already provide this mechanic without losing an AgentOS product invariant?**
+Before adding AgentOS mechanics ask:
+
+> **Can DSH, a standard protocol, or a reusable capability/plugin already provide this behavior without losing an AgentOS product invariant?**
 
 If yes, reuse it.
 
-If no, add the smallest semantic delta possible.
+If no, add only the smallest semantic delta at the narrowest replacement seam.
 
-## Plugin ownership
+## Replaceability test
 
-The residual semantics are distributed across plugins:
+Every AgentOS-owned semantic must survive implementation replacement.
+
+Examples:
+
+- replacing DSH Worker core with Codex/Claude Code later must not rewrite Workflow/Profile semantics;
+- replacing DSH Team runtime later must preserve the persistent Team Member -> Worker relation and collaboration procedure/barrier semantics;
+- replacing Website provider/browser/API runtime must not change Website capability/Worker/Team semantics;
+- replacing an MCP server must not create a new AgentOS tool protocol;
+- adding a domain should add a Profile/Skill/capability requirements, not fork Worker/Team/Workflow.
+
+## Ownership
 
 | Semantic | Owner |
 |---|---|
-| capability requirements, provider selection, ExecutionBinding, result acceptance | [Worker](../worker/README.md) |
-| collaboration barriers and typed phase result | [Agent Team](../agent-team/README.md) |
-| Definition/Profile, WorkItem transitions, durable recovery | [Workflow](../workflow/README.md) |
-| Website transport/ACP translation | [Website Agent](../website-agent/README.md) |
-| Website Agent <-> Agent Team Member peer collaboration | [A2A](../a2a/README.md) |
+| opaque assignable execution unit with proven current guarantees | [Worker](../worker/README.md) |
+| Worker registration/routing/selection/acceptance | current `ctx.worker` semantic layer |
+| member admission, collaboration procedure/barrier/synthesis/phase acceptance | [Agent Team](../agent-team/README.md) |
+| Team/member/task/mailbox/direct-message mechanics | DSH `ctx.agentTeams` |
+| semantic DAG/Profile/node routing | [Workflow](../workflow/README.md) |
+| Website execution semantics | [Website capability](../website-agent/README.md) |
+| Website provider mechanics | `WebsiteProviderRuntime` and its Browser/API/remote implementation |
+| reusable tool/resource capability delivery | MCP/native tool composition |
+| external Worker runtime control | ACP only when needed |
+| future cross-runtime peer interoperability | A2A only when a concrete requirement proves it |
 | composition/defaults/plugin wiring | AgentOS |
 
-## What AgentOS plugins need to own
+## Worker capability policy
 
-### Capability policy
-
-Worker answers:
+AgentOS routing answers:
 
 ~~~text
-what capabilities does this work require?
-which installed provider can satisfy them?
-which provider is appropriate for cost/context/environment/policy?
+what semantic capabilities does this work require?
+which configured Worker currently satisfies the semantic/access/state/lifecycle admission predicates?
+which conforming Worker is preferred for cost/context/environment/policy?
 ~~~
 
-DSH provider metadata, ACP capabilities, A2A AgentSkill, tools, configuration, and conformance are inputs to that decision.
+Evidence may come from:
 
-### Minimal execution binding
+- Worker core/runtime;
+- DSH provider metadata;
+- installed MCP/native tools;
+- workspace/environment;
+- auth/session state;
+- explicit configuration;
+- conformance tests.
 
-When retry/recovery/replacement requires it, Worker/Workflow may keep:
+A provider/model name alone is not a capability guarantee.
+
+## Minimal execution binding
+
+When retry/recovery/replacement genuinely requires it, keep only:
 
 ~~~text
 semantic work
-  -> current provider
-  -> provider-native handle
+  -> current native execution handle
   -> optional generation/fence
 ~~~
 
-A generation/fence is required only when an older execution can still race with a replacement.
+Do not introduce a universal Worker identity/state machine.
 
-### Exact semantic input
+## Exact semantic input
 
-The semantic owner—Workflow WorkItem or Agent Team phase—keeps the exact input snapshot/digest when correctness or recovery requires it.
+The semantic owner—Workflow node or Agent Team phase—keeps exact input/digest only when correctness/recovery requires it.
 
-Do not repeat local bookkeeping across every provider Message/Artifact.
+Do not repeat that bookkeeping in DSH/MCP/ACP messages.
 
-### Result acceptance
+## Result acceptance
 
-Provider completion is evidence.
+Native completion is evidence, not semantic acceptance.
 
-Worker and its caller validate:
+~~~text
+native result
+  -> Worker/caller acceptance
+      -> optional Agent Team phase acceptance
+          -> Workflow acceptance
+              -> external effect verification when required
+~~~
 
-- current binding when relevant;
-- acceptable provider terminal state;
-- caller/domain output contract;
-- required evidence/effect state.
+Native provider/runtime output remains native.
 
-Provider/protocol output remains native. Validate it directly; create a typed result only when the caller/domain genuinely owns a different semantic object.
+Define a typed domain result only when the domain actually owns a different semantic object.
 
-### Effect validation
+## Team policy
 
-A provider/model statement that an external effect happened is not proof.
+Agent Team owns:
 
-The owning effect/environment boundary validates actual state or a trustworthy receipt.
+- participant role/capability requirements;
+- independent-first barriers;
+- who talks to whom and when;
+- collaboration procedure/revision policy;
+- synthesis/acceptance.
 
-### Team and Workflow policy
+DSH Team owns message/task/member mechanics.
 
-Agent Team owns collaboration semantics.
+The Lead may coordinate and observe the durable Team log without relaying every peer message.
 
-Workflow owns durable sequencing/recovery semantics.
+## Website capability policy
 
-Neither should reimplement provider/runtime mechanics.
+Website is not a permanent Agent/Worker subtype.
+
+~~~text
+Worker
+  -> Website capability
+      -> Website Core
+          -> Browser Port
+              -> replaceable Browser
+~~~
+
+Use direct/native DSH composition first. Add MCP only when a concrete second consumer or interoperability requirement proves reusable exposure is needed.
 
 ## What AgentOS should not own by default
 
-Do not introduce these solely for architectural symmetry:
+Do not add these for symmetry:
 
 - stable global Worker identity;
-- universal WorkerAssignment / assignmentId;
-- public attemptId;
-- wire-level inputBinding;
-- custom Worker Message;
-- custom Worker Artifact;
-- custom WorkerState;
-- generic Worker Exchange;
-- custom MCP Worker protocol;
-- AgentOS A2A extension.
+- WorkerAssignment/WorkerTask/WorkerMessage/WorkerArtifact/WorkerState;
+- a second Team roster/mailbox/task model;
+- a custom MCP Worker protocol;
+- a mandatory Website Agent peer identity;
+- WebsitePeerBinding for the MVP;
+- A2A as a default Team transport;
+- universal normalized ACP/MCP/A2A/DSH models.
 
-Use native DSH/ACP/A2A/provider structures and keep AgentOS-local state local.
-
-## Minimal execution model
+## MVP execution model
 
 ~~~text
-Workflow WorkItem / Agent Team phase
-  -> Worker plugin
-      -> capability selection
-      -> provider execution
-      -> optional ExecutionBinding
-      -> result acceptance
-  -> native result or domain-owned typed result
-  -> effect validation when required
+Workflow / Agent Team / Local Agent
+  -> Worker routing
+      -> DSH ctx.subagents
+          -> selected Worker/provider composition
+              -> optional MCP/native capabilities
+                  -> Website capability when required
+  -> semantic acceptance
+~~~
+
+MVP collaboration:
+
+~~~text
+DSH Team Member / Worker A
+  -> native DSH Team message
+      -> DSH Team Member / Worker B
 ~~~
 
 ## Domain rule
 
-Software development and scientific research reuse the same plugins.
+Software development and scientific research reuse the same Worker, Agent Team, and Workflow semantics.
 
 A new domain normally changes:
 
 - Workflow Profile;
+- roles/procedures;
 - capability requirements;
-- Skills;
-- tools/providers;
+- tools/capability plugins;
 - domain result schemas.
-
-It does not create new Worker/Agent Team/Workflow engines.
 
 ## Decision rule
 
-Before adding any field, schema, store, service, or plugin:
+Before adding any field/schema/store/service/plugin:
 
 1. identify the exact invariant;
-2. identify the upstream primitive that nearly satisfies it;
+2. identify the DSH/standard primitive that nearly satisfies it;
 3. show the concrete failure if only that primitive is used;
-4. add the smallest state/behavior needed to close the failure;
-5. keep state out of wire formats unless a remote peer truly needs it.
+4. add the smallest missing semantic;
+5. keep native state at its owning boundary;
+6. identify the replacement seam;
+7. require a concrete interoperability case before adding another protocol such as A2A.
 
 **No field, service, or plugin exists only to make the architecture look symmetrical.**
 
+See [Replaceability and reuse](../../replaceability.md).
 
-## Direct protocol reuse
 
-ACP/A2A/DSH objects remain canonical at their owning boundaries. AgentOS does not add equivalent Task/Message/Artifact/Session/Status/Result types merely to create a uniform internal model.
+## Team Member semantic delta
+
+AgentOS owns the **member admission policy**, not a second Team member model.
+
+~~~text
+member requirements
+  -> Worker Router
+      -> selected Team-member-capable provider
+          -> DSH persistent teammate
+~~~
+
+One persistent Team Member Session is the logical Worker identity for that Team lifecycle. Process-local Activations may be recreated; ordinary unrelated subagents remain outside that Team identity.
+
+Message delivery remains transport evidence; semantic peer response/procedure completion is AgentOS-owned policy.
