@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.20.0
+          package-manager-cache: false
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.7.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --config.auto-install-peers=true
+
+      - name: Verify install is reproducible
+        run: git diff --exit-code -- package.json pnpm-workspace.yaml pnpm-lock.yaml
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: timeout 120s pnpm test

@@ -1,0 +1,12 @@
+packages:
+  - .
+
+# AgentOS is intentionally validating the current DSH release family in this PR.
+# Keep the global release-age gate intact while allowing fresh DSH RCs explicitly.
+minimumReleaseAgeExclude:
+  - '@deepseek-ai/*'
+
+allowBuilds:
+  '@deepseek-ai/dsh-subprocess-local': true
+  koffi: true
+  node-pty: true
