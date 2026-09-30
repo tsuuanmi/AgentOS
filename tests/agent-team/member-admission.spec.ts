@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   DshTeamMemberAdmission,
+  type DshTeamMemberAdmissionRequest,
   type TeamMemberWorkerSelector,
 } from '../../src/agent-team/member-admission.js'
 
@@ -27,7 +28,7 @@ describe('DSH Team member admission', () => {
       team as never,
     )
 
-    const request = {
+    const request: DshTeamMemberAdmissionRequest = {
       name: 'researcher',
       description: 'collect evidence',
       prompt: [{ type: 'text', text: 'research independently' }],
