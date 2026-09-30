@@ -1,25 +1,93 @@
-import type {
-  SubagentResult,
-  SubagentStartRequest,
-} from '@deepseek-ai/dsh-subagent'
 import { describe, expect, it, vi } from 'vitest'
 import { definePhaseContract } from '../../src/agent-team/phase-contract.js'
-import { AgentTeamPhaseRunner } from '../../src/agent-team/phase-runner.js'
-import type { AcceptedWorkerInvocation } from '../../src/worker/index.js'
+import {
+  AgentTeamPhaseRunner,
+  type AgentTeamPhaseMemberAdmission,
+  type AgentTeamPhaseMessageObserver,
+} from '../../src/agent-team/phase-runner.js'
+import type {
+  DshTeamMemberAdmissionRequest,
+} from '../../src/agent-team/member-admission.js'
+import type {
+  DshTeamMessageTarget,
+  NativeTeamMessageEvent,
+} from '../../src/agent-team/team-message-observer.js'
 
-function parent(): SubagentStartRequest['parent'] {
-  return { id: 'phase-parent' } as unknown as SubagentStartRequest['parent']
+function lead(): DshTeamMessageTarget {
+  return {
+    session: { id: 'phase-execution-lead' },
+  } as unknown as DshTeamMessageTarget
 }
 
-function completed(text: string): SubagentResult {
+function memberRequest(
+  slotId: string,
+): Omit<DshTeamMemberAdmissionRequest, 'requiredCapabilities'> {
   return {
-    output: [{ type: 'text', text }],
-    stopReason: 'completed',
+    name: slotId,
+    description: `member ${slotId}`,
+    prompt: [{ type: 'text', text: slotId }],
+    context: 'fresh',
+    signal: new AbortController().signal,
   }
 }
 
+function message(senderName: string, text: string): NativeTeamMessageEvent {
+  return {
+    type: 'user/message',
+    seq: 1,
+    time: 1,
+    data: {
+      id: `message-${senderName}`,
+      role: 'user',
+      content: [{ type: 'text', text }],
+      source: {
+        kind: 'team-message',
+        teamId: 'phase-execution-lead',
+        messageId: `team-message-${senderName}`,
+        senderId: `session-${senderName}`,
+        senderName,
+      },
+    },
+  } as NativeTeamMessageEvent
+}
+
+function runnerFor(
+  evidenceFor: (slotId: string) => string,
+): AgentTeamPhaseRunner {
+  const resolvers = new Map<string, (event: NativeTeamMessageEvent) => void>()
+  const messages: AgentTeamPhaseMessageObserver = {
+    waitFor: (_lead, options) => new Promise(resolve => {
+      resolvers.set(options.senderName!, event => {
+        const result = options.accept(event)
+        if (result !== undefined) resolve(result)
+      })
+    }),
+  }
+  const admission: AgentTeamPhaseMemberAdmission = {
+    spawn: async (_lead, request) => {
+      resolvers.get(request.name)?.(
+        message(request.name, evidenceFor(request.name)),
+      )
+      return {
+        member: {
+          id: `session-${request.name}`,
+          name: request.name,
+          role: 'teammate',
+          status: 'inactive',
+          diagnostics: [],
+        },
+      } as never
+    },
+  }
+
+  return new AgentTeamPhaseRunner({
+    memberAdmission: admission,
+    messages,
+  })
+}
+
 describe('Agent Team complete phase execution', () => {
-  it('runs independent work, then collaboration, then synthesis and explicit acceptance', async () => {
+  it('runs persistent independent members, then collaboration, synthesis, and explicit acceptance', async () => {
     const contract = definePhaseContract({
       phaseId: 'implementation-review',
       objective: 'implement and review',
@@ -30,15 +98,10 @@ describe('Agent Team complete phase execution', () => {
       ],
     })
     const executionOrder: string[] = []
-    let started = 0
-    const worker = {
-      async execute<T>(invocation: AcceptedWorkerInvocation<T>): Promise<T> {
-        const slot = started++ === 0 ? 'implementer' : 'reviewer'
-        executionOrder.push(`independent:${slot}`)
-        return invocation.accept(completed(`${slot}-evidence`))
-      },
-    }
-    const runner = new AgentTeamPhaseRunner(worker)
+    const runner = runnerFor(slotId => {
+      executionOrder.push(`independent:${slotId}`)
+      return `${slotId}-evidence`
+    })
     const collaborate = vi.fn(async (
       independent: readonly { slotId: string; result: string }[],
     ) => {
@@ -75,13 +138,12 @@ describe('Agent Team complete phase execution', () => {
     })
 
     const result = await runner.run(contract, {
-      requestFor: slotId => ({
-        prompt: [{ type: 'text', text: slotId }],
-        parent: parent(),
-        signal: new AbortController().signal,
-      }),
-      acceptIndependent: (_slotId, native) => (
-        native.output[0]?.type === 'text' ? native.output[0].text : ''
+      lead: lead(),
+      memberFor: slotId => memberRequest(slotId),
+      acceptIndependent: (_slotId, event) => (
+        event.data.content[0]?.type === 'text'
+          ? event.data.content[0].text
+          : undefined
       ),
       collaborate,
       synthesize,
@@ -111,21 +173,15 @@ describe('Agent Team complete phase execution', () => {
         { slotId: 'reviewer', requiredCapabilities: ['review'] },
       ],
     })
-    const worker = {
-      async execute<T>(invocation: AcceptedWorkerInvocation<T>): Promise<T> {
-        return invocation.accept(completed('approved'))
-      },
-    }
-    const runner = new AgentTeamPhaseRunner(worker)
+    const runner = runnerFor(() => 'approved')
 
     const result = await runner.run(contract, {
-      requestFor: () => ({
-        prompt: [{ type: 'text', text: 'review' }],
-        parent: parent(),
-        signal: new AbortController().signal,
-      }),
-      acceptIndependent: (_slotId, native) => (
-        native.output[0]?.type === 'text' ? native.output[0].text : ''
+      lead: lead(),
+      memberFor: slotId => memberRequest(slotId),
+      acceptIndependent: (_slotId, event) => (
+        event.data.content[0]?.type === 'text'
+          ? event.data.content[0].text
+          : undefined
       ),
       synthesize: ({ independent }) => independent[0]?.result ?? '',
       accept: candidate => candidate === 'approved' ? 'phase-accepted' : 'phase-rejected',
@@ -143,23 +199,19 @@ describe('Agent Team complete phase execution', () => {
         { slotId: 'reviewer', requiredCapabilities: ['review'] },
       ],
     })
-    const worker = {
-      async execute<T>(invocation: AcceptedWorkerInvocation<T>): Promise<T> {
-        return invocation.accept(completed('review-evidence'))
-      },
-    }
     const failure = new Error('peer unavailable')
     const synthesize = vi.fn()
     const accept = vi.fn()
-    const runner = new AgentTeamPhaseRunner(worker)
+    const runner = runnerFor(() => 'review-evidence')
 
     await expect(runner.run(contract, {
-      requestFor: () => ({
-        prompt: [{ type: 'text', text: 'review' }],
-        parent: parent(),
-        signal: new AbortController().signal,
-      }),
-      acceptIndependent: () => 'review-evidence',
+      lead: lead(),
+      memberFor: slotId => memberRequest(slotId),
+      acceptIndependent: (_slotId, event) => (
+        event.data.content[0]?.type === 'text'
+          ? event.data.content[0].text
+          : undefined
+      ),
       collaborate: async () => {
         throw failure
       },
