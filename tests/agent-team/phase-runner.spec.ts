@@ -1,110 +1,195 @@
-import type {
-  SubagentResult,
-  SubagentStartRequest,
-} from '@deepseek-ai/dsh-subagent'
 import { describe, expect, it, vi } from 'vitest'
 import { definePhaseContract } from '../../src/agent-team/phase-contract.js'
-import { AgentTeamPhaseRunner } from '../../src/agent-team/phase-runner.js'
-import type { AcceptedWorkerInvocation } from '../../src/worker/index.js'
+import {
+  AgentTeamPhaseRunner,
+  type AgentTeamPhaseMemberAdmission,
+  type AgentTeamPhaseMessageObserver,
+} from '../../src/agent-team/phase-runner.js'
+import type {
+  DshTeamMemberAdmissionRequest,
+} from '../../src/agent-team/member-admission.js'
+import type {
+  DshTeamMessageTarget,
+  NativeTeamMessageEvent,
+} from '../../src/agent-team/team-message-observer.js'
 
-function parent(): SubagentStartRequest['parent'] {
-  return { id: 'phase-parent' } as unknown as SubagentStartRequest['parent']
+function lead(): DshTeamMessageTarget {
+  return {
+    session: { id: 'phase-lead' },
+  } as unknown as DshTeamMessageTarget
 }
 
-function completed(text: string): SubagentResult {
+function message(
+  senderName: string,
+  text: string,
+): NativeTeamMessageEvent {
   return {
-    output: [{ type: 'text', text }],
-    stopReason: 'completed',
+    type: 'user/message',
+    seq: 1,
+    time: 1,
+    data: {
+      id: `message-${senderName}`,
+      role: 'user',
+      content: [{ type: 'text', text }],
+      source: {
+        kind: 'team-message',
+        teamId: 'phase-lead',
+        messageId: `team-message-${senderName}`,
+        senderId: `session-${senderName}`,
+        senderName,
+      },
+    },
+  } as NativeTeamMessageEvent
+}
+
+function memberRequest(
+  slotId: string,
+  signal = new AbortController().signal,
+): Omit<DshTeamMemberAdmissionRequest, 'requiredCapabilities'> {
+  return {
+    name: slotId,
+    description: `member ${slotId}`,
+    prompt: [{ type: 'text', text: `work as ${slotId}` }],
+    context: 'fresh',
+    signal,
   }
 }
 
 describe('Agent Team phase runner', () => {
-  it('dispatches every independent participant through Worker with only its capability requirements and authoritative input', async () => {
-    const input = { repository: 'tsuuanmi/AgentOS', revision: 3 }
+  it('arms every native evidence observer before spawning any persistent Team member', async () => {
     const contract = definePhaseContract({
       phaseId: 'phase-review',
       objective: 'review independently',
-      input,
+      input: { repository: 'tsuuanmi/AgentOS' },
       participants: [
         { slotId: 'review-a', requiredCapabilities: ['review'] },
         { slotId: 'review-b', requiredCapabilities: ['review', 'research'] },
       ],
     })
-    const invocations: AcceptedWorkerInvocation<{ summary: string }>[] = []
-    const worker = {
-      async execute<T>(invocation: AcceptedWorkerInvocation<T>): Promise<T> {
-        invocations.push(invocation as AcceptedWorkerInvocation<{ summary: string }>)
-        const slot = invocation.requiredCapabilities.includes('research') ? 'review-b' : 'review-a'
-        return invocation.accept(completed(`${slot} accepted`))
-      },
-    }
-    const requestFor = vi.fn((slotId: string, authoritativeInput: typeof input): SubagentStartRequest => ({
-      prompt: [{
-        type: 'text',
-        text: `${slotId}:${authoritativeInput.repository}@${authoritativeInput.revision}`,
-      }],
-      parent: parent(),
-      signal: new AbortController().signal,
-    }))
-    const runner = new AgentTeamPhaseRunner(worker)
+    const order: string[] = []
+    const resolvers = new Map<string, (event: NativeTeamMessageEvent) => void>()
 
-    const result = await runner.runIndependent(contract, {
-      requestFor,
-      accept: (slotId, native) => ({
-        summary: `${slotId}:${native.output[0]?.type === 'text' ? native.output[0].text : ''}`,
+    const messages: AgentTeamPhaseMessageObserver = {
+      waitFor: vi.fn((_, options) => {
+        order.push(`observe:${options.senderName}`)
+        return new Promise(resolve => {
+          resolvers.set(options.senderName!, event => {
+            const result = options.accept(event)
+            if (result !== undefined) resolve(result)
+          })
+        })
       }),
+    }
+    const admission: AgentTeamPhaseMemberAdmission = {
+      spawn: vi.fn(async (_lead, request) => {
+        order.push(`spawn:${request.name}`)
+        resolvers.get(request.name)?.(
+          message(request.name, `${request.name} evidence`),
+        )
+        return {
+          member: {
+            id: `session-${request.name}`,
+            name: request.name,
+            role: 'teammate',
+            status: 'inactive',
+            diagnostics: [],
+          },
+        } as never
+      }),
+    }
+
+    const runner = new AgentTeamPhaseRunner({
+      memberAdmission: admission,
+      messages,
     })
 
-    expect(requestFor).toHaveBeenCalledTimes(2)
-    expect(requestFor.mock.calls.map(call => call[1])).toEqual([input, input])
-    expect(invocations.map(invocation => invocation.requiredCapabilities)).toEqual([
-      ['review'],
-      ['review', 'research'],
+    const result = await runner.runIndependent(contract, {
+      lead: lead(),
+      memberFor: slotId => memberRequest(slotId),
+      accept: (_slotId, event) => (
+        event.data.content[0]?.type === 'text'
+          ? event.data.content[0].text
+          : undefined
+      ),
+    })
+
+    expect(order).toEqual([
+      'observe:review-a',
+      'observe:review-b',
+      'spawn:review-a',
+      'spawn:review-b',
     ])
+    expect(admission.spawn).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        name: 'review-a',
+        requiredCapabilities: ['review'],
+      }),
+    )
+    expect(admission.spawn).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        name: 'review-b',
+        requiredCapabilities: ['review', 'research'],
+      }),
+    )
     expect(result).toEqual([
-      { slotId: 'review-a', result: { summary: 'review-a:review-a accepted' } },
-      { slotId: 'review-b', result: { summary: 'review-b:review-b accepted' } },
+      { slotId: 'review-a', result: 'review-a evidence' },
+      { slotId: 'review-b', result: 'review-b evidence' },
     ])
-    expect(result[0]?.result).not.toHaveProperty('provider')
   })
 
-  it('starts independent Worker executions without waiting for earlier participant evidence', async () => {
+  it('does not release independent evidence until every persistent member submits accepted Team evidence', async () => {
     const contract = definePhaseContract({
       phaseId: 'phase-research',
       objective: 'research independently',
-      input: { question: 'architecture' },
+      input: 'question',
       participants: [
         { slotId: 'research-a', requiredCapabilities: ['research'] },
         { slotId: 'research-b', requiredCapabilities: ['research'] },
       ],
     })
-    const resolvers = new Map<number, (value: unknown) => void>()
-    let started = 0
-    const worker = {
-      execute<T>(invocation: AcceptedWorkerInvocation<T>): Promise<T> {
-        const index = started++
-        return new Promise<T>(resolve => {
-          resolvers.set(index, async native => {
-            resolve(await invocation.accept(native as SubagentResult))
-          })
+    const resolvers = new Map<string, (event: NativeTeamMessageEvent) => void>()
+
+    const messages: AgentTeamPhaseMessageObserver = {
+      waitFor: (_lead, options) => new Promise(resolve => {
+        resolvers.set(options.senderName!, event => {
+          const result = options.accept(event)
+          if (result !== undefined) resolve(result)
         })
-      },
-    }
-    const runner = new AgentTeamPhaseRunner(worker)
-    const running = runner.runIndependent(contract, {
-      requestFor: slotId => ({
-        prompt: [{ type: 'text', text: slotId }],
-        parent: parent(),
-        signal: new AbortController().signal,
       }),
-      accept: slotId => ({ summary: slotId }),
+    }
+    const admission: AgentTeamPhaseMemberAdmission = {
+      spawn: async (_lead, request) => ({
+        member: {
+          id: `session-${request.name}`,
+          name: request.name,
+          role: 'teammate',
+          status: 'inactive',
+          diagnostics: [],
+        },
+      } as never),
+    }
+    const runner = new AgentTeamPhaseRunner({
+      memberAdmission: admission,
+      messages,
+    })
+    const running = runner.runIndependent(contract, {
+      lead: lead(),
+      memberFor: slotId => memberRequest(slotId),
+      accept: (_slotId, event) => (
+        event.data.content[0]?.type === 'text'
+          ? event.data.content[0].text
+          : undefined
+      ),
     })
 
     await Promise.resolve()
-    expect(started).toBe(2)
-
-    resolvers.get(1)?.(completed('second'))
+    resolvers.get('research-b')?.(message('research-b', 'second'))
     await Promise.resolve()
+
     let settled = false
     void running.then(() => {
       settled = true
@@ -112,40 +197,45 @@ describe('Agent Team phase runner', () => {
     await Promise.resolve()
     expect(settled).toBe(false)
 
-    resolvers.get(0)?.(completed('first'))
+    resolvers.get('research-a')?.(message('research-a', 'first'))
+
     await expect(running).resolves.toEqual([
-      { slotId: 'research-a', result: { summary: 'research-a' } },
-      { slotId: 'research-b', result: { summary: 'research-b' } },
+      { slotId: 'research-a', result: 'first' },
+      { slotId: 'research-b', result: 'second' },
     ])
   })
 
-  it('does not produce a phase result when one Worker execution fails', async () => {
+  it('fails the phase when Team member admission fails instead of falling back to one-shot Worker execution', async () => {
     const contract = definePhaseContract({
       phaseId: 'phase-review',
-      objective: 'review independently',
+      objective: 'review',
       input: {},
       participants: [
-        { slotId: 'review-a', requiredCapabilities: ['review'] },
-        { slotId: 'review-b', requiredCapabilities: ['review'] },
+        { slotId: 'reviewer', requiredCapabilities: ['review'] },
       ],
     })
-    const failure = new Error('worker acceptance failed')
-    let index = 0
-    const worker = {
-      async execute<T>(invocation: AcceptedWorkerInvocation<T>): Promise<T> {
-        if (index++ === 1) throw failure
-        return invocation.accept(completed('accepted'))
-      },
+    const failure = new Error('no continuable provider')
+    const messages: AgentTeamPhaseMessageObserver = {
+      waitFor: vi.fn((_lead, options) => new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => reject(options.signal.reason), {
+          once: true,
+        })
+      })),
     }
-    const runner = new AgentTeamPhaseRunner(worker)
+    const admission: AgentTeamPhaseMemberAdmission = {
+      spawn: vi.fn(async () => {
+        throw failure
+      }),
+    }
+    const runner = new AgentTeamPhaseRunner({
+      memberAdmission: admission,
+      messages,
+    })
 
     await expect(runner.runIndependent(contract, {
-      requestFor: slotId => ({
-        prompt: [{ type: 'text', text: slotId }],
-        parent: parent(),
-        signal: new AbortController().signal,
-      }),
-      accept: slotId => ({ summary: slotId }),
+      lead: lead(),
+      memberFor: slotId => memberRequest(slotId),
+      accept: () => undefined,
     })).rejects.toBe(failure)
   })
 })
