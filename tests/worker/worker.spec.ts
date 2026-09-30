@@ -58,6 +58,10 @@ class StubProvider implements SubagentProvider {
   }
 }
 
+class ContinuableStubProvider extends StubProvider {
+  readonly prepareContinuable: NonNullable<SubagentProvider['prepareContinuable']> = async () => ({})
+}
+
 async function setup() {
   const ctx = new Context()
   await ctx.plugin(SessionProjectionRegistry)
@@ -121,6 +125,49 @@ describe('Worker plugin', () => {
 
     expect(economical.startCount).toBe(0)
     expect(deep.startCount).toBe(1)
+
+    await ctx.fiber.dispose()
+  })
+
+  it('selects a Team-member provider only when the native DSH provider supports continuable children', async () => {
+    const ctx = await setup()
+    const oneShot = new StubProvider('one-shot')
+    const continuable = new ContinuableStubProvider('continuable')
+    ctx.subagents.registerProvider(oneShot)
+    ctx.subagents.registerProvider(continuable)
+    ctx.worker.registerProviderProfile({
+      provider: 'one-shot',
+      capabilities: ['research'],
+      priority: 100,
+    })
+    ctx.worker.registerProviderProfile({
+      provider: 'continuable',
+      capabilities: ['research'],
+      priority: 10,
+    })
+
+    const selected = ctx.worker.selectTeamMemberProvider(['research'])
+
+    expect(selected).toBe('continuable')
+    expect(oneShot.startCount).toBe(0)
+    expect(continuable.startCount).toBe(0)
+
+    await ctx.fiber.dispose()
+  })
+
+  it('fails Team-member admission when only one-shot providers satisfy the semantic requirements', async () => {
+    const ctx = await setup()
+    const oneShot = new StubProvider('one-shot')
+    ctx.subagents.registerProvider(oneShot)
+    ctx.worker.registerProviderProfile({
+      provider: 'one-shot',
+      capabilities: ['research'],
+    })
+
+    expect(() => ctx.worker.selectTeamMemberProvider(['research'])).toThrow(
+      expect.objectContaining({ code: 'NO_CONFORMING_PROVIDER' }),
+    )
+    expect(oneShot.startCount).toBe(0)
 
     await ctx.fiber.dispose()
   })
