@@ -2,14 +2,17 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { DshAgentTeamService } from './dsh-agent-team.js'
 
 type DshTeamAgent = Parameters<DshAgentTeamService['sendMessage']>[0]
-type NativeSessionEvent = DshTeamAgent['session']['events'][number]
 
 export type DshTeamMessageTarget = Pick<DshTeamAgent, 'session'>
+
+type NativeSessionEvent = Parameters<
+  Parameters<Context['on']>[1]
+>[1]
+
 export type NativeTeamMessageEvent =
   Extract<NativeSessionEvent, { type: 'user/message' }>
 
 export interface WaitForDshTeamMessageOptions<Result> {
-  readonly afterSeq: number
   readonly senderId?: string
   readonly senderName?: string
   readonly signal: AbortSignal
@@ -17,12 +20,14 @@ export interface WaitForDshTeamMessageOptions<Result> {
 }
 
 /**
- * Observes native DSH Team messages in one exact target Session.
+ * Observes native DSH Team messages delivered to one exact live target Session.
  *
- * No AgentOS mailbox state is persisted. The observer subscribes before replay
- * so a message committed around observer startup is seen either from the live
- * event feed or from the Session log. Caller-owned acceptance decides which
- * matching message constitutes semantic evidence.
+ * The MVP arms this observer before spawning/driving participants, so no replay
+ * dependency is required. Recovery/replay remains deferred until a concrete
+ * restart case proves it necessary.
+ *
+ * No AgentOS mailbox state is persisted. Caller-owned acceptance decides which
+ * matching native Team message constitutes semantic evidence.
  */
 export class DshTeamMessageObserver {
   constructor(
@@ -58,7 +63,6 @@ export class DshTeamMessageObserver {
         event: NativeSessionEvent,
       ) => {
         if (settled || session !== target.session) return
-        if (Number(event.seq) <= options.afterSeq) return
         if (event.type !== 'user/message') return
 
         const source = event.data.source
@@ -93,11 +97,6 @@ export class DshTeamMessageObserver {
         inspect(session, event)
       })
       options.signal.addEventListener('abort', onAbort, { once: true })
-
-      for (const event of target.session.events) {
-        inspect(target.session, event)
-        if (settled) break
-      }
     })
   }
 
