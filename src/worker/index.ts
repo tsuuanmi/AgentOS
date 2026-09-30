@@ -1,5 +1,6 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
 import type {
+  SubagentProvider,
   SubagentResult,
   SubagentStartRequest,
 } from '@deepseek-ai/dsh-subagent'
@@ -110,6 +111,13 @@ export class WorkerRuntime extends Service {
     }, 'worker.registerProviderProfile()')
   }
 
+  selectTeamMemberProvider(requiredCapabilities: readonly string[]): string {
+    return this.selectProvider(
+      requiredCapabilities,
+      provider => provider.prepareContinuable !== undefined,
+    )
+  }
+
   execute<T>(invocation: AcceptedWorkerInvocation<T>): Promise<T>
   execute(invocation: WorkerInvocation): Promise<SubagentResult>
   async execute<T>(
@@ -174,11 +182,15 @@ export class WorkerRuntime extends Service {
     }
   }
 
-  private selectProvider(requiredCapabilities: readonly string[]): string {
+  private selectProvider(
+    requiredCapabilities: readonly string[],
+    acceptsProvider: (provider: SubagentProvider) => boolean = () => true,
+  ): string {
     let selected: RegisteredProfile | undefined
 
     for (const profile of this.profiles.values()) {
-      if (this.context.subagents.getProvider(profile.provider) === undefined) continue
+      const provider = this.context.subagents.getProvider(profile.provider)
+      if (provider === undefined || !acceptsProvider(provider)) continue
       if (!requiredCapabilities.every(capability => profile.capabilities.has(capability))) continue
 
       if (
