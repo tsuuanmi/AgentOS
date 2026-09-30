@@ -1,29 +1,48 @@
-import type {
-  SubagentResult,
-  SubagentStartRequest,
-} from '@deepseek-ai/dsh-subagent'
 import type { AgentTeamPhaseContract } from './phase-contract.js'
 import {
   IndependentFirstBarrier,
   type ReleasedIndependentResult,
 } from './independent-first-barrier.js'
-import type { AcceptedWorkerInvocation } from '../worker/index.js'
+import type {
+  DshTeamMemberAdmission,
+  DshTeamMemberAdmissionRequest,
+} from './member-admission.js'
+import type {
+  DshTeamMessageObserver,
+  DshTeamMessageTarget,
+  NativeTeamMessageEvent,
+  WaitForDshTeamMessageOptions,
+} from './team-message-observer.js'
 
-export interface AgentTeamPhaseWorker {
-  execute<Result>(invocation: AcceptedWorkerInvocation<Result>): Promise<Result>
+export type AgentTeamPhaseLead =
+  Parameters<DshTeamMemberAdmission['spawn']>[0]
+
+export type AgentTeamPhaseMemberAdmission =
+  Pick<DshTeamMemberAdmission, 'spawn'>
+
+export interface AgentTeamPhaseMessageObserver {
+  waitFor<Result>(
+    target: DshTeamMessageTarget,
+    options: WaitForDshTeamMessageOptions<Result>,
+  ): Promise<Result>
+}
+
+export interface AgentTeamPhaseRunnerDependencies {
+  readonly memberAdmission: AgentTeamPhaseMemberAdmission
+  readonly messages: AgentTeamPhaseMessageObserver
 }
 
 export interface AgentTeamPhaseRunOptions<Input, Result> {
-  readonly requestFor: (
+  readonly lead: AgentTeamPhaseLead
+  readonly memberFor: (
     slotId: string,
     input: Input,
-  ) => SubagentStartRequest
+  ) => Omit<DshTeamMemberAdmissionRequest, 'requiredCapabilities'>
   readonly accept: (
     slotId: string,
-    result: SubagentResult,
-  ) => Result | Promise<Result>
+    message: NativeTeamMessageEvent,
+  ) => Result | undefined
 }
-
 
 export interface AgentTeamPhaseExecutionContext<
   Input,
@@ -42,14 +61,15 @@ export interface AgentTeamPhaseExecutionOptions<
   Candidate,
   Accepted,
 > {
-  readonly requestFor: (
+  readonly lead: AgentTeamPhaseLead
+  readonly memberFor: (
     slotId: string,
     input: Input,
-  ) => SubagentStartRequest
+  ) => Omit<DshTeamMemberAdmissionRequest, 'requiredCapabilities'>
   readonly acceptIndependent: (
     slotId: string,
-    result: SubagentResult,
-  ) => IndependentResult | Promise<IndependentResult>
+    message: NativeTeamMessageEvent,
+  ) => IndependentResult | undefined
   readonly collaborate?: (
     independent: readonly ReleasedIndependentResult<IndependentResult>[],
     contract: AgentTeamPhaseContract<Input>,
@@ -71,9 +91,14 @@ export interface AgentTeamPhaseExecutionOptions<
   ) => Accepted | Promise<Accepted>
 }
 
+interface PlannedMember<Input> {
+  readonly participant: AgentTeamPhaseContract<Input>['participants'][number]
+  readonly request: Omit<DshTeamMemberAdmissionRequest, 'requiredCapabilities'>
+}
+
 export class AgentTeamPhaseRunner {
   constructor(
-    private readonly worker: AgentTeamPhaseWorker,
+    private readonly dependencies: AgentTeamPhaseRunnerDependencies,
   ) {}
 
   async run<
@@ -93,7 +118,8 @@ export class AgentTeamPhaseRunner {
     >,
   ): Promise<Accepted> {
     const independent = await this.runIndependent(contract, {
-      requestFor: options.requestFor,
+      lead: options.lead,
+      memberFor: options.memberFor,
       accept: options.acceptIndependent,
     })
     const collaboration = options.collaborate === undefined
@@ -119,16 +145,42 @@ export class AgentTeamPhaseRunner {
     const barrier = new IndependentFirstBarrier<Result>(
       contract.participants.map(participant => participant.slotId),
     )
-
-    await Promise.all(contract.participants.map(async participant => {
-      const result = await this.worker.execute({
-        requiredCapabilities: participant.requiredCapabilities,
-        request: options.requestFor(participant.slotId, contract.input),
-        accept: native => options.accept(participant.slotId, native),
-      })
-      barrier.accept(participant.slotId, result)
+    const planned = contract.participants.map<PlannedMember<Input>>(participant => ({
+      participant,
+      request: options.memberFor(participant.slotId, contract.input),
     }))
+    const lifecycle = new AbortController()
+    const evidence: Promise<Result>[] = []
 
-    return barrier.release()
+    try {
+      for (const member of planned) {
+        const signal = AbortSignal.any([
+          member.request.signal,
+          lifecycle.signal,
+        ])
+        evidence.push(this.dependencies.messages.waitFor(options.lead, {
+          senderName: member.request.name,
+          signal,
+          accept: message => options.accept(member.participant.slotId, message),
+        }))
+      }
+
+      await Promise.all(planned.map(member => (
+        this.dependencies.memberAdmission.spawn(options.lead, {
+          ...member.request,
+          requiredCapabilities: member.participant.requiredCapabilities,
+        })
+      )))
+
+      const accepted = await Promise.all(evidence)
+      accepted.forEach((result, index) => {
+        barrier.accept(contract.participants[index]!.slotId, result)
+      })
+      return barrier.release()
+    } catch (cause: unknown) {
+      lifecycle.abort(cause)
+      await Promise.allSettled(evidence)
+      throw cause
+    }
   }
 }
