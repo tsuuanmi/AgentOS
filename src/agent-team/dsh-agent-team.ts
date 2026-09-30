@@ -32,6 +32,13 @@ export class DshAgentTeamAdapter {
     return this.service.listMembers(agent)
   }
 
+  spawnTeammate(
+    agent: Parameters<DshAgentTeamService['spawnTeammate']>[0],
+    request: Parameters<DshAgentTeamService['spawnTeammate']>[1],
+  ): ReturnType<DshAgentTeamService['spawnTeammate']> {
+    return this.service.spawnTeammate(agent, request)
+  }
+
   sendMessage(
     agent: Parameters<DshAgentTeamService['sendMessage']>[0],
     request: Parameters<DshAgentTeamService['sendMessage']>[1],
