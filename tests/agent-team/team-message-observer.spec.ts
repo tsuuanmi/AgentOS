@@ -31,11 +31,10 @@ function teamMessageEvent(
   }
 }
 
-function target(events: readonly unknown[] = []): DshTeamMessageTarget {
+function target(): DshTeamMessageTarget {
   return {
     session: {
       id: 'lead-session',
-      events,
     },
   } as unknown as DshTeamMessageTarget
 }
@@ -60,41 +59,13 @@ function context() {
 }
 
 describe('DSH Team message observer', () => {
-  it('replays an already committed native Team message after the caller cursor', async () => {
-    const committed = teamMessageEvent(4, 'reviewer-a', 'accepted evidence')
-    const lead = target([
-      teamMessageEvent(1, 'reviewer-a', 'old evidence'),
-      committed,
-    ])
+  it('arms the native session-event listener before a Team member can submit evidence', async () => {
+    const lead = target()
     const runtime = context()
     const observer = new DshTeamMessageObserver(runtime.ctx)
-    const accept = vi.fn(event => (
-      event.data.content[0]?.type === 'text'
-        ? event.data.content[0].text
-        : undefined
-    ))
 
-    const result = await observer.waitFor(lead, {
-      afterSeq: 1,
-      senderName: 'reviewer-a',
-      signal: new AbortController().signal,
-      accept,
-    })
-
-    expect(result).toBe('accepted evidence')
-    expect(accept).toHaveBeenCalledOnce()
-    expect(accept.mock.calls[0]?.[0]).toBe(committed)
-    expect(runtime.off).toHaveBeenCalledOnce()
-  })
-
-  it('subscribes before replay and accepts only a future message from the expected native sender', async () => {
-    const lead = target([])
-    const other = target([])
-    const runtime = context()
-    const observer = new DshTeamMessageObserver(runtime.ctx)
     const running = observer.waitFor(lead, {
-      afterSeq: -1,
-      senderName: 'reviewer-b',
+      senderName: 'reviewer-a',
       signal: new AbortController().signal,
       accept: event => (
         event.data.content[0]?.type === 'text'
@@ -105,23 +76,71 @@ describe('DSH Team message observer', () => {
 
     expect(runtime.ctx.on).toHaveBeenCalledWith('session/event', expect.any(Function))
 
+    runtime.emit(lead.session, teamMessageEvent(1, 'reviewer-a', 'accepted evidence'))
+
+    await expect(running).resolves.toBe('accepted evidence')
+    expect(runtime.off).toHaveBeenCalledOnce()
+  })
+
+  it('accepts only a future message from the expected native target Session and sender', async () => {
+    const lead = target()
+    const other = target()
+    const runtime = context()
+    const observer = new DshTeamMessageObserver(runtime.ctx)
+    const accept = vi.fn(event => (
+      event.data.content[0]?.type === 'text'
+        ? event.data.content[0].text
+        : undefined
+    ))
+
+    const running = observer.waitFor(lead, {
+      senderName: 'reviewer-b',
+      signal: new AbortController().signal,
+      accept,
+    })
+
     runtime.emit(other.session, teamMessageEvent(1, 'reviewer-b', 'wrong session'))
     runtime.emit(lead.session, teamMessageEvent(2, 'reviewer-a', 'wrong sender'))
     runtime.emit(lead.session, teamMessageEvent(3, 'reviewer-b', 'peer evidence'))
 
     await expect(running).resolves.toBe('peer evidence')
+    expect(accept).toHaveBeenCalledOnce()
+    expect(runtime.off).toHaveBeenCalledOnce()
+  })
+
+  it('keeps observing when caller acceptance rejects a matching Team message semantically', async () => {
+    const lead = target()
+    const runtime = context()
+    const observer = new DshTeamMessageObserver(runtime.ctx)
+
+    const running = observer.waitFor(lead, {
+      senderName: 'reviewer-a',
+      signal: new AbortController().signal,
+      accept: event => {
+        const text = event.data.content[0]?.type === 'text'
+          ? event.data.content[0].text
+          : ''
+        return text.startsWith('FINAL:')
+          ? text.slice('FINAL:'.length)
+          : undefined
+      },
+    })
+
+    runtime.emit(lead.session, teamMessageEvent(1, 'reviewer-a', 'progress'))
+    runtime.emit(lead.session, teamMessageEvent(2, 'reviewer-a', 'FINAL:accepted'))
+
+    await expect(running).resolves.toBe('accepted')
     expect(runtime.off).toHaveBeenCalledOnce()
   })
 
   it('propagates caller cancellation and releases the native session listener', async () => {
-    const lead = target([])
+    const lead = target()
     const runtime = context()
     const observer = new DshTeamMessageObserver(runtime.ctx)
     const controller = new AbortController()
     const reason = new Error('phase cancelled')
 
     const running = observer.waitFor(lead, {
-      afterSeq: -1,
       senderName: 'reviewer-a',
       signal: controller.signal,
       accept: () => undefined,
